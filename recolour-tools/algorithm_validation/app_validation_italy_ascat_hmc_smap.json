@@ -1,0 +1,86 @@
+{
+  "mode": {
+    "mp_mode": false,
+    "mp_cpu_n": 9
+  },
+  "flags": {
+    "reset_datasets_src": false,
+    "reset_datasets_dst": false,
+    "reset_logs": true
+  },
+  "parameters": {
+    "temporal_window": 24,
+    "seasonal_anomaly": false,
+    "seasonal_metrics": false
+  },
+  "domain": {
+    "name": "italy",
+    "cell_start": 1394,
+    "cell_end": 1398,
+    "cell_list": [1394, 1395]
+  },
+  "datasets": {
+    "source": {
+      "reference": {
+        "name": "ASCAT",
+        "variable": "sm",
+        "type": "data_record",
+        "kwargs": {
+          "mask_frozen_prob": 10,
+          "mask_snow_prob": 10
+        },
+        "path_ts": "/share/hsaf/recolour/ascat_ts_dr/h119/",
+        "path_static": "/share/hsaf/recolour/ascat_static/",
+        "file_grid": "TUW_WARP5_grid_info_2_3.nc",
+        "tmp": {
+          "active_tmp": true,
+          "path_tmp": "/share/hsaf/recolour/ascat_ancillary/h119/",
+          "file_tmp": "ascat_{gpi_n}.workspace",
+          "clean_tmp": false
+        }
+      },
+      "k1": {
+        "name": "HMC",
+        "variable": "soil_moisture",
+        "type": "data_record",
+        "kwargs": {"lut_max_dist": 35000},
+        "path_ts": "/share/hsaf/recolour/hmc_ts/",
+        "path_static": "/share/hsaf/recolour/hmc_ts/",
+        "file_grid": "grid.nc",
+        "tmp": {
+          "active_tmp": true,
+          "path_tmp": "/share/hsaf/recolour/hmc_ancillary/",
+          "file_tmp": "hmc_{gpi_n}.workspace",
+          "clean_tmp": false
+        }
+      },
+      "k2": {
+        "name": "SMAP",
+        "variable": "soil_moisture",
+        "type": "data_record",
+        "kwargs": {"lut_max_dist": 35000},
+        "path_ts": "/share/hsaf/recolour/smap_ts/",
+        "path_static": "/share/hsaf/recolour/smap_ts/",
+        "file_grid": "grid.nc",
+        "tmp": {
+          "active_tmp": true,
+          "path_tmp": "/share/hsaf/recolour/smap_ancillary/",
+          "file_tmp": "smap_{gpi_n}.workspace",
+          "clean_tmp": false
+        }
+      }
+    },
+    "destination": {
+      "path_analysis": "/share/hsaf/recolour/validation/results/test_h119/ascat_hmc_smap/"
+    }
+  },
+  "time": {
+    "time_start": "2016-12-01",
+    "time_end": "2016-12-31",
+    "time_format": "%Y-%m-%d"
+  },
+  "log": {
+    "path_log" : "/share/hsaf/recolour/validation/log/results/test_h119/ascat_hmc_smap/",
+    "file_log": "validation_log.txt"
+  }
+}

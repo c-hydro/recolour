@@ -1,0 +1,43 @@
+{
+  "product": {
+    "__comment__" : "bbox format:: [6, 35, 18, 47] or null",
+    "name": "smap",
+    "bbox": null
+  },
+  "flags": {
+    "reset_static": true,
+    "reset_dynamic": true
+  },
+  "grid": {
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/smap_static/",
+    "file_name": "smap_grid.nc"
+  },
+  "template": {
+    "dataset": {
+      "cell_n": "%04d"
+    },
+    "time": {
+      "datetime_source": "%Y%m%d_%H%M",
+      "sub_path_source": "%Y/%m/%d/",
+      "datetime_destination": "%Y%m%d%H",
+      "sub_path_destination": ""
+    },
+    "file": {
+      "file_name_source": "smap_{datetime_source}_soil_moisture.tiff",
+      "file_name_destination": "{cell_n}.nc"
+    }
+  },
+  "variables": ["soil_moisture"],
+  "data": {
+    "path_grid": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/smap_grid/",
+    "path_ts": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/smap_ts_dr/"
+  },
+  "time": {
+    "time_now": null,
+    "time_start": "2021-10-04",
+    "time_end": "2021-10-27",
+    "time_period": 1,
+    "time_frequency": "D",
+    "time_rounding" : "D"
+  }
+}

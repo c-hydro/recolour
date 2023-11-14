@@ -1,0 +1,83 @@
+{
+  "mode": {
+    "mp_mode": false,
+    "mp_cpu_n": 12
+  },
+  "flags": {
+    "reset_datasets_src": false,
+    "reset_datasets_dst": false,
+    "reset_logs": true
+  },
+  "parameters": {
+    "temporal_window": 12,
+    "seasonal_anomaly": false,
+    "seasonal_metrics": false
+  },
+  "domain": {
+    "name": "italy",
+    "cell_start": 1394,
+    "cell_end": 1398,
+    "cell_list": [1357]
+  },
+  "datasets": {
+    "source": {
+      "reference": {
+        "name": "HMC",
+        "variable": "soil_moisture",
+        "type": "data_record",
+        "kwargs": {"lut_max_dist": 35000},
+        "path_ts": "/share/hsaf/recolour/hmc_ts_dr/",
+        "path_static": "/share/hsaf/recolour/hmc_ts_dr/",
+        "file_grid": "grid.nc",
+        "tmp": {
+          "active_tmp": true,
+          "path_tmp": "/share/hsaf/recolour/hmc_ancillary/ref_hmc/",
+          "file_tmp": "hmc_{gpi_n}.workspace",
+          "clean_tmp": false
+        }
+      },
+      "k1": {
+        "name": "RZSM",
+        "variable": "var40",
+        "type": "data_record",
+        "kwargs": {},
+        "path_ts": "/share/hsaf/recolour/ecmwf_ts_dr/h141_h142_h26/",
+        "path_static": "/share/hsaf/recolour/ecmwf_ts_dr/h141_h142_h26/",
+        "file_grid": "grid.nc",
+        "tmp": {
+          "active_tmp": true,
+          "path_tmp": "/share/hsaf/recolour/ecmwf_ancillary/dr/ref_hmc/",
+          "file_tmp": "ecmwf_{gpi_n}.workspace",
+          "clean_tmp": false
+        }
+      },
+      "k2": {
+        "name": "SMAP",
+        "variable": "soil_moisture",
+        "type": "data_record",
+        "kwargs": {"lut_max_dist": 35000},
+        "path_ts": "/share/hsaf/recolour/smap_ts_dr/",
+        "path_static": "/share/hsaf/recolour/smap_ts_dr/",
+        "file_grid": "grid.nc",
+        "tmp": {
+          "active_tmp": true,
+          "path_tmp": "/share/hsaf/recolour/smap_ancillary/ref_hmc/",
+          "file_tmp": "smap_{gpi_n}.workspace",
+          "clean_tmp": false
+        }
+      }
+    },
+    "destination": {
+      "path_analysis": "/share/hsaf/recolour/validation/results/hmc_ecmwf_smap/dr/"
+    }
+  },
+  "time": {
+    "time_start": "2016-01-01",
+    "time_end": "2022-12-31",
+    "time_format": "%Y-%m-%d"
+  },
+  "log": {
+    "path_log" : "/share/hsaf/recolour/validation/log/results/hmc_ecmwf_smap/dr/",
+    "file_log": "validation_ecmwf_hmc_smap.txt"
+  }
+}

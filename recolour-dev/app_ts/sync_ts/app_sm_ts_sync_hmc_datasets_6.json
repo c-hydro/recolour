@@ -1,0 +1,227 @@
+{
+  "algorithm": {
+    "general": {
+      "title": "Running tool for soil moisture time-series analysis",
+      "web-site": "",
+      "source": "Python library developed by CIMA Research Foundation",
+      "history": "1.0.0 [20231016]",
+      "project-info": "recolour",
+      "algorithm": "Algorithm developed by CIMA Research Foundation"
+    },
+    "flags": {
+      "reset_static": false,
+      "reset_dynamic_source": false,
+      "reset_dynamic_destination": true
+    },
+    "parameter": {
+      "resample_time_frequency": "D",
+      "resample_time_method": "average",
+      "resample_time_direction": "forward",
+      "fill_time_method": "polynomial",
+      "fill_time_order": 2,
+      "fill_time_limit": 2,
+      "fill_time_direction": "forward"
+    },
+    "template": {
+      "datasets": {
+        "point_name": "string_point_name",
+        "point_code": "string_point_code"
+      },
+      "time": {
+        "source_sub_path_ref": "%Y/%m/%d/",
+        "source_datetime_ref": "%Y%m%d%H%M",
+        "source_datetime_ref_start": "%Y%m%d%H%M",
+        "source_datetime_ref_end": "%Y%m%d%H%M",
+        "source_sub_path_other_k1": "%Y/%m/",
+        "source_datetime_other_k1": "%Y%m%d%H%M",
+        "source_datetime_other_k1_start": "%Y%m%d%H%M",
+        "source_datetime_other_k1_end": "%Y%m%d%H%M",
+        "source_sub_path_other_k2": "%Y/%m/",
+        "source_datetime_other_k2": "%Y%m%d%H%M",
+        "source_datetime_other_k2_start": "%Y%m%d%H%M",
+        "source_datetime_other_k2_end": "%Y%m%d%H%M",
+        "ancillary_sub_path_time": "%Y/%m/%d/",
+        "ancillary_datetime": "%Y%m%d%H%M",
+        "ancillary_datetime_start": "%Y%m%d%H%M",
+        "ancillary_datetime_end": "%Y%m%d%H%M",
+        "destination_sub_path_time": "%Y/%m/%d/",
+        "destination_datetime": "%Y%m%d%H%M",
+        "destination_datetime_start": "%Y%m%d%H%M",
+        "destination_datetime_end": "%Y%m%d%H%M"
+      }
+    }
+  },
+  "data": {
+    "static" : {
+      "source": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/registry/",
+        "file_name": "sm_ws_registry_only_valid_v3.csv",
+        "format": "csv",
+        "fields": {
+          "altitude": "altitude", "code": "code",
+          "longitude": "longitude", "latitude": "latitude",
+          "name": "name", "location": "amm_level_1",
+          "valid": "valid", "units": "units", "tag": "tag"
+        }
+      },
+      "destination": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/registry/",
+        "file_name": "sm_ws_registry_only_valid_v3.workspace"
+      }
+    },
+    "dynamic": {
+      "source": {
+        "ref": {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/weather_stations/",
+          "file_name": "sm_weather_station_dr.csv",
+          "format": "csv",
+          "fields": {},
+          "value_min": 0,
+          "value_max": 100,
+          "scale_factor": 1,
+          "value_no_data": null,
+          "time_period": null,
+          "time_reference": null,
+          "time_frequency": "H",
+          "time_rounding": "H",
+          "time_start": "2015-01-01 00:00",
+          "time_end": "2023-07-01 00:00"
+        },
+        "other_k1": {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/hmc/",
+          "file_name": "sm_datasets_201501010000_202309010000_soil_moisture_hmc.csv",
+          "format": "csv",
+          "fields": {},
+          "value_min": 0,
+          "value_max": 100,
+          "value_no_data": null,
+          "scale_factor": 100,
+          "time_period": null,
+          "time_reference": null,
+          "time_frequency": "H",
+          "time_rounding": "H",
+          "time_start": "2008-01-01 00:00",
+          "time_end": "2023-09-01 00:00"
+        },
+        "other_k2": {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/ecmwf/",
+          "file_name": "sm_datasets_rzsm_layer_0_7_cm.csv",
+          "format": "csv",
+          "fields": {},
+          "value_min": 0,
+          "value_max": 100,
+          "value_no_data": null,
+          "scale_factor": 100,
+          "time_period": null,
+          "time_reference": null,
+          "time_frequency": "H",
+          "time_rounding": "H",
+          "time_start": "1992-01-01 00:00",
+          "time_end": "2023-09-01 00:00"
+        },
+        "other_k3": {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/ecmwf/",
+          "file_name": "sm_datasets_rzsm_layer_0_28_cm.csv",
+          "format": "csv",
+          "fields": {},
+          "value_min": 0,
+          "value_max": 100,
+          "value_no_data": null,
+          "scale_factor": 100,
+          "time_period": null,
+          "time_reference": null,
+          "time_frequency": "H",
+          "time_rounding": "H",
+          "time_start": "1992-01-01 00:00",
+          "time_end": "2023-09-01 00:00"
+        },
+        "other_k4": {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/ecmwf/",
+          "file_name": "sm_datasets_rzsm_layer_0_100_cm.csv",
+          "format": "csv",
+          "fields": {},
+          "value_min": 0,
+          "value_max": 100,
+          "value_no_data": null,
+          "scale_factor": 100,
+          "time_period": null,
+          "time_reference": null,
+          "time_frequency": "H",
+          "time_rounding": "H",
+          "time_start": "1992-01-01 00:00",
+          "time_end": "2023-09-01 00:00"
+        },
+        "other_k5": {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/smap/",
+          "file_name": "sm_datasets_201601010000_202309011800_soil_moisture_spl3smp_e.csv",
+          "format": "csv",
+          "fields": {},
+          "value_min": 0,
+          "value_max": 100,
+          "value_no_data": null,
+          "scale_factor": 100,
+          "time_period": null,
+          "time_reference": null,
+          "time_frequency": "H",
+          "time_rounding": "H",
+          "time_start": "2016-01-01 00:00",
+          "time_end": "2023-09-02 00:00"
+        },
+        "other_k6": {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/tc/",
+          "file_name": "sm_datasets_201501010000_202309200000_tc_v3.csv",
+          "format": "csv",
+          "fields": {},
+          "value_min": 0,
+          "value_max": 100,
+          "value_no_data": null,
+          "scale_factor": 100,
+          "time_period": null,
+          "time_reference": null,
+          "time_frequency": "H",
+          "time_rounding": "H",
+          "time_start": "2015-01-01 00:00",
+          "time_end": "2023-09-20 00:00"
+        }
+      },
+      "ancillary": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/ts_analysis/ancillary/hmc/v3/",
+        "file_name": "sm_ts_{ancillary_datetime}_d6.workspace"
+      },
+      "destination": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/ts_analysis/destination/hmc/v3",
+        "file_name": "sm_ts_20150101_20230701_{point_name}_d6.json",
+        "format": "json",
+        "fields": {
+          "ref": "sm_obs",
+          "other_k1": "sm_hmc",
+          "other_k2": "sm_ecmwf_layer_0_7",
+          "other_k3": "sm_ecmwf_layer_0_28",
+          "other_k4": "sm_ecmwf_layer_0_100",
+          "other_k5": "sm_smap",
+          "other_k6": "sm_tc",
+          "time": "time"
+        },
+        "value_min": 0,
+        "value_max": 100,
+        "value_no_data": -9999.0
+      }
+    }
+  },
+  "tmp": {
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/tmp/",
+    "file_name": null
+  },
+  "log": {
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/log/",
+    "file_name": "sm_ts_analysis.txt"
+  },
+  "time": {
+    "time_reference": "2023-10-27",
+    "time_period": null,
+    "time_frequency": null,
+    "time_rounding": null,
+    "time_start": "2015-01-01 00:00",
+    "time_end": "2023-09-01 00:00"
+  }
+}

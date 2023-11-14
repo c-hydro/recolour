@@ -1,0 +1,88 @@
+{
+  "info": {
+    "__comment_product": "h104, h105, h16, h103",
+    "product_name": "h16"
+  },
+  "parameters": {
+    "__comment_writing_mode": "'w' 'a'",
+    "writing_mode": "w",
+    "write_n_resampled": 1000,
+    "spatial_resolution": 25000,
+    "weight_function": "hamming"
+  },
+  "flags": {
+    "reset_ancillary_datasets": true,
+    "reset_destination_datasets": true,
+    "reset_logs": true
+  },
+  "template": {
+    "datetime_swath": "%Y%m%d_%H%M00",
+    "sub_path_swath": "%Y/%m/%d/%H/",
+    "datetime_indexed": "%Y%m%d_%H%M00",
+    "sub_path_indexed": "%Y/%m/%d/",
+    "datetime_cell": "%Y%m%d_%H%M00",
+    "sub_path_cell": "%Y/%m/%d/",
+    "datetime_workspace": "%Y%m%d_%H%M00",
+    "sub_path_workspace": "%Y/%m/%d/",
+    "datetime_ts": "%Y%m%d_%H%M00",
+    "sub_path_ts": "%Y/%m/%d/"
+  },
+  "datasets": {
+    "static": {
+        "folder_name": "/share/hsaf/recolour/ascat_static/",
+        "file_name": "TUW_WARP5_grid_info_2_3.nc"
+    },
+    "ancillary": {
+      "cell": {
+        "__comment__": "tags: cell_n",
+        "folder_name": "/home/hsaf/share/recolour/ancillary_workspace/hsaf_nrt_cell/h16/",
+        "file_name": "h16_{cell_n}.cell",
+        "variables": ["sm"],
+        "active": false,
+        "initialize": false
+      },
+      "workspace": {
+        "__comment__": "tags: datetime_start, datetime_end",
+        "folder_name": "/home/hsaf/share/recolour/ancillary_workspace/hsaf_nrt_datasets/h16/",
+        "file_name": "h16_{datetime_start}_{datetime_end}.workspace",
+        "variables": ["sm"],
+        "active": true,
+        "initialize": false
+      }
+    },
+    "dynamic": {
+      "swath": {
+        "folder_name": "/home/hsaf/hsaf_datasets/dynamic/source/h16/{sub_path_swath}",
+        "file_name": "h16_{datetime_swath}_METOPB_*_EUM.buf",
+        "variables": ["sm"]
+      },
+      "indexed": {
+        "folder_name": "/home/hsaf/share/recolour/ascat_nrt_idx/h16/indexec/",
+        "file_name": "h16_{datetime_indexed}.idx",
+        "variables": ["sm"]
+      },
+
+      "ts": {
+        "folder_name": "/home/hsaf/share/recolour/ascat_nrt_ts/h16/indexed/",
+        "file_name": "h16_{datetime_ts}.ts",
+        "variables": ["sm"]
+      }
+    }
+  },
+  "time": {
+    "time_now": "2023-07-22 10:00",
+    "time_start": "2020-05-22 00:00",
+    "time_end": "2020-05-22 15:00",
+    "time_period": 9,
+    "time_frequency": "H",
+    "time_rounding" : "H"
+  },
+  "log": {
+    "folder_name": "/home/hsaf/share/recolour/log/",
+    "file_name": "recolour_ascat_logging.txt"
+  },
+  "tmp": {
+    "folder_name": "/home/hsaf/share/recolour/tmp/",
+    "file_name": null
+  }
+}

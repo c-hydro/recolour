@@ -1,0 +1,68 @@
+{
+  "mode": {
+    "mp_mode": true,
+    "mp_cpu_n": 9
+  },
+  "flags": {
+    "reset_datasets_src": false,
+    "reset_datasets_dst": true,
+    "reset_logs": true
+  },
+  "parameters": {
+    "temporal_window": 12,
+    "seasonal_anomaly": false,
+    "seasonal_metrics": false
+  },
+  "domain": {
+    "name": "italy",
+    "cell_start": 1394,
+    "cell_end": 1398,
+    "cell_list": [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430, 1431]
+  },
+  "datasets": {
+    "source": {
+      "reference": {
+        "name": "RZSM",
+        "variable": "var40",
+        "type": "data_record",
+        "kwargs": {},
+        "path_ts": "/share/hsaf/recolour/ecmwf_ts_dr/h141_h142/",
+        "path_static": "/share/hsaf/recolour/ecmwf_ts_dr/h141_h142_h26/",
+        "file_grid": "grid.nc",
+        "tmp": {
+          "active_tmp": true,
+          "path_tmp": "/share/hsaf/recolour/ecmwf_ancillary/dr/only_hmc/",
+          "file_tmp": "ecmwf_{gpi_n}.workspace",
+          "clean_tmp": true
+        }
+      },
+      "k1": {
+        "name": "HMC",
+        "variable": "soil_moisture",
+        "type": "data_record",
+        "kwargs": {"lut_max_dist": 35000},
+        "path_ts": "/share/hsaf/recolour/hmc_ts_dr/",
+        "path_static": "/share/hsaf/recolour/hmc_ts_dr/",
+        "file_grid": "grid.nc",
+        "tmp": {
+          "active_tmp": true,
+          "path_tmp": "/share/hsaf/recolour/hmc_ancillary/only_ecmwf/",
+          "file_tmp": "hmc_{gpi_n}.workspace",
+          "clean_tmp": true
+        }
+      }
+    },
+    "destination": {
+      "path_analysis": "/share/hsaf/recolour/validation/results/ecmwf_hmc/dr/"
+    }
+  },
+  "time": {
+    "time_start": "2008-01-01",
+    "time_end": "2015-12-31",
+    "time_format": "%Y-%m-%d"
+  },
+  "log": {
+    "path_log" : "/share/hsaf/recolour/validation/log/results/ecmwf_hmc/dr/",
+    "file_log": "validation_ecmwf_hmc.txt"
+  }
+}

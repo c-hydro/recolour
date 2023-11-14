@@ -1,0 +1,44 @@
+{
+  "product": {
+    "__comment__" : "bbox format:: [6, 35, 18, 47] or null",
+    "name": "h26",
+    "bbox": [6, 35, 18, 47]
+  },
+  "flags": {
+    "reset_static": true,
+    "reset_dynamic": true
+  },
+  "grid": {
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/ecmwf_static/",
+    "file_name": "ecmwf_grid_h26.nc"
+  },
+  "template": {
+    "dataset": {
+      "cell_n": "%04d"
+    },
+    "time": {
+      "datetime_source": "%Y%m%d%H",
+      "sub_path_source": "",
+      "datetime_destination": "%Y%m%d%H",
+      "sub_path_destination": "%Y/%m/%d/"
+    },
+    "file": {
+      "file_name_source": "h26_{datetime_source}_R01.nc",
+      "file_name_destination": "{cell_n}.nc"
+    }
+  },
+  "variables": ["var40"],
+  "data": {
+    "path_grid": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/ecmwf_grid_nrt/h26/",
+    "path_ts": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/ecmwf_ts_nrt/"
+  },
+  "time": {
+    "_comment": "dr :: 1992-01-01 -- 2018-12-31",
+    "time_now": null,
+    "time_start": null,
+    "time_end": null,
+    "time_period": 1,
+    "time_frequency": "D",
+    "time_rounding" : "H"
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "algorithm": {
+    "general": {
+      "title": "Running tool for soil moisture time-series analysis",
+      "web-site": "",
+      "source": "Python library developed by ARPAL and CIMA Research Foundation",
+      "history": "1.0.0 [20221122]",
+      "project-info": "arpal",
+      "algorithm": "Algorithm developed by ARPAL and CIMA Research Foundation"
+    },
+    "flags": {
+      "updating_ancillary_static": false,
+      "updating_ancillary_dynamic_point": false,
+      "updating_ancillary_dynamic_grid": false,
+      "updating_ancillary_analysis": true
+    },
+    "ancillary": {
+      "catchment_name": "Magra",
+      "geo_method_search": "nearest",
+      "geo_radius_influence": 50000,
+      "geo_neighbours": 1,
+      "geo_spatial_window": 1,
+      "geo_spatial_operation": "average",
+      "geo_spatial_mask": true,
+      "geo_temporal_window": "30min",
+      "geo_temporal_operation": "average",
+      "datasets_reference": "grid",
+      "datasets_other": "point"
+    },
+    "template": {
+      "catchment_name": "string_catchment",
+      "point_name": "string_point_name",
+      "point_code": "string_point_code",
+      "month_name": "string_month",
+      "season_name": "string_season",
+      "source_sub_path_time_point": "%Y/%m/%d/",
+      "source_datetime_point": "%Y%m%d%H%M",
+      "source_sub_path_time_grid": "%Y/%m/",
+      "source_datetime_grid": "%Y%m%d%H%M",
+      "ancillary_sub_path_time_point": "%Y/%m/%d/",
+      "ancillary_datetime_point": "%Y%m%d%H%M",
+      "ancillary_sub_path_time_grid": "%Y/%m/%d/",
+      "ancillary_datetime_grid": "%Y%m%d%H%M",
+      "destination_sub_path_time": "%Y/%m/%d/",
+      "destination_datetime": "%Y%m%d%H%M"
+    }
+  },
+  "data": {
+    "static" : {
+      "source" : {
+        "grid": {
+          "terrain": {
+            "folder_name": "/home/fabio/Desktop/PyCharm_ARPAL/sm-ws/data_static/grid/{catchment_name}Domain/",
+            "file_name": "{catchment_name}Domain.dem.txt"
+          },
+          "cn": {
+            "folder_name": "/home/fabio/Desktop/PyCharm_ARPAL/sm-ws/data_static/grid/{catchment_name}Domain/",
+            "file_name": "{catchment_name}Domain.cn.txt"
+          },
+          "channels_network": {
+            "folder_name": "/home/fabio/Desktop/PyCharm_ARPAL/sm-ws/data_static/grid/{catchment_name}Domain/",
+            "file_name": "{catchment_name}Domain.choice.txt"
+          }
+        },
+        "point": {
+          "folder_name": "/home/fabio/Desktop/PyCharm_ARPAL/sm-ws/data_static/point/{catchment_name}Domain",
+          "file_name": "station_registry.csv",
+          "file_fields" : {
+            "ID": "point_id", "Station_Name": "point_name", "Station_Code": "point_code",
+             "Longitude": "point_longitude", "Latitude": "point_latitude", "VWCUnits": "point_vwc_units",
+             "DepthValue": "point_depth_value", "DepthUnits": "point_depth_units", "Porosity": "point_porosity"
+          }
+        }
+      },
+      "ancillary": {
+        "folder_name": "/home/fabio/Desktop/PyCharm_ARPAL/sm-ws/data_static/workspace/{catchment_name}Domain/",
+        "file_name": "{catchment_name}Domain.geo.workspace"
+      }
+    },
+    "dynamic": {
+      "time": {
+        "grid": {
+          "time_period": null,
+          "time_reference": null,
+          "time_frequency": "H",
+          "time_rounding": "H",
+          "time_start": "2017-01-01 00:00",
+          "time_end": "2020-01-01 00:00"
+        },
+        "point": {
+          "time_period": null,
+          "time_reference": null,
+          "time_frequency": "H",
+          "time_rounding": "H",
+          "time_start": "2017-01-01 00:00",
+          "time_end": "2019-09-01 00:00"
+        }
+      },
+      "source": {
+        "grid": {
+          "__comment__": "file_type: grid_nc [hmc.output-grid.{source_datetime}.nc.gz], grid_binary [{catchment_name}DomainV_{source_datetime}.gz]",
+          "folder_name": "/home/fabio/Desktop/PyCharm_ARPAL/sm-ws/data_dynamic/grid/{catchment_name}Domain/{source_sub_path_time_grid}",
+          "file_name": "{catchment_name}DomainV_{source_datetime_grid}.gz",
+          "obj_type": "grid_binary",
+          "obj_compressed": true
+        },
+        "point": {
+          "folder_name": "/home/fabio/Desktop/PyCharm_ARPAL/sm-ws/data_dynamic/point/{catchment_name}Domain/",
+          "file_name": "VWC_{point_code}_*.mat",
+          "obj_type": "point_mat",
+          "obj_compressed": false
+        }
+      },
+      "ancillary": {
+        "grid": {
+          "folder_name": "/home/fabio/Desktop/PyCharm_ARPAL/sm-ws/data_dynamic/ancillary/",
+          "file_name": "sm_ts_grid_{point_name}.workspace"
+        },
+        "point": {
+          "folder_name": "/home/fabio/Desktop/PyCharm_ARPAL/sm-ws/data_dynamic/ancillary/",
+          "file_name": "sm_ts_point_{point_name}.workspace"
+        }
+      },
+      "destination": {
+        "analysis" : {
+          "folder_name": "/home/fabio/Desktop/PyCharm_ARPAL/sm-ws/analysis/",
+          "file_name": "sm_ts_analysis_{point_name}.workspace"
+        }
+      }
+    }
+  },
+  "tmp": {
+    "folder_name": "/home/fabio/Desktop/PyCharm_ARPAL/sm-ws/tmp/",
+    "file_name": null
+  },
+  "log": {
+    "folder_name": "/home/fabio/Desktop/PyCharm_ARPAL/sm-ws/log/",
+    "file_name": "sm_analysis_time_series_log.txt"
+  },
+  "time": {
+    "time_reference": "2022-11-23",
+    "time_period": null,
+    "time_frequency": null,
+    "time_rounding": null,
+    "time_start": null,
+    "time_end": null
+  }
+}

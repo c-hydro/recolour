@@ -1,0 +1,87 @@
+{
+  "mode": {
+    "mp_mode": false,
+    "mp_cpu_n": 12
+  },
+  "flags": {
+    "reset_datasets_src": false,
+    "reset_datasets_dst": false,
+    "reset_logs": true
+  },
+  "parameters": {
+    "temporal_window": 12,
+    "seasonal_anomaly": false,
+    "seasonal_metrics": false
+  },
+  "domain": {
+    "name": "italy",
+    "cell_start": null,
+    "cell_end": null,
+    "cell_list": [1357]
+  },
+  "datasets": {
+    "source": {
+      "reference": {
+        "name": "HMC",
+        "variable": "soil_moisture",
+        "type": "data_record",
+        "kwargs": {"lut_max_dist": 35000},
+        "path_ts": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/hmc_ts_dr/cell/",
+        "path_static": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/hmc_ts_dr/cell/",
+        "path_stack": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/hmc_ts_dr/stack/",
+        "file_grid": "grid.nc",
+        "bulk": true,
+        "tmp": {
+          "active_tmp": true,
+          "path_tmp": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/validation/hmc_ecmwf_smap/dr/ancillary/hmc/",
+          "file_tmp": "hmc_{gpi_n}.workspace",
+          "clean_tmp": false
+        }
+      },
+      "k1": {
+        "name": "RZSM",
+        "variable": "var40",
+        "type": "data_record",
+        "kwargs": {},
+        "path_ts": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/ecmwf_ts_dr/",
+        "path_static": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/ecmwf_ts_dr/",
+        "file_grid": "grid.nc",
+        "bulk": null,
+        "tmp": {
+          "active_tmp": true,
+          "path_tmp": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/validation/hmc_ecmwf_smap/dr/ancillary/ecmwf/",
+          "file_tmp": "ecmwf_{gpi_n}.workspace",
+          "clean_tmp": false
+        }
+      },
+      "k2": {
+        "name": "SMAP",
+        "variable": "soil_moisture",
+        "type": "data_record",
+        "kwargs": {"lut_max_dist": 35000},
+        "path_ts": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/smap_ts_dr/",
+        "path_static": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/smap_ts_dr/",
+        "file_grid": "grid.nc",
+        "bulk": null,
+        "tmp": {
+          "active_tmp": true,
+          "path_tmp": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/validation/hmc_ecmwf_smap/dr/ancillary/smap/",
+          "file_tmp": "smap_{gpi_n}.workspace",
+          "clean_tmp": false
+        }
+      }
+    },
+    "destination": {
+      "path_analysis": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/validation/hmc_ecmwf_smap/dr/analysis/"
+    }
+  },
+  "time": {
+    "time_start": "2022-05-02",
+    "time_end": "2022-07-01",
+    "time_format": "%Y-%m-%d"
+  },
+  "log": {
+    "path_log" : "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/validation/hmc_ecmwf_smap/dr/log/",
+    "file_log": "validation_hmc_ecmwf_smap.txt"
+  }
+}

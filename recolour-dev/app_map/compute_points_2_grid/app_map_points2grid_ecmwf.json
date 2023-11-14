@@ -1,0 +1,79 @@
+{
+  "flags": {
+    "reset_ancillary_datasets_points": true,
+    "reset_ancillary_datasets_grid": true,
+    "reset_destination_datasets": true,
+    "reset_logs": true
+  },
+  "info": {
+    "datasets": "ECMWF",
+    "product": "DR"
+  },
+  "cells": {
+    "__comment__": "cell_start=0, cell_end=2591",
+    "name": "italy",
+    "cell_start": 1394,
+    "cell_end": 1398,
+    "cell_list": [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430, 1431]
+  },
+  "parameters": {
+    "__comment__": "grid_resolution: 0.05 --> errors because change reference grid",
+    "resampling_max_distance": 20000,
+    "resampling_grid_resolution": null,
+    "resampling_min_neighbours": 1,
+    "resampling_neighbours": 8,
+    "resampling_variable": {
+      "name": ["xy_pr", "xz_pr", "xyz_x_snr", "xyz_x_err_var", "xyz_y_err_var", "xyz_z_err_var"],
+      "min_value": [0, 0, null, null, null, null],
+      "max_value": [null, null, null, null, null, null]
+    }
+  },
+  "datasets": {
+    "static": {
+      "grid_product": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/ecmwf_static/",
+        "file_name": "grid.nc"
+      },
+      "grid_reference" : {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/domain/",
+        "file_name": "italy_sm_hmc.tif"
+      }
+    },
+    "dynamic" : {
+      "source": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/validation/ecmwf_hmc_smap/dr/",
+        "file_name": "{cell}.nc",
+        "variables_in": [
+          "gpi", "lon", "lat", "ALL_n_obs",
+          "HMC_RZSM_ALL_R", "RZSM_SMAP_ALL_R",
+          "RZSM_ALL_snr",
+          "RZSM_ALL_err_var", "HMC_ALL_err_var", "SMAP_ALL_err_var"
+        ],
+        "variables_out": [
+          "gpi", "lon", "lat", "obs",
+          "xy_pr", "xz_pr",
+          "xyz_x_snr",
+          "xyz_x_err_var", "xyz_y_err_var", "xyz_z_err_var"
+        ]
+      },
+      "ancillary": {
+        "points" : {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/ancillary/point2grid/ecmwf_hmc_smap/",
+          "file_name": "variables_points.nc"
+        },
+        "grid": {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/ancillary/point2grid/ecmwf_hmc_smap/",
+          "file_name": "variables_grid.workspace"
+        }
+      },
+      "destination": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/results/point2grid/ecmwf_hmc_smap/",
+        "file_name": "variables_grid.nc"
+      }
+    }
+  },
+  "log": {
+    "path_log" : "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/log/points2grid/ecmwf_hmc_gldas/",
+    "file_log": "app_map_points2grid.txt"
+  }
+}

@@ -1,0 +1,310 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ns0:MD_Metadata xmlns:ns0="http://www.isotc211.org/2005/gmd" xmlns:ns2="http://www.isotc211.org/2005/gco" xmlns:ns3="http://www.opengis.net/gml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.isotc211.org/2005/gmd http://schemas.opengis.net/iso/19139/20060504/gmd/gmd.xsd">
+  <ns0:fileIdentifier>
+    <ns2:CharacterString>italy_ou_s6-01-02_20221207000000-20221207000000.tif</ns2:CharacterString>
+  </ns0:fileIdentifier>
+  <ns0:language>
+    <ns0:LanguageCode codeList="http://www.loc.gov/standards/iso639-2/" codeListValue="eng" />
+  </ns0:language>
+  <ns0:characterSet>
+    <ns0:MD_CharacterSetCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#MD_CharacterSetCode" codeListValue="utf8" />
+  </ns0:characterSet>
+  <ns0:hierarchyLevel>
+    <ns0:MD_ScopeCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#MD_ScopeCode" codeListValue="dataset" />
+  </ns0:hierarchyLevel>
+  <ns0:contact>
+    <ns0:CI_ResponsibleParty>
+      <ns0:organisationName>
+        <ns2:CharacterString>European Space Agency - ESA</ns2:CharacterString>
+      </ns0:organisationName>
+      <ns0:contactInfo>
+        <ns0:CI_Contact>
+          <ns0:address>
+            <ns0:CI_Address>
+              <ns0:electronicMailAddress>
+                <ns2:CharacterString>info@esa.int</ns2:CharacterString>
+              </ns0:electronicMailAddress>
+            </ns0:CI_Address>
+          </ns0:address>
+        </ns0:CI_Contact>
+      </ns0:contactInfo>
+      <ns0:role>
+        <ns0:CI_RoleCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_RoleCode" codeListValue="owner" />
+      </ns0:role>
+    </ns0:CI_ResponsibleParty>
+  </ns0:contact>
+  <ns0:dateStamp>
+    <ns2:DateTime>2023-11-03T14:45:22.887Z</ns2:DateTime>
+  </ns0:dateStamp>
+  <ns0:referenceSystemInfo>
+    <ns0:MD_ReferenceSystem>
+      <ns0:referenceSystemIdentifier>
+        <ns0:RS_Identifier>
+          <ns0:code>
+            <ns2:CharacterString>http://www.opengis.net/def/crs/EPSG/0/32632</ns2:CharacterString>
+          </ns0:code>
+        </ns0:RS_Identifier>
+      </ns0:referenceSystemIdentifier>
+    </ns0:MD_ReferenceSystem>
+  </ns0:referenceSystemInfo>
+  <ns0:identificationInfo>
+    <ns0:MD_DataIdentification>
+      <ns0:citation>
+        <ns0:CI_Citation>
+          <ns0:title>
+            <ns2:CharacterString>OU-S6-02-01: Macro-geomorphic unit distribution, October 2023</ns2:CharacterString>
+          </ns0:title>
+          <ns0:date>
+            <ns0:CI_Date>
+              <ns0:date>
+                <ns2:Date>2023-11-07</ns2:Date>
+              </ns0:date>
+              <ns0:dateType>
+                <ns0:CI_DateTypeCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_DateTypeCode" codeListValue="creation" />
+              </ns0:dateType>
+            </ns0:CI_Date>
+          </ns0:date>
+          <ns0:date>
+            <ns0:CI_Date>
+              <ns0:date>
+                <ns2:Date>2023-11-03</ns2:Date>
+              </ns0:date>
+              <ns0:dateType>
+                <ns0:CI_DateTypeCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication" />
+              </ns0:dateType>
+            </ns0:CI_Date>
+          </ns0:date>
+          <ns0:identifier>
+            <ns0:MD_Identifier>
+              <ns0:code>
+                <ns2:CharacterString>ISS_L1_OU_S6_02_01_SW_AOI_20231015_V1.xml</ns2:CharacterString>
+              </ns0:code>
+            </ns0:MD_Identifier>
+          </ns0:identifier>
+        </ns0:CI_Citation>
+      </ns0:citation>
+      <ns0:abstract>
+        <ns2:CharacterString>Mapping of water surface, exposed sediment and vegetated units for homogenous river reach. Each pixel of IN-S6-02-01 is classified into one of these three classes: Surface water, Exposed sediment, Vegetation</ns2:CharacterString>
+      </ns0:abstract>
+      <ns0:pointOfContact>
+        <ns0:CI_ResponsibleParty>
+          <ns0:organisationName>
+            <ns2:CharacterString>CIMA Foundation</ns2:CharacterString>
+          </ns0:organisationName>
+          <ns0:contactInfo>
+            <ns0:CI_Contact>
+              <ns0:address>
+                <ns0:CI_Address>
+                  <ns0:electronicMailAddress>
+                    <ns2:CharacterString>hydrology_hydraulics@cimafoundation.org</ns2:CharacterString>
+                  </ns0:electronicMailAddress>
+                </ns0:CI_Address>
+              </ns0:address>
+            </ns0:CI_Contact>
+          </ns0:contactInfo>
+          <ns0:role>
+            <ns0:CI_RoleCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_RoleCode" codeListValue="pointOfContact" />
+          </ns0:role>
+        </ns0:CI_ResponsibleParty>
+      </ns0:pointOfContact>
+      <ns0:descriptiveKeywords>
+        <ns0:MD_Keywords>
+          <ns0:keyword>
+            <ns2:CharacterString>Land cover</ns2:CharacterString>
+          </ns0:keyword>
+          <ns0:type>
+            <ns0:MD_KeywordTypeCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#MD_KeywordTypeCode" codeListValue="theme" />
+          </ns0:type>
+          <ns0:thesaurusName>
+            <ns0:CI_Citation>
+              <ns0:title>
+                <ns2:CharacterString>GEMET - INSPIRE themes, version 1.0</ns2:CharacterString>
+              </ns0:title>
+              <ns0:date>
+                <ns0:CI_Date>
+                  <ns0:date>
+                    <ns2:Date>2008-06-01</ns2:Date>
+                  </ns0:date>
+                  <ns0:dateType>
+                    <ns0:CI_DateTypeCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication" />
+                  </ns0:dateType>
+                </ns0:CI_Date>
+              </ns0:date>
+            </ns0:CI_Citation>
+          </ns0:thesaurusName>
+        </ns0:MD_Keywords>
+      </ns0:descriptiveKeywords>
+      <ns0:resourceConstraints>
+        <ns0:MD_LegalConstraints>
+          <ns0:useLimitation ns2:nilReason="missing">
+            <ns2:CharacterString />
+          </ns0:useLimitation>
+          <ns0:useConstraints>
+            <ns0:MD_RestrictionCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#MD_RestrictionCode" codeListValue="otherRestrictions" />
+          </ns0:useConstraints>
+          <ns0:otherConstraints>
+            <ns2:CharacterString>No conditions apply to access and use [http://inspire.ec.europa.eu/metadata-codelist/ConditionsApplyingToAccessAndUse/noConditionsApply]</ns2:CharacterString>
+          </ns0:otherConstraints>
+        </ns0:MD_LegalConstraints>
+      </ns0:resourceConstraints>
+      <ns0:resourceConstraints>
+        <ns0:MD_LegalConstraints>
+          <ns0:accessConstraints>
+            <ns0:MD_RestrictionCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#MD_RestrictionCode" codeListValue="otherRestrictions" />
+          </ns0:accessConstraints>
+          <ns0:otherConstraints>
+            <ns2:CharacterString>Public access to spatial data sets and services would adversely affect the confidentiality of commercial or industrial information, where such confidentiality is provided for by national or Community law to protect a legitimate economic interest, including the public interest in maintaining statistical confidentiality and tax secrecy. [http://inspire.ec.europa.eu/metadata-codelist/LimitationsOnPublicAccess/INSPIRE_Directive_Article13_1d]</ns2:CharacterString>
+          </ns0:otherConstraints>
+        </ns0:MD_LegalConstraints>
+      </ns0:resourceConstraints>
+      <ns0:spatialRepresentationType>
+        <ns0:MD_SpatialRepresentationTypeCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#MD_SpatialRepresentationTypeCode" codeListValue="grid" />
+      </ns0:spatialRepresentationType>
+      <ns0:spatialResolution>
+        <ns0:MD_Resolution>
+          <ns0:distance>
+            <ns2:Distance uom="m">10</ns2:Distance>
+          </ns0:distance>
+        </ns0:MD_Resolution>
+      </ns0:spatialResolution>
+      <ns0:language>
+        <ns0:LanguageCode codeList="http://www.loc.gov/standards/iso639-2/" codeListValue="eng">English</ns0:LanguageCode>
+      </ns0:language>
+      <ns0:topicCategory>
+        <ns0:MD_TopicCategoryCode>imageryBaseMapsEarthCover</ns0:MD_TopicCategoryCode>
+      </ns0:topicCategory>
+      <ns0:extent>
+        <ns0:EX_Extent>
+          <ns0:geographicElement>
+            <ns0:EX_GeographicBoundingBox>
+              <ns0:westBoundLongitude>
+                <ns2:Decimal>10.70</ns2:Decimal>
+              </ns0:westBoundLongitude>
+              <ns0:eastBoundLongitude>
+                <ns2:Decimal>11.05</ns2:Decimal>
+              </ns0:eastBoundLongitude>
+              <ns0:southBoundLatitude>
+                <ns2:Decimal>44.95</ns2:Decimal>
+              </ns0:southBoundLatitude>
+              <ns0:northBoundLatitude>
+                <ns2:Decimal>45.12</ns2:Decimal>
+              </ns0:northBoundLatitude>
+            </ns0:EX_GeographicBoundingBox>
+          </ns0:geographicElement>
+          <ns0:temporalElement />
+          <ns0:temporalElement>
+            <ns0:EX_TemporalExtent>
+              <ns0:extent>
+                <ns3:TimePeriod ns3:id="d57084e221">
+                  <ns3:beginPosition>2023-10-01</ns3:beginPosition>
+                  <ns3:endPosition>2023-10-31</ns3:endPosition>
+                </ns3:TimePeriod>
+              </ns0:extent>
+            </ns0:EX_TemporalExtent>
+          </ns0:temporalElement>
+        </ns0:EX_Extent>
+      </ns0:extent>
+    </ns0:MD_DataIdentification>
+  </ns0:identificationInfo>
+  <ns0:distributionInfo>
+    <ns0:MD_Distribution>
+      <ns0:distributionFormat>
+        <ns0:MD_Format>
+          <ns0:name>
+            <ns2:CharacterString>geotiff</ns2:CharacterString>
+          </ns0:name>
+          <ns0:version ns2:nilReason="unknown" />
+        </ns0:MD_Format>
+      </ns0:distributionFormat>
+      <ns0:distributor>
+        <ns0:MD_Distributor>
+          <ns0:distributorContact>
+            <ns0:CI_ResponsibleParty>
+              <ns0:individualName>
+                <ns2:CharacterString>Simone Gabellani</ns2:CharacterString>
+              </ns0:individualName>
+              <ns0:organisationName>
+                <ns2:CharacterString>CIMA Foundation</ns2:CharacterString>
+              </ns0:organisationName>
+              <ns0:contactInfo>
+                <ns0:CI_Contact>
+                  <ns0:address>
+                    <ns0:CI_Address>
+                      <ns0:electronicMailAddress>
+                        <ns2:CharacterString>hydrology_hydraulics@cimafoundation.org</ns2:CharacterString>
+                      </ns0:electronicMailAddress>
+                    </ns0:CI_Address>
+                  </ns0:address>
+                </ns0:CI_Contact>
+              </ns0:contactInfo>
+              <ns0:role>
+                <ns0:CI_RoleCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_RoleCode" codeListValue="publisher" />
+              </ns0:role>
+            </ns0:CI_ResponsibleParty>
+          </ns0:distributorContact>
+        </ns0:MD_Distributor>
+      </ns0:distributor>
+      <ns0:distributor />
+      <ns0:transferOptions>
+        <ns0:MD_DigitalTransferOptions>
+          <ns0:onLine>
+            <ns0:CI_OnlineResource>
+              <ns0:linkage>
+                <ns0:URL>https://</ns0:URL>
+              </ns0:linkage>
+            </ns0:CI_OnlineResource>
+          </ns0:onLine>
+        </ns0:MD_DigitalTransferOptions>
+      </ns0:transferOptions>
+    </ns0:MD_Distribution>
+  </ns0:distributionInfo>
+  <ns0:dataQualityInfo>
+    <ns0:DQ_DataQuality>
+      <ns0:scope>
+        <ns0:DQ_Scope>
+          <ns0:level>
+            <ns0:MD_ScopeCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#MD_ScopeCode" codeListValue="dataset" />
+          </ns0:level>
+        </ns0:DQ_Scope>
+      </ns0:scope>
+      <ns0:report>
+        <ns0:DQ_DomainConsistency>
+          <ns0:result>
+            <ns0:DQ_ConformanceResult>
+              <ns0:specification>
+                <ns0:CI_Citation>
+                  <ns0:title>
+                    <ns2:CharacterString>Commission Regulation (EU) No 1089/2010 of 23 November 2010 implementing Directive 2007/2/EC of the European Parliament and of the Council as regards interoperability of spatial data sets and services</ns2:CharacterString>
+                  </ns0:title>
+                  <ns0:date>
+                    <ns0:CI_Date>
+                      <ns0:date>
+                        <ns2:Date>2010-12-08</ns2:Date>
+                      </ns0:date>
+                      <ns0:dateType>
+                        <ns0:CI_DateTypeCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication" />
+                      </ns0:dateType>
+                    </ns0:CI_Date>
+                  </ns0:date>
+                </ns0:CI_Citation>
+              </ns0:specification>
+              <ns0:explanation>
+                <ns2:CharacterString>This data set is conformant with the INSPIRE Implementing Rules for the interoperability of spatial data sets and services</ns2:CharacterString>
+              </ns0:explanation>
+              <ns0:pass>
+                <ns2:Boolean>true</ns2:Boolean>
+              </ns0:pass>
+            </ns0:DQ_ConformanceResult>
+          </ns0:result>
+        </ns0:DQ_DomainConsistency>
+      </ns0:report>
+      <ns0:lineage>
+        <ns0:LI_Lineage>
+          <ns0:statement>
+            <ns2:CharacterString>Mapping of water surface, exposed sediment and vegetated units for homogenous river reach related to October 2023, obtained by means of automatic approach</ns2:CharacterString>
+          </ns0:statement>
+        </ns0:LI_Lineage>
+      </ns0:lineage>
+    </ns0:DQ_DataQuality>
+  </ns0:dataQualityInfo>
+</ns0:MD_Metadata>

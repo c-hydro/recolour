@@ -1,0 +1,54 @@
+{
+  "flags": {
+    "reset_ancillary_datasets_data": true,
+    "reset_ancillary_datasets_weights": true,
+    "reset_destination_datasets": true,
+    "reset_logs": true
+  },
+  "parameters": {
+    "weights_fx": "compute_weights_k3",
+    "weights_variables_in": {
+      "var_data_k1": "xyz_x_err_var",
+      "var_data_k2": "xyz_y_err_var",
+      "var_data_k3": "xyz_z_err_var"
+    },
+    "weights_variables_out": {
+      "var_data_k1": "weights_x",
+      "var_data_k2": "weights_y",
+      "var_data_k3": "weights_z"
+    }
+  },
+  "datasets": {
+    "static": {
+      "grid_reference" : {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/domain/",
+        "file_name": "italy_sm_hmc.tif"
+      }
+    },
+    "dynamic" : {
+      "source": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/results/point2grid/ascat_hmc_smap/",
+        "file_name": "variables_grid.nc",
+        "variables": ["xyz_x_err_var", "xyz_y_err_var", "xyz_z_err_var"]
+      },
+      "ancillary": {
+        "data": {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/ancillary/weights/ascat_hmc_smap/",
+          "file_name": "variable_data.workspace"
+        },
+        "weights": {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/ancillary/weights/ascat_hmc_smap/",
+          "file_name": "variable_weights.workspace"
+        }
+      },
+      "destination": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/results/weights/ascat_hmc_smap/",
+        "file_name": "weights_grid.nc"
+      }
+    }
+  },
+  "log": {
+    "path_log" : "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/log/weights/ascat_hmc_gldas/",
+    "file_log": "app_map_weights.txt"
+  }
+}

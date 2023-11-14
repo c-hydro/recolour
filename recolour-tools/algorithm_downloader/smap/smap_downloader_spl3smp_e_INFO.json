@@ -1,0 +1,117 @@
+{
+  "algorithm":{
+    "flags": {
+      "downloading_mp": false,
+      "cleaning_dynamic_data_source": false,
+      "cleaning_dynamic_data_ancillary_global": false,
+      "cleaning_dynamic_data_ancillary_domain": false,
+      "cleaning_dynamic_data_outcome": false,
+      "cleaning_dynamic_data_tmp": false
+    },
+    "ancillary": {
+      "domain" : "name of subset region of interest, to append to file name",
+      "process_mp": 4
+    },
+    "general": {
+      "title": "Satellite SMAP - Downloading tool",
+      "web-site": "",
+      "source": "Python library developed by CIMA Research Foundation",
+      "history": "1.0.2 [20200511]",
+      "project-info": "Hydrological Data Engines - HyDE Library/Project",
+      "algorithm": "Downloading tool developed by CIMA Research Foundation"
+    },
+    "template": {
+      "var_name": "name of the variables to retrieve, set into file path in fill_tags2string()",
+      "group_name": "name of group/folder where to put final tiff maps",
+      "file_name": "string_filename",
+      "domain": "from the algorithm['ancillary']['domain'] field",
+      "source_sub_path_time": "target path for tiff maps",
+      "source_datetime": "datetime string format of source",
+      "ancillary_sub_path_time": "as above",
+      "ancillary_datetime": "as above",
+      "outcome_sub_path_time": "as above",
+      "outcome_datetime": "as above",
+      "run_datetime": "%Y%m%d"
+    }
+  },
+  "product": {
+    "short_name": ["short name of product, find it on the NASA Earth sites"],
+    "version": ["see above"],
+    "template_root": ["HDF5:{file_name}://Soil_Moisture_Retrieval_Data_{var_name}"],
+    "template_vars_data": [
+      ["AM/soil_moisture", "PM/soil_moisture_pm"]
+    ],
+    "template_group_data": [
+      ["soil_moisture", "soil_moisture"]
+    ]
+  },
+  "data": {
+    "static": {
+      "bounding_box": {
+        "lon_left": 6.50251,
+        "lon_right": 19.05251,
+        "lat_bottom": 36.29749,
+        "lat_top": 47.74309
+      },
+      "geo_file" : {
+        "folder": "/home/martina/Documents/Work_Area/Code_Develop/Workspace/Recolour_Workspace/recolour-ws/domain",
+        "filename": "this is not mandatory, if not able to read it, the script will use the bbox coordinates"
+      }
+    },
+    "dynamic": {
+      "time": {
+        "time_forecast_period": "how many {freq} are seen by the product in advance [0]",
+        "time_forecast_frequency": "time unit for forecasting [D]",
+        "time_observed_period": "how many {freq} are seen by the product a posteriori [1]",
+        "time_observed_frequency": "time unit for observation [D]",
+        "time_rounding": "D",
+        "time_format" : "%Y-%m-%d"
+      },
+      "url": {
+        "cmr_url": ["https://cmr.earthdata.nasa.gov"],
+        "urs_url": ["https://urs.earthdata.nasa.gov"],
+        "cmr_page_size" : [2000],
+        "url_list" : [[]],
+        "polygon" : [""],
+        "filename_filter": [""],
+        "cmr_file_url": ["{0}/search/granules.json?provider=NSIDC_ECS&sort_key[]=start_date&sort_key[]=producer_granule_id&scroll=true&page_size={1}"]
+      },
+
+      "source": {
+        "filename": ["filename of source, doesn't take wildcards but {} with optional variables, which are then inserted by function fill_tags2string()"],
+        "folder": ["folder in which the source files, so the raw downloaded files, are stored"]
+      },
+      "ancillary": {
+        "global" : {
+          "filename": ["smap_ancillary_{ancillary_datetime}_{var_name}_global.tiff"],
+          "folder": ["ancillary data target folder, ideally */ancillary/*"]
+        },
+        "domain" : {
+          "filename": ["smap_ancillary_{ancillary_datetime}_{var_name}_{domain}.tiff"],
+          "folder": ["ancillary data (domain) target folder, ideally */domain/*"]
+        }
+      },
+      "outcome": {
+        "filename": ["smap_{outcome_datetime}_{var_name}_{domain}.tiff"],
+        "folder": ["outcome target folder, where to store tiff maps of given variables  "]
+      }
+    },
+    "log": {
+        "filename": "hyde_downloader_satellite_smap_local_log.txt",
+        "folder": "/home/martina/Documents/Work_Area/Code_Develop/Workspace/Recolour_Workspace/recolour-ws/smap/SPL3SMP_E.005/"
+      },
+    "library": {
+      "filename": "",
+      "folder": ""
+    },
+    "bin": {
+      "filename": "",
+      "folder": ""
+    }
+  },
+  "time": {
+    "time_start": "2023-03-27",
+    "time_end": "2023-03-31",
+    "time_frequency": "D"
+  }
+}

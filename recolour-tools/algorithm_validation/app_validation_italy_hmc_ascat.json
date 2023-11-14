@@ -1,0 +1,73 @@
+{
+  "mode": {
+    "mp_mode": true,
+    "mp_cpu_n": 9
+  },
+  "flags": {
+    "reset_datasets_src": false,
+    "reset_datasets_dst": false,
+    "reset_logs": true
+  },
+  "parameters": {
+    "temporal_window": 12,
+    "seasonal_anomaly": false,
+    "seasonal_metrics": false
+  },
+  "domain": {
+    "name": "italy",
+    "cell_start": 1394,
+    "cell_end": 1398,
+    "cell_list": [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430, 1431]
+  },
+  "datasets": {
+    "source": {
+      "reference": {
+        "name": "HMC",
+        "variable": "soil_moisture",
+        "type": "data_record",
+        "kwargs": {
+          "lut_max_dist": 35000
+        },
+        "path_ts": "/share/hsaf/recolour/hmc_ts/",
+        "path_static": "/share/hsaf/recolour/hmc_ts/",
+        "file_grid": "grid.nc",
+        "tmp": {
+          "active_tmp": true,
+          "path_tmp": "/share/hsaf/recolour/ancillary_ts/hmc/",
+          "file_tmp": "hmc_{gpi_n}.workspace",
+          "clean_tmp": false
+        }
+      },
+      "k1": {
+        "name": "ASCAT",
+        "variable": "sm",
+        "type": "data_record",
+        "kwargs": {
+          "mask_frozen_prob": 10,
+          "mask_snow_prob": 10
+        },
+        "path_ts": "/share/hsaf/recolour/ascat_ts/h119/",
+        "path_static": "/share/hsaf/recolour/ascat_static/",
+        "file_grid": "TUW_WARP5_grid_info_2_3.nc",
+        "tmp": {
+          "active_tmp": true,
+          "path_tmp": "/share/hsaf/recolour/ancillary_ts/ascat/",
+          "file_tmp": "ascat_{gpi_n}.workspace",
+          "clean_tmp": false
+        }
+      }
+    },
+    "destination": {
+      "path_analysis": "/share/hsaf/recolour/results_validation_hmc_ascat_DEBUG/"
+    }
+  },
+  "time": {
+    "time_start": "2016-01-01",
+    "time_end": "2022-12-31",
+    "time_format": "%Y-%m-%d"
+  },
+  "log": {
+    "path_log" : "/share/hsaf/recolour/log/hmc_ascat_DEBUG/",
+    "file_log": "validation_log.txt"
+  }
+}
