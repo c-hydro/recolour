@@ -3,14 +3,19 @@
 # ----------------------------------------------------------------------------------------
 # script generic information
 script_name='RECOLOUR - DOWNLOADER - ROOT ZONE SOIL MOISTURE ECMWF'
-script_version="3.0.0"
-script_date='2023/08/03'
+script_version="3.1.0"
+script_date='2023/11/29'
 
 # script machine arg(s)
-machine_reference="ftphsaf.meteoam.it"
+machine_reference="ftphsaf.meteoam.it_sg"
 machine_url="ftphsaf.meteoam.it"
-machine_usr="sgabellani_r"
-machine_pwd="gabellaniS334"
+machine_usr=""
+machine_pwd=""
+
+# netrc scheme
+# machine machine_string
+# login login_string password pass_string
+
 
 # scritp data condition(s)
 data_reset=false # if true, reset destination file
@@ -26,7 +31,7 @@ data_days_list=(
 	10
 	10
 	10
-	10
+	12
 )
 
 data_description_list=(
@@ -179,10 +184,12 @@ if [[ -z ${machine_usr} || -z ${machine_pwd} ]]; then
 	  echo "${netrc_file} does not exist. Please create it to store login and password on your machine"
 	  exit 0
 	fi
-
+	
+	echo ${machine_reference}
+	
 	# get information from .netrc file
-	machine_usr=$(awk '/'${machine_reference}'/{getline; print $4}' ~/.netrc)
-	machine_pwd=$(awk '/'${machine_reference}'/{getline; print $6}' ~/.netrc)
+	machine_usr=$(awk '/'${machine_reference}'/{getline; print $2}' ~/.netrc)
+	machine_pwd=$(awk '/'${machine_reference}'/{getline; print $4}' ~/.netrc)
 
 fi
 echo " ===> INFO MACHINE -- URL: ${machine_url} -- USER: ${machine_usr}"

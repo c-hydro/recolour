@@ -3,14 +3,18 @@
 # ----------------------------------------------------------------------------------------
 # script generic information
 script_name='RECOLOUR - DOWNLOADER - SOIL MOISTURE HMC'
-script_version="3.0.0"
-script_date='2023/09/29'
+script_version="3.1.0"
+script_date='2023/11/29'
 
 # script machine arg(s)
-machine_reference=""
+machine_reference="server_cima_67"
 machine_url="130.251.104.67"
-machine_usr="silvestro"
+machine_usr=""
 machine_pwd=""
+
+# netrc scheme
+# machine machine_string
+# login login_string password pass_string
 
 # scritp data condition(s)
 data_reset=false # if true, reset destination file
@@ -72,6 +76,23 @@ time_now=$(date '+%Y-%m-%d %H:00')
 echo " ==================================================================================="
 echo " ==> "${script_name}" (Version: "${script_version}" Release_Date: "${script_date}")"
 echo " ==> START ..."
+
+# get credentials from .netrc (if not defined in the bash script)
+if [[ -z ${machine_usr} || -z ${machine_pwd} ]]; then
+
+	# check .netrc file availability
+	netrc_file=~/.netrc
+	if [ ! -f "${netrc_file}" ]; then
+	  echo "${netrc_file} does not exist. Please create it to store login and password on your machine"
+	  exit 0
+	fi
+	
+	# get information from .netrc file
+	machine_usr=$(awk '/'${machine_reference}'/{getline; print $2}' ~/.netrc)
+	machine_pwd=$(awk '/'${machine_reference}'/{getline; print $4}' ~/.netrc)
+
+fi
+echo " ===> INFO MACHINE -- URL: ${machine_url} -- USER: ${machine_usr}"
 
 # parse and check time information
 time_data_now=$(date -d "${time_now}" +'%Y%m%d%H%M')
