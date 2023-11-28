@@ -1,0 +1,113 @@
+{
+  "algorithm": {
+    "general": {
+      "title": "Preprocessing tool to convert soil moisture hmc from grid to csv",
+      "web-site": "",
+      "source": "Python library developed by CIMA Research Foundation",
+      "history": "1.1.0 [20231121]",
+      "project-info": "recolour",
+      "algorithm": "Algorithm developed by CIMA Research Foundation"
+    },
+    "flags": {
+      "reset_static": false,
+      "reset_dynamic_source": true,
+      "reset_dynamic_destination": true
+    },
+    "parameter": {
+      "format_source": "hmc_grid_tiff",
+      "format_destination": "csv",
+      "geo_method_search": "nearest",
+      "geo_radius_influence": 50000,
+      "geo_neighbours": 1,
+      "geo_spatial_window": 1,
+      "geo_spatial_operation": "average",
+      "geo_spatial_mask": true
+    },
+    "template": {
+      "datasets": {
+        "var_name": "string_var_name"
+      },
+      "time" : {
+        "source_sub_path_time": "%Y/%m/%d/",
+        "source_datetime": "%Y%m%d230000",
+        "source_datetime_start": "%Y%m%d230000",
+        "source_datetime_end": "%Y%m%d230000",
+        "ancillary_sub_path_time": "%Y/%m/%d/",
+        "ancillary_datetime": "%Y%m%d%H%M",
+        "ancillary_datetime_start": "%Y%m%d",
+        "ancillary_datetime_end": "%Y%m%d",
+        "destination_sub_path_time": "%Y/%m/%d/",
+        "destination_datetime": "%Y%m%d%H%M",
+        "destination_datetime_start": "%Y%m%d%H%M",
+        "destination_datetime_end": "%Y%m%d%H%M"
+      }
+    }
+  },
+  "data": {
+    "static": {
+      "source": {
+        "point_reference": {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/weather_stations_dr/regione_liguria/destination/data_static/",
+          "file_name": "sm_ws_registry.csv",
+          "fields": {
+            "code": "code",
+            "longitude": "longitude",
+            "latitude": "latitude",
+            "name": "name",
+            "valid": "valid",
+            "tag": "tag"
+          },
+          "no_data": -9999.0
+        },
+        "grid_reference": {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/hmc_static/",
+          "file_name": "italy_sm_hmc.tif",
+          "fields": {}
+        }
+      },
+      "destination": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/hmc/ancillary/data_static/",
+        "file_name": "geo_reference_hmc_liguria.workspace",
+        "fields": {}
+      }
+    },
+    "dynamic": {
+      "source": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/hmc_grid/{source_sub_path_time}",
+        "file_name": "SoilMoistureItaly_{source_datetime}.tif",
+        "fields": {
+          "var_data": "soil_moisture"
+        }
+      },
+      "ancillary": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/hmc/ancillary/data_dynamic/",
+        "file_name": "sm_datasets_{ancillary_datetime_start}_{ancillary_datetime_end}_liguria.workspace",
+        "fields": {}
+      },
+      "destination": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/hmc/csv/",
+        "file_name": "sm_datasets_{destination_datetime_start}_{destination_datetime_end}_{var_name}_liguria.csv",
+        "fields": {
+          "var_data": "soil_moisture"
+        },
+        "no_data": -9999.0
+      }
+    }
+  },
+  "tmp": {
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/tmp/",
+    "file_name": null
+  },
+  "log": {
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/log/",
+    "file_name": "sm_grid_hmc2csv_liguria.txt"
+  },
+    "time": {
+    "time_reference": null,
+    "time_period": null,
+    "time_frequency": "D",
+    "time_rounding": "D",
+    "time_start": "2023-06-20 00:00",
+    "time_end": "2023-08-01 00:00"
+  }
+}

@@ -2,6 +2,16 @@
 Changelog
 =========
 
+Version 1.1.0 [2023-11-28]
+**************************
+- PROJECT: operational release
+	- APPS: cell, maps and time-series
+	- TOOLS: converter, downloader, plot_validation, plot_timeseries, validation, xml
+	- NOTEBOOKS: time-series datasets and products
+
+- Refactor project structure and codes
+- Extend methods and functions of img2cell, swath2cell, ecmwf2ts, hmc2ts and smap2ts
+- Fix bugs (for operational mode)
 
 Version 1.0.0 [2023-11-14]
 **************************

@@ -15,8 +15,8 @@
   },
   "domain": {
     "name": "italy",
-    "cell_start": 1394,
-    "cell_end": 1398,
+    "cell_start": null,
+    "cell_end": null,
     "cell_list": [1393]
   },
   "datasets": {
@@ -26,12 +26,14 @@
         "variable": "soil_moisture",
         "type": "data_record",
         "kwargs": {"lut_max_dist": 35000},
-        "path_ts": "/share/hsaf/recolour/hmc_ts_dr/",
-        "path_static": "/share/hsaf/recolour/hmc_ts_dr/",
+        "path_ts": "/share/hsaf/recolour/hmc_ts_dr/cell/",
+        "path_static": "/share/hsaf/recolour/hmc_ts_dr/cell/",
+        "path_stack": "/share/hsaf/recolour/hmc_ts_dr/stack/",
         "file_grid": "grid.nc",
+        "bulk": true,
         "tmp": {
           "active_tmp": true,
-          "path_tmp": "/share/hsaf/recolour/hmc_ancillary/ref_hmc/",
+          "path_tmp": "/share/hsaf/recolour/validation/ancillary/hmc_ecmwf_smap/hmc/",
           "file_tmp": "hmc_{gpi_n}.workspace",
           "clean_tmp": false
         }
@@ -46,7 +48,7 @@
         "file_grid": "grid.nc",
         "tmp": {
           "active_tmp": true,
-          "path_tmp": "/share/hsaf/recolour/ecmwf_ancillary/dr/ref_hmc/",
+          "path_tmp": "/share/hsaf/recolour/validation/ancillary/hmc_ecmwf_smap/ecmwf/",
           "file_tmp": "ecmwf_{gpi_n}.workspace",
           "clean_tmp": false
         }
@@ -56,19 +58,20 @@
         "variable": "soil_moisture",
         "type": "data_record",
         "kwargs": {"lut_max_dist": 35000},
-        "path_ts": "/share/hsaf/recolour/smap_ts_dr/",
-        "path_static": "/share/hsaf/recolour/smap_ts_dr/",
-        "file_grid": "grid.nc",
+        "path_ts": "/share/hsaf/recolour/smap_ts_dr/spl3smp_e/",
+        "path_static": "/share/hsaf/recolour/smap_ts_dr/spl3smp_e/",
+        "file_grid": "grid.nc",     
+        "swi": true,
         "tmp": {
           "active_tmp": true,
-          "path_tmp": "/share/hsaf/recolour/smap_ancillary/ref_hmc/",
+          "path_tmp": "/share/hsaf/recolour/validation/ancillary/hmc_ecmwf_smap/smap/",
           "file_tmp": "smap_{gpi_n}.workspace",
           "clean_tmp": false
         }
       }
     },
     "destination": {
-      "path_analysis": "/share/hsaf/recolour/validation/results/hmc_ecmwf_smap/dr/"
+      "path_analysis": "/share/hsaf/recolour/validation/results/hmc_ecmwf_smap_ver2/swi/"
     }
   },
   "time": {
@@ -77,7 +80,7 @@
     "time_format": "%Y-%m-%d"
   },
   "log": {
-    "path_log" : "/share/hsaf/recolour/validation/log/results/hmc_ecmwf_smap/dr/",
-    "file_log": "validation_ecmwf_hmc_smap.txt"
+    "path_log" : "/share/hsaf/recolour/validation/log/hmc_ecmwf_smap/",
+    "file_log": "validation_hmc_ecmwf_smap_1393.txt"
   }
 }

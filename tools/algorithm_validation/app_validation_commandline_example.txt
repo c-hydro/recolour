@@ -1,4 +1,0 @@
-
-# TRIPLE COLLOCATION - ASCAt-HMC-GLDAS
-python app_validation_main.py -settings_file app_validation_italy_ascat_hmc_gldas.json
-

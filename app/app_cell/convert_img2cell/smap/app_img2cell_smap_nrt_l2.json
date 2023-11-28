@@ -1,0 +1,44 @@
+{
+  "product": {
+    "__comment__" : "bbox format:: [6, 35, 18, 47] or null",
+    "name": "smap",
+    "bbox": null
+  },
+  "flags": {
+    "reset_static": false,
+    "reset_dynamic": false
+  },
+  "grid": {
+    "folder_name": "/home/hsaf/share/recolour/smap_static/",
+    "file_name": "smap_grid.nc"
+  },
+  "template": {
+    "dataset": {
+      "cell_n": "%04d"
+    },
+    "time": {
+      "datetime_source": "%Y%m%d_%H%M",
+      "sub_path_source": "%Y/%m/%d/",
+      "datetime_destination": "%Y%m%d%H",
+      "sub_path_destination": "%Y/%m/%d/"
+    },
+    "file": {
+      "file_name_source": "smap_{datetime_source}_soil_moisture.tiff",
+      "file_name_destination": "{cell_n}.nc"
+    }
+  },
+  "variables": ["soil_moisture", "bulk_density", "retrieval_qual_flag",
+        "surface_temperature", "vegetation_water_content", "vegetation_opacity"],
+  "data": {
+    "path_grid": "/home/hsaf/share/recolour/smap_grid/spl2smp_e/multilayer/",
+    "path_ts": "/home/hsaf/share/recolour/smap_ts_nrt/spl2smp_e/"
+  },
+  "time": {
+    "time_now": null,
+    "time_start": null,
+    "time_end": null,
+    "time_period": 3,
+    "time_frequency": "D",
+    "time_rounding" : "H"
+  }
+}

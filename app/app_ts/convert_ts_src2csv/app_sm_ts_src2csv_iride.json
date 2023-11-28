@@ -1,0 +1,125 @@
+{
+  "algorithm": {
+    "general": {
+      "title": "Preprocessing tool to convert soil moisture time-series from source to csv",
+      "web-site": "",
+      "source": "Python library developed by CIMA Research Foundation",
+      "history": "1.5.0 [20231120]",
+      "project-info": "recolour",
+      "algorithm": "Algorithm developed by CIMA Research Foundation"
+    },
+    "flags": {
+      "reset_source": true,
+      "reset_destination": true
+    },
+    "template": {
+      "datasets": {
+        "point_name": "string_point_name",
+        "variable_name": "string_variable_name"
+      },
+      "time" : {
+        "source_sub_path_time": "%Y/%m/%d/",
+        "source_datetime": "%Y%m%d%H%M",
+        "ancillary_sub_path_time": "%Y/%m/%d/",
+        "ancillary_datetime": "%Y%m%d%H%M",
+        "destination_sub_path_time": "%Y/%m/%d/",
+        "destination_datetime": "%Y%m%d%H%M"
+      }
+    }
+  },
+  "data": {
+    "source": {
+      "registry": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/weather_stations_obs/source/iride/data_static/",
+        "file_name": "SM_ground_registry_v7_upd.mat",
+        "format": "mat",
+        "type": null,
+        "fields": {
+          "altitude": "altitude",
+          "amm_level_1": "amm_bnd_1",
+          "amm_level_2": "amm_bnd_2",
+          "code": "code",
+          "longitude": "longitude",
+          "latitude": "latitude",
+          "description": "description",
+          "name": "names",
+          "tag": "tag"
+        }
+      },
+      "datasets": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/weather_stations_obs/source/iride/data_dynamic/",
+        "file_name": "SM_ground_datasets_v7.mat",
+        "format": "mat",
+        "time_start": "2001-01-01 00:00",
+        "time_end": "2023-07-01 00:00",
+        "time_frequency": null,
+        "time_rounding": null,
+        "type": null,
+        "fields": {
+          "sm": "obs",
+          "time": "times",
+          "description": "description",
+          "name": "names"
+        }
+      }
+    },
+    "ancillary": {
+      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/weather_stations_obs/ancillary/iride/",
+      "file_name": "weather_stations_datasets_iride.workspace"
+    },
+    "destination": {
+      "registry" : {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/weather_stations_obs/destination/iride/data_static/",
+        "file_name": "sm_ws_registry.csv",
+        "format": "csv",
+        "type": null,
+        "fields": {
+          "altitude": "altitude",
+          "amm_level_1": "amm_level_1",
+          "amm_level_2": "amm_level_2",
+          "code": "code",
+          "longitude": "longitude",
+          "latitude": "latitude",
+          "description": "description",
+          "names": "names",
+          "valid": "valid"
+        },
+        "no_data": -9999.0
+      },
+      "datasets" : {
+        "__comment__": "type: [all_pnt_one_var]",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/weather_stations_obs/destination/iride/data_dynamic/",
+        "file_name": "sm_weather_station_iride.csv",
+        "format": "csv",
+        "time_start": "2016-01-01 00:00",
+        "time_end": "2023-07-01 00:00",
+        "time_frequency": "H",
+        "time_rounding": "H",
+        "type": "all_pnt_one_var",
+        "fields": {
+          "sm": "soil_moisture",
+          "time": "time",
+          "name": "name"
+        },
+        "no_data": -9999.0
+
+      }
+    }
+  },
+  "time" : {
+    "time_reference": null,
+    "time_frequency": "H",
+    "time_rounding": "H",
+    "time_period": null,
+    "time_start": null,
+    "time_end": null
+  },
+  "tmp": {
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/tmp/",
+    "file_name": null
+  },
+  "log": {
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/log/",
+    "file_name": "sm_time_series_src2csv_iride.txt"
+  }
+}

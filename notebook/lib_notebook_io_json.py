@@ -14,183 +14,10 @@ import os
 import pandas as pd
 import numpy as np
 
-from copy import deepcopy
 from datetime import datetime
-from scipy import stats
 
-import pytesmo.scaling as scaling
-import pytesmo.metrics as metrics
-
-from pytesmo.time_series.filters import exp_filter, boxcar_filter
+from lib_notebook_time_series import add_dframe_seasons
 # ----------------------------------------------------------------------------------------------------------------------
-
-
-# -------------------------------------------------------------------------------------
-# Method to add seasonal description
-def add_dframe_seasons(dframe_data, column_season='season', lut_season=None):
-
-    dframe_time = dframe_data.index
-
-    grp_season = [lut_season.get(pd.Timestamp(t_stamp).month) for t_stamp in dframe_time]
-    dframe_data[column_season] = grp_season
-
-    return dframe_data
-
-# -------------------------------------------------------------------------------------
-
-
-# -------------------------------------------------------------------------------------
-# method to print time series metrics
-def print_time_series_metrics(metrics_obj):
-    for metrics_datasets, metrics_fields in metrics_obj.items():
-        print(' --- Datasets: "' + metrics_datasets + '"')
-        for metrics_name, metrics_value in metrics_fields.items():
-            print(' ---- ' + metrics_name + ' = ' + metrics_value)
-        print(' ')
-# -------------------------------------------------------------------------------------
-
-
-# -------------------------------------------------------------------------------------
-# method to compute time series metrics
-def compute_time_series_metrics(ts_dframe_generic, ts_reference='sm_obs'):
-
-    x_df = ts_dframe_generic[ts_reference].to_frame()
-
-    ts_list = list(ts_dframe_generic.columns)
-    if ts_reference in ts_list:
-        ts_list.remove(ts_reference)
-    else:
-        raise RuntimeError('Reference field "' + ts_reference + '" must be included in the source DataFrame')
-
-    if 'control' in ts_list:
-        ts_list.remove('control')
-
-    metrics_obj = {}
-    for ts_name in ts_list:
-
-        y_df = ts_dframe_generic[ts_name].to_frame()
-
-        xy_df = x_df.join(y_df)
-        xy_df = xy_df.dropna()
-
-        x_values = xy_df[ts_reference].values
-        y_values = xy_df[ts_name].values
-
-        pearson_r, person_p = stats.pearsonr(x_values, y_values)
-        pearson_r, person_p = '{:.2f}'.format(pearson_r), '{:.2e}'.format(person_p)
-        spearman_rho, spearman_p = stats.spearmanr(x_values, y_values)
-        spearman_rho, spearman_p = '{:.2f}'.format(spearman_rho), '{:.2e}'.format(spearman_p)
-        kendall_tau, kendall_p = stats.kendalltau(x_values, y_values)
-        kendall_tau, kendall_p = '{:.2f}'.format(kendall_tau), '{:.2e}'.format(kendall_p)
-        rmsd = '{:.2f}'.format(metrics.rmsd(x_values, y_values))
-        bias = '{:.2f}'.format(metrics.bias(x_values, y_values))
-        nash_sutcliffe = '{:.2f}'.format(metrics.nash_sutcliffe(x_values, y_values))
-
-        # Calculate correlation coefficients, RMSD, bias, Nash Sutcliffe
-        metrics_ts = {'Pearson R': pearson_r, 'Pearson p': person_p,
-                      'Spearman rho': spearman_rho, 'Spearman p': spearman_p,
-                      'Kendall tau': kendall_tau, 'Kendall p': kendall_p,
-                      'RMSD': rmsd,
-                      'Bias': bias,
-                      'Nash Sutcliffe': nash_sutcliffe}
-
-        metrics_obj[ts_name] = metrics_ts
-
-    return metrics_obj
-# -------------------------------------------------------------------------------------
-
-
-# -------------------------------------------------------------------------------------
-# method to scale time series
-def scale_time_series(ts_dframe_generic, ts_reference='sm_obs', ts_scale_method='cdf_beta_match'):
-
-    if 'season' in list(ts_dframe_generic.columns):
-        ts_dframe_generic = ts_dframe_generic.drop(columns=['season'])
-    if 'control' in list(ts_dframe_generic.columns):
-        ts_dframe_generic = ts_dframe_generic.drop(columns=['control'])
-
-    ts_fields = list(ts_dframe_generic.columns)
-    if ts_reference in ts_fields:
-        ts_fields.remove(ts_reference)
-    else:
-        raise RuntimeError('Reference field "' + ts_reference + '" must be included in the source DataFrame')
-
-    ts_index = ts_dframe_generic.index.values
-    ts_n = ts_index.__len__()
-    ts_data = {ts_reference: ts_dframe_generic[ts_reference].values}
-    ts_dframe_reference = pd.DataFrame(data=ts_data, index=ts_index)
-
-    for ts_other in ts_fields:
-
-        ts_dframe_ref = ts_dframe_generic[ts_reference]
-        ts_dframe_other = ts_dframe_generic[ts_other]
-
-        ts_series_ref = ts_dframe_ref.dropna()
-        ts_dframe_ref = ts_series_ref.to_frame()
-
-        ts_series_other = ts_dframe_other.dropna()
-        ts_dframe_other = ts_series_other.to_frame()
-
-        if ts_series_ref.__len__() > ts_series_other.__len__():
-            ts_dframe_tmp = ts_dframe_other.join(ts_dframe_ref)
-        elif ts_series_ref.__len__() < ts_series_other.__len__():
-            ts_dframe_tmp = ts_dframe_ref.join(ts_dframe_other)
-        else:
-            ts_dframe_tmp = ts_dframe_ref.join(ts_dframe_other)
-
-        ts_dframe_tmp = ts_dframe_tmp.dropna()
-
-        tmp_fields = list(ts_dframe_tmp.columns)
-        tmp_idx = tmp_fields.index(ts_reference)
-
-        # scale datasets using a method defined in pytestmo library
-        ts_dframe_scaled = scaling.scale(ts_dframe_tmp, method=ts_scale_method, reference_index=tmp_idx)
-        tmp_dframe_scaled = ts_dframe_scaled[ts_other].to_frame()
-
-        ts_dframe_reference = ts_dframe_reference.join(tmp_dframe_scaled)
-
-    # add control series
-    ts_control = np.zeros(shape=[ts_n])
-    ts_control[:] = 0
-    ts_dframe_control = pd.DataFrame(data={'control':ts_control}, index=ts_index)
-    ts_dframe_reference = ts_dframe_reference.join(ts_dframe_control)
-
-    return ts_dframe_reference
-# -------------------------------------------------------------------------------------
-
-
-# -------------------------------------------------------------------------------------
-# method to filter time series by season
-def filter_time_series_by_season(ts_dframe_generic, season_filter='DJF,MAM,JJA,SON'):
-
-    # season filter
-    season_filter = season_filter.replace(',', '_')
-    season_filter = season_filter.split(',')
-
-    if not isinstance(season_filter, list):
-        season_filter = [season_filter]
-
-    # Get the seasonal dframe
-    if season_filter == ['ALL']:
-        ts_dframe_filtered = deepcopy(ts_dframe_generic)
-    else:
-        ts_dframe_filtered = ts_dframe_generic[ts_dframe_generic['season'].isin(season_filter)]
-
-    return ts_dframe_filtered
-# -------------------------------------------------------------------------------------
-
-
-# -------------------------------------------------------------------------------------
-# method to join time series
-def join_time_series(ts_dframe_product, ts_dframe_datasets):
-
-    if 'season' in list(ts_dframe_datasets.columns):
-        ts_dframe_datasets = ts_dframe_datasets.drop(columns=['season'])
-    ts_dframe_common = ts_dframe_product.join(ts_dframe_datasets)
-
-    return ts_dframe_common
-
-# -------------------------------------------------------------------------------------
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -205,6 +32,9 @@ def read_time_series_datasets(
         flag_ts_hmc='sm_hmc', flag_ts_smap='sm_smap',
         flag_ts_control='control',
         flag_time='time'):
+
+    # message read time-series datasets start
+    print(' ---> Read time-series datasets ... ')
 
     # season filter
     if flag_season_lut:
@@ -340,6 +170,9 @@ def read_time_series_datasets(
     #ts_dframe_hmc = ts_dframe_hmc.dropna(how='any')
     #ts_dframe_smap = ts_dframe_smap.dropna(how='any')
 
+    # message read time-series datasets end
+    print(' ---> Read time-series datasets ... DONE')
+
     return (ts_dframe_complete,
             ts_dframe_ecmwf_l1, ts_dframe_ecmwf_l2, ts_dframe_ecmwf_l3,
             ts_dframe_hmc, ts_dframe_smap)
@@ -350,11 +183,15 @@ def read_time_series_datasets(
 # ----------------------------------------------------------------------------------------------------------------------
 # method to read time series product
 def read_time_series_product(
-    file_name, file_sep=',', file_time_format='%Y-%m-%d %H:%M',
-    file_min_value=0, file_max_value=100,
-    flag_season_lut=True,
-    flag_ts_obs='sm_obs', flag_ts_mod='sm_tc', flag_time='time'):
-    
+        file_name, file_sep=',', file_time_format='%Y-%m-%d %H:%M',
+        file_min_value=0, file_max_value=100,
+        flag_season_lut=True,
+        flag_ts_obs='sm_obs', flag_ts_mod='sm_tc', flag_time='time',
+        mandatory_ts_obs=True, mandatory_ts_mod=False):
+
+    # message read time-series product start
+    print(' ---> Read time-series product ... ')
+
     # season filter
     if flag_season_lut:
         file_season_lut = {
@@ -370,23 +207,35 @@ def read_time_series_product(
 
     if flag_time in list(file_data.keys()):
         time_str = file_data[flag_time]
+        time_list = time_str.split(file_sep)
     else:
         print(' ===> Flag "' + flag_time + '" not available in the source file')
         raise RuntimeError('Datasets is needed by the procedure')
     if flag_ts_obs in list(file_data.keys()):
         ts_obs_str = file_data[flag_ts_obs]
+        ts_obs_list = ts_obs_str.split(file_sep)
     else:
-        print(' ===> Flag "' + flag_ts_obs + '" not available in the source file')
-        raise RuntimeError('Datasets is needed by the procedure')
+        if mandatory_ts_obs:
+            print(' ===> Flag "' + flag_ts_obs + '" not available in the source file')
+            raise RuntimeError('Time-series is needed by the procedure')
+        else:
+            print(' ===> Flag "' + flag_ts_obs +
+                  '" not available in the source file.'
+                  ' Time-series is not mandatory and it will be initialized with "-9999.0" value')
+            ts_obs_list = ['-9999.0'] * time_list.__len__()
+
     if flag_ts_mod in list(file_data.keys()):
         ts_mod_str = file_data[flag_ts_mod]
+        ts_mod_list = ts_mod_str.split(file_sep)
     else:
-        print(' ===> Flag "' + flag_ts_mod + '" not available in the source file')
-        raise RuntimeError('Datasets is needed by the procedure')
-
-    time_list = time_str.split(file_sep)
-    ts_obs_list = ts_obs_str.split(file_sep)
-    ts_mod_list = ts_mod_str.split(file_sep)
+        if mandatory_ts_mod:
+            print(' ===> Flag "' + flag_ts_mod + '" not available in the source file')
+            raise RuntimeError('Time-series is needed by the procedure')
+        else:
+            print(' ===> Flag "' + flag_ts_mod +
+                  '" not available in the source file.'
+                  ' Time-series is not mandatory and it will be initialized with "-9999.0" value')
+            ts_mod_list = ['-9999.0'] * time_list.__len__()
 
     ts_time, ts_obs, ts_mod = [], [], []
     for time_step, obs_step, mod_step in zip(time_list, ts_obs_list, ts_mod_list):
@@ -417,9 +266,23 @@ def read_time_series_product(
     ts_dframe_obs = add_dframe_seasons(ts_dframe_obs, column_season='season', lut_season=file_season_lut)
     ts_dframe_mod = add_dframe_seasons(ts_dframe_mod, column_season='season', lut_season=file_season_lut)
 
-    ts_dframe_complete = ts_dframe_complete.dropna(how='any')
+    if mandatory_ts_obs and mandatory_ts_mod:
+        ts_dframe_complete = ts_dframe_complete.dropna(how='any')
+
     ts_dframe_obs = ts_dframe_obs.dropna(how='any')
+    if ts_dframe_obs.empty:
+        print(' ===> Time series datasets "' + flag_ts_obs + '" is empty')
+        if mandatory_ts_obs:
+            raise RuntimeError('Error in reading time series datasets "' + flag_ts_obs + '"')
+
     ts_dframe_mod = ts_dframe_mod.dropna(how='any')
+    if ts_dframe_mod.empty:
+        print(' ===> Time series datasets "' + flag_ts_mod + '" is empty')
+        if mandatory_ts_mod:
+            raise RuntimeError('Error in reading time series datasets "' + flag_ts_mod + '"')
+
+    # message read time-series product end
+    print(' ---> Read time-series product ... DONE')
 
     return ts_dframe_complete, ts_dframe_obs, ts_dframe_mod
 # ----------------------------------------------------------------------------------------------------------------------
@@ -448,13 +311,12 @@ def write_time_series(file_name, file_dict_raw, file_indent=4, file_sep=','):
     with open(file_name, "w", encoding='utf-8') as file_handle:
         file_handle.write(file_data)
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-# -------------------------------------------------------------------------------------
-# Method to read file json
-def read_file_json(file_name):
-
+# ----------------------------------------------------------------------------------------------------------------------
+# method to read file settings
+def read_file_settings(file_name):
     env_ws = {}
     for env_item, env_value in os.environ.items():
         env_ws[env_item] = env_value
@@ -481,4 +343,5 @@ def read_file_json(file_name):
                 json_block = []
 
     return json_dict
-# -------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------

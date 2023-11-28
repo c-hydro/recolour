@@ -21,7 +21,7 @@ log_stream = logging.getLogger(logger_name)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to read file csv
-def read_file_csv(file_name, dframe_index='time', dframe_date_format='%Y-%m-%d %H:%M',
+def read_file_csv_OLD(file_name, dframe_index='time', dframe_date_format='%Y-%m-%d %H:%M',
                   dframe_sep=',', dframe_decimal='.', dframe_float_precision='legacy'):
 
     file_dframe = pd.read_csv(file_name, decimal=dframe_decimal, sep=dframe_sep,
@@ -48,7 +48,7 @@ def read_file_csv(file_name, dframe_index='time', dframe_date_format='%Y-%m-%d %
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to write file csv
-def write_file_csv(file_name, file_dframe,
+def write_file_csv_OLD(file_name, file_dframe,
                    dframe_sep=',', dframe_decimal='.', dframe_float_format='%.2f',
                    dframe_index=False, dframe_header=True,
                    dframe_index_label='time'):

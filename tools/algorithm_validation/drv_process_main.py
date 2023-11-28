@@ -52,6 +52,7 @@ class DrvProcess:
         self.alg_time = alg_settings[tag_section_time]
         self.alg_datasets_src = alg_settings[tag_section_datasets]['source']
         self.alg_datasets_dst = alg_settings[tag_section_datasets]['destination']
+        self.swi_option = alg_settings[tag_section_datasets]['source']['k2']['swi']
         self.alg_log = alg_settings[tag_section_log]
 
         self.coupler_logs = None
@@ -145,7 +146,8 @@ class DrvProcess:
         self.coupler_metrics = CplMetrics(dset_interfaces,
                                           metrics_seasonal=self.alg_params['seasonal_metrics'],
                                           metrics_anomaly=self.alg_params['seasonal_anomaly'],
-                                          metrics_type=metrics_type)
+                                          metrics_type=metrics_type,
+                                          swi_option=self.swi_option)
         dset_metrics = self.coupler_metrics.setup_metrics()
 
         # method to set and organize analysis information

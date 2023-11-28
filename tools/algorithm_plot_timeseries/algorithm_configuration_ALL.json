@@ -1,0 +1,70 @@
+{
+  "ref_path_ts": "/share/HSAF_Data_Validation/datasets/hsaf_dr/h113/",
+  "k1_path_ts": "/share/HSAF_Data_Validation/datasets/risico_ts/",
+  "ref_path_grid": "/share/HSAF_Data_Validation/ancillary/grid/",
+  "ref_path_static": "/share/HSAF_Data_Validation/ancillary/static_layer/",
+  "k1_path_grid": "/share/HSAF_Data_Validation/ancillary/risico/",
+  "ancillary_path": "/share/HSAF_Data_Validation/results/h113_risico/ancillary/cell_{:}/",
+  "score_path": "/share/HSAF_Data_Validation/results/h113_risico/score/",
+  "ref_ancillary_data": "ts_ascat-gpi_{:}_start_{:}_end_{:}.pkl",
+  "k1_ancillary_data": "ts_risico-gpi_{:}_start_{:}_end_{:}.pkl",
+  "plot_path": "/share/HSAF_Data_Validation/results/h113_risico/plots/cell_{:}/",
+  "plot_ts": "cell_{:}_ascat-gpi_{:}_risico-gpi_{:}_time_{:}_{:}_window_{:}_timeseries.png",
+  "plot_scatter": "cell_{:}_ascat-gpi_{:}_risico-gpi_{:}_time_{:}_{:}_window_{:}_scatter.png",
+  "plot_active": false,
+  "log_path": "/share/HSAF_Data_Validation/logs/h113_risico/",
+  "time_start": "2007-01-01",
+  "time_end": "2017-12-31",
+  "time_group": "month",
+  "time_format": "%Y-%m-%d",
+  "temporal_matching": 12,
+  "point": {
+    "id_1": {
+      "cell": "1357",
+      "gpis": null,
+      "_comment": ""
+    },
+    "id_2": {
+      "cell": "1358",
+      "gpis": null,
+      "_comment": ""
+    },
+    "id_3": {
+      "cell": "1359",
+      "gpis": null,
+      "_comment": ""
+    },
+    "id_4": {
+      "cell": "1393",
+      "gpis": null,
+      "_comment": ["1983789", "1968499", "1999043"]
+    },
+    "id_5": {
+      "cell": "1394",
+      "gpis": null,
+      "_comment": ["2128131"]
+    },
+    "id_6": {
+      "cell": "1395",
+      "gpis": null,
+      "_comment": ""
+    },
+    "id_7": {
+      "cell": "1429",
+      "gpis": null,
+      "_comment": ""
+    },
+    "id_8": {
+      "cell": "1430",
+      "gpis": null,
+      "_comment": ["2123329"]
+    },
+    "id_9": {
+      "cell": "1431",
+      "gpis": null,
+      "_comment": ""
+    }
+  },
+  "max_dist": 35000,
+  "_comment": ""
+}

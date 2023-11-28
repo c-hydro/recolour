@@ -23,11 +23,12 @@ class CplMetrics:
 
     # method to initialize class
     def __init__(self, dset_interfaces, metrics_seasonal=False,
-                 metrics_anomaly=False, metrics_type='extended'):
+                 metrics_anomaly=False, metrics_type='extended', swi_option=False):
 
         self.dset_interfaces = dset_interfaces
         self.metrics_seasonal = metrics_seasonal
         self.metrics_anomaly = metrics_anomaly
+        self.swi_option = swi_option
 
         if metrics_type == 'extended':
             self.metrics_class = ExtendedMetrics
@@ -48,7 +49,7 @@ class CplMetrics:
 
         # set datasets metrics
         dset_metrics_args_common = self.organize_signature(
-            dataset_names=dset_name_list, seasonal_metrics=self.metrics_seasonal)
+            dataset_names=dset_name_list, seasonal_metrics=self.metrics_seasonal, swi_option=self.swi_option)
         # get signature
         dset_metrics_signature = self.inspect_signature()
         # filter and adapt signature
@@ -76,11 +77,12 @@ class CplMetrics:
 
     # method to organize class signature
     @staticmethod
-    def organize_signature(dataset_names=None, seasonal_metrics=False):
+    def organize_signature(dataset_names=None, seasonal_metrics=False, swi_option=False):
         args_signature = {
             'result_path': None, 'other_name': 'k1',
             'other_name1': 'k1', 'other_name2': 'k2',
-            'dataset_names': dataset_names, "seasonal_metrics": seasonal_metrics
+            'dataset_names': dataset_names, "seasonal_metrics": seasonal_metrics,
+            'swi_option': swi_option,
         }
         return args_signature
 

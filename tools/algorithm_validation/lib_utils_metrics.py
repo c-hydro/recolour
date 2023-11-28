@@ -12,11 +12,18 @@ import collections
 import copy
 import logging
 
+import matplotlib.pyplot as plt
 import numpy as np
 import itertools
 
-import pytesmo.metrics as metrics
+import pandas as pd
+import hydroeval as he
 import pytesmo.df_metrics as df_metrics
+from numpy.lib.recfunctions import unstructured_to_structured
+from pyswi.swi_ts.swi_ts import calc_swi_ts
+from scipy.optimize import curve_fit, brute
+
+
 # -------------------------------------------------------------------------------------
 
 
@@ -64,11 +71,15 @@ class BasicMetrics(object):
             A dictionary containing computed metrics for the provided data and grid point.
     """
     def __init__(self, result_path=None, other_name='k1',
-                 dataset_names=None, seasonal_metrics=False):
+                 dataset_names=None, seasonal_metrics=False, swi_option=False):
 
         self.result_path = result_path
         self.other_name = other_name
         self.df_columns = ['ref', self.other_name]
+        self.swi_option = swi_option
+
+        if self.swi_option:
+            logging.warning(f' -------> SMAP missing, so SWI calculation not implemented.')
 
         if dataset_names is None:
             self.ds_names = self.df_columns
@@ -327,7 +338,9 @@ class ExtendedMetrics(object):
     """
 
     def __init__(self, other_name1='k1', other_name2='k2',
-                 dataset_names=None, seasonal_metrics=False):
+                 dataset_names=None, seasonal_metrics=False, swi_option=True):
+
+        self.swi_option = swi_option
 
         self.other_name1 = other_name1
         self.other_name2 = other_name2
@@ -378,6 +391,11 @@ class ExtendedMetrics(object):
             'w': np.float32([np.nan])
         }
 
+        metrics_only = {
+            'swi_t' : np.float32([np.nan]),
+            'swi_nse' : np.float32([np.nan])
+        }
+
 
         self.result_template = {'gpi': np.int32([-1]),
                                 'lon': np.float32([np.nan]),
@@ -422,6 +440,11 @@ class ExtendedMetrics(object):
                 for metric in metrics_tds_extend.keys():
                     key = "{:}_{:}_{:}".format(tds_name_key, season, metric)
                     self.result_template[key] = metrics_tds_extend[metric].copy()
+
+            # get template for SWI T value, only for SMAP metrics
+            for metric in metrics_only.keys():
+                key = "{:}_{:}_{:}".format('SMAP', season, metric)
+                self.result_template[key] = metrics_only[metric].copy()
 
         self.month_to_season = np.array(['', 'DJF', 'DJF', 'MAM', 'MAM',
                                          'MAM', 'JJA', 'JJA', 'JJA', 'SON',
@@ -519,23 +542,80 @@ class ExtendedMetrics(object):
 
             # number of observations
             n_obs = len(data)
-
-            # nancov = np.cov(np.vstack( (x, y, z) ))
-            # other version with nwise_apply (more elegant same results)
-            # apply_cov = lambda x,y,z : np.cov(np.vstack((x,y,z)))
-            # cov = df_metrics.nwise_apply(data, apply_cov, n=3, comm=True, must_include=[0])
-
-            # instead of dropping observations from all products when any is nan,
-            # following metrics are computed product-wise
-            # snr, err, beta instead drop all observations when one is nan
-            x = data.ref.values; y = data.k1.values; z = data.k2.values
-            data_vectors = [x, y, z]
-
-
+            
+            data_vectors = [data[col].values for col in data.columns]
+            
             # check data usability
             skip = False
             if ExtendedMetrics.check_data(data_vectors, self.ds_names) == 0: skip = True
             if skip: continue
+
+            # other version with nwise_apply (more elegant same results)
+            # apply_cov = lambda x,y,z : np.cov(np.vstack((x,y,z)))
+            # cov = df_metrics.nwise_apply(data, apply_cov, n=3, comm=True, must_include=[0])
+
+            if self.swi_option:
+                ## fit SWI(SMAP) against ref (HMC)
+                # define dataframe with only ref and SMAP
+                df_hmc_smap = data.drop(columns='k1', inplace=False)
+                df_hmc_smap.dropna(inplace=True)
+
+                # get julian dates of time series
+                jd = df_hmc_smap.index.to_julian_date().values
+
+                # prepare input data by rescaling them on their min/max
+                # ref. Albergel et al., 2008, "From near-surface to root zone...
+
+                # min-max normalization
+                norm_min_max = lambda x: (x - np.nanmin(x)) / (np.nanmax(x) - np.nanmin(x))
+
+                sm_ts = {}
+                sm_ts['sm_jd'] = jd
+                sm_ts['sm'] = df_hmc_smap.k2.values.astype(np.float32)
+
+                sm_ts_norm = {}
+                sm_ts_norm['sm_jd'] = jd
+                sm_ts_norm['sm'] = norm_min_max(df_hmc_smap.k2.values.astype(np.float32))
+
+                sm_ts_ref = {}
+                sm_ts_ref['sm_jd'] = jd
+                sm_ts_ref['sm'] = df_hmc_smap.ref.values.astype(np.float32)
+
+                sm_ts_ref_norm = {}
+                sm_ts_ref_norm['sm_jd'] = jd
+                sm_ts_ref_norm['sm'] = norm_min_max(df_hmc_smap.ref.values.astype(np.float32))
+
+                # perform fit of t parameter against ref observations
+                # curve fit cannot be used on integer values, and t is integer
+                # use scipy.optimize.brute to minimize an error function
+                t_values = (slice(1, 41, 1),) # create slice of t values from 1 to 40
+                t_swi = brute(ExtendedMetrics.errfun, t_values, args=(sm_ts_norm, sm_ts_ref_norm['sm'],), finish=None)
+
+                t_swi = 5
+
+                # calculate ts of swi (on not-norm data) and merge the series with data df
+                swi_ts = ExtendedMetrics.calc_swi(sm_ts, [int(t_swi)])
+                swi_ts = swi_ts[f'swi_{int(t_swi)}']
+                swi_ts_df = pd.Series(data=swi_ts, index=df_hmc_smap.index, name='k2_swi')
+                data = data.merge(swi_ts_df, how='left', left_index=True, right_index=True)
+                nse = he.evaluator(he.nse, swi_ts, sm_ts_ref['sm'])
+
+                # out variables on nc file
+                dataset['{:}_{:}_swi_t'.format('SMAP', season)][0] = t_swi
+                dataset['{:}_{:}_swi_nse'.format('SMAP', season)][0] = nse
+
+
+            # instead of dropping observations from all products when any is nan,
+            # following metrics are computed product-wise
+            # snr, err, beta instead drop all observations when one is nan
+            x = data.ref.values
+            y = data.k1.values
+            if self.swi_option:
+                z = data.k2_swi.values
+            else:
+                z = data.k2.values
+
+            data_vectors = [x, y, z]
 
             nnan_obs  = len(data) - data.isna().sum().values
             perc_nans = data.isna().sum().values / len(data)
@@ -791,5 +871,29 @@ class ExtendedMetrics(object):
         else:
             logging.warning(' -------> Data has issues: skip this point ...')
             return 0
+
+    @staticmethod
+    def calc_swi(sm_ts, t):
+        """wrapper around pyswi.calc_swi_ts"""
+        jd = np.squeeze(sm_ts['sm_jd'])
+        dtype = np.dtype([('sm_jd', np.float64), ('sm', np.float32)])
+        stack = np.hstack((jd[:, np.newaxis], sm_ts['sm'][:, np.newaxis]))
+        data = unstructured_to_structured(stack, dtype=dtype)
+        swi_ts, gain_out = calc_swi_ts(data, jd, t_value=t)
+        return swi_ts
+
+    @staticmethod
+    def errfun(t, *args):
+        sm_ts, ref_ts = args
+        swi_ts = ExtendedMetrics.calc_swi(sm_ts, t)
+        swi_ts = swi_ts[f'swi_{np.squeeze(t)}'].astype(np.float32)
+
+        # maximize correlation coefficient
+        # errsqr = -np.corrcoef(x=swi_ts, y=ref_ts)[0,1]
+
+        # maximize Nash-Sutcliff efficiency
+        errsqr = -he.evaluator(he.nse, swi_ts, ref_ts)
+        return errsqr
+
 
 # -------------------------------------------------------------------------------------

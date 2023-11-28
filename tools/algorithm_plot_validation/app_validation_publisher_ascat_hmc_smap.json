@@ -1,0 +1,166 @@
+{
+  "flags": {
+    "reset_ancillary_datasets": true,
+    "reset_destination_datasets": true,
+    "reset_logs": true
+  },
+  "info": {
+    "datasets": "ASCAT",
+    "product": "h117"
+  },
+  "domain": {
+    "__comment__": "cell_start=0, cell_end=2591",
+    "name": "italy",
+    "cell_start": 1394,
+    "cell_end": 1398,
+    "cell_list": [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430]
+  },
+  "parameters": {
+    "datasets": {},
+    "figure": {
+      "figure_size": 455.24411,
+      "figure_dpi": 500,
+      "max_distance": 24000,
+      "map_pos": [0.05, 0.16, 0.9, 0.76],
+      "cb_pos": [0.3, 0.14, 0.4, 0.025],
+      "data_extent_default": [-180, 180, -60, 85],
+      "data_extent_over_domain": true,
+      "grid_sampling": 0.05,
+      "title_fontsize": 14, "title_fontweight": "bold",
+      "cb_fontsize": 6, "cb_fontweight": "bold"
+    }
+  },
+  "grid": {
+    "folder_name": "/home/hsaf/share/recolour/ascat_static/",
+    "file_name": "TUW_WARP5_grid_info_2_3.nc"
+  },
+  "datasets": {
+    "source": {
+      "folder_name": "/home/hsaf/share/recolour/validation/results/ascat_hmc_smap/test_12h/ascat_hmc_smap_ancillary/",
+      "file_name": "{cell}.nc",
+      "variables": ["gpi", "lon", "lat", "ASCAT_ALL_snr", "ALL_n_obs", "ASCAT_HMC_ALL_R", "ASCAT_SMAP_ALL_R", "HMC_SMAP_ALL_R"]
+    },
+    "ancillary": {
+      "folder_name": "/home/hsaf/share/recolour/validation/analysis/test_12h/datasets/ascat_hmc_smap/",
+      "file_name": "h117_results.pkl"
+    },
+    "destination": {
+      "folder_name": "/home/hsaf/share/recolour/validation/analysis/test_12h/datasets/ascat_hmc_smap/",
+      "file_name": "h117_results.nc",
+      "variables": ["gpi", "lon", "lat", "xyz_x_snr", "obs", "xy_pr", "xz_pr", "yz_pr"]
+    }
+  },
+  "figure": {
+    "committed_area_map": {
+        "folder_name": "/home/hsaf/share/recolour/validation/analysis/test_12h/figure/ascat_hmc_smap/",
+        "file_name": "map_committed_area.png",
+        "variables" : ["gpi", "lon", "lat", "obs", "committed_area"],
+        "active": true
+    },
+    "pearson_data_map": {
+        "folder_name": "/home/hsaf/share/recolour/validation/analysis/test_12h/figure/ascat_hmc_smap/",
+        "file_name": "map_pr_hmc_vs_smap_{data_type}.png",
+        "variables" : ["gpi", "lon", "lat", "obs", "yz_pr"],
+        "active": true
+    },
+    "snr_data_map": {
+        "folder_name": "/home/hsaf/share/recolour/validation/analysis/test_12h/figure/ascat_hmc_smap/",
+        "file_name": "map_snr_all_{data_type}.png",
+        "variables" : ["gpi", "lon", "lat", "obs", "xyz_x_snr"],
+        "active": true
+    },
+    "pearson_stats_map": {
+        "folder_name": "/home/hsaf/share/recolour/validation/analysis/test_12h/figure/ascat_hmc_smap/",
+        "file_name": "map_pr_stats_hmc_vs_smap_{data_type}.png",
+        "variables" : ["gpi", "lon", "lat", "obs", "yz_pr"],
+        "active": true
+    },
+    "snr_stats_map": {
+        "folder_name": "/home/hsaf/share/recolour/validation/analysis/test_12h/figure/ascat_hmc_smap/",
+        "file_name": "map_snr_stats_{data_type}.png",
+        "variables" : ["gpi", "lon", "lat", "obs", "xyz_x_snr"],
+        "active": true
+    },
+    "snr_stats_pie": {
+        "folder_name": "/home/hsaf/share/recolour/validation/analysis/test_12h/figure/ascat_hmc_smap/",
+        "file_name": "pie_chart_snr_all.png",
+        "variables" : ["gpi", "lon", "lat", "obs", "xyz_x_snr"],
+        "active": true
+    },
+    "pearson_stats_pie": {
+        "folder_name": "/home/hsaf/share/recolour/validation/analysis/test_12h/figure/ascat_hmc_smap/",
+        "file_name": "pie_chart_pr_hmc_vs_smap.png",
+        "variables" : ["gpi", "lon", "lat", "obs", "yz_pr"],
+        "active": true
+    }
+  },
+  "renderer": {
+    "committed_area_map": {
+      "type": "committed_area", "committed_area": true,
+      "variable_in": "committed_area", "variable_out": null,
+      "title_label": "",
+      "cbar_label": "label", "cbar_extent": false,
+      "cbar_ticks": false, "cbar_show": false,
+      "vmin": 0, "vmax": 1, "clip": null,
+      "cmap_type": "tab20c_committed_area", "cmap_n": 3
+    },
+    "pearson_data_map": {
+      "type": "data", "committed_area": [false, true],
+      "variable_in": "yz_pr", "variable_out": null,
+      "title_label": "Pearson Correlation Coefficient (R)",
+      "cbar_label": "Pearson R [-]", "cbar_extent": false,
+      "cbar_ticks": false, "cbar_show": true,
+      "vmin": -1, "vmax": 1, "clip": null,
+      "cmap_type": "vik_r", "cmap_n": 32
+    },
+    "snr_data_map": {
+      "type": "data", "committed_area": [false, true],
+      "variable_in": "xyz_x_snr", "variable_out": null,
+      "title_label": "Signal-to-Noise Ratio (SNR)",
+      "cbar_label": "SNR [dB]", "cbar_extent": "both",
+      "cbar_ticks": {"tick_min": -9, "tick_max": 9, "tick_step": 3}, "cbar_show": true,
+      "vmin": -9, "vmax": 9, "clip": [-8.9, 8.9],
+      "cmap_type": "bam", "cmap_n": 24
+    },
+    "pearson_stats_map": {
+      "type": "stats_pearson", "committed_area": null,
+      "variable_in": "yz_pr", "variable_out": "stats_pr",
+      "title_label": "Pearson R",
+      "cbar_label": "Pearson R [-]", "cbar_extent": false,
+      "cbar_ticks": false, "cbar_show": false,
+      "vmin": 0, "vmax": 8, "clip": null,
+      "cmap_type": "tab20c_map", "cmap_n": 8
+    },
+    "snr_stats_map": {
+      "type": "stats_snr", "committed_area": null,
+      "variable_in": "xyz_x_snr", "variable_out": "stats_snr",
+      "title_label": "Signal-to-Noise Ratio (SNR)",
+      "cbar_label": "SNR [dB]", "cbar_extent": "both",
+      "cbar_ticks": false, "cbar_show": false,
+      "vmin": 0, "vmax": 8, "clip": null,
+      "cmap_type": "tab20c_map", "cmap_n": 8
+    },
+    "pearson_stats_pie": {
+      "type": "stats_pearson", "committed_area": null,
+      "variable_in": "yz_pr", "variable_out": "stats_pr",
+      "title_label": "Pearson R",
+      "cbar_label": "Pearson R [-]", "cbar_extent": false,
+      "cbar_ticks": false, "cbar_show": false,
+      "vmin": 0, "vmax": 8, "clip": null,
+      "cmap_type": "tab20c_pie", "cmap_n": 8
+    },
+    "snr_stats_pie": {
+      "type": "stats_snr", "committed_area": null,
+      "variable_in": "xyz_x_snr", "variable_out": "stats_snr",
+      "title_label": "Signal-to-Noise Ratio (SNR)",
+      "cbar_label": "SNR [dB]", "cbar_extent": "both",
+      "cbar_ticks": false, "cbar_show": false,
+      "vmin": 0, "vmax": 8, "clip": null,
+      "cmap_type": "tab20c_pie", "cmap_n": 8
+    }
+  },
+  "log": {
+    "path_log" : "/home/hsaf/share/recolour/validation/log/plotting/ascat_hmc_smap/",
+    "file_log": "app_validation_publisher.txt"
+  }
+}

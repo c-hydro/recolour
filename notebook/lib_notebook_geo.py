@@ -20,6 +20,9 @@ def read_point_data(file_name,
                     file_units_default='%', file_description_default='NA',
                     file_location_default='NA', file_tag_default='NA'):
 
+    # message read time-series registry start
+    print(' ---> Read time-series registry ... ')
+
     if file_columns_remap is None:
         file_columns_remap = {"altitude": "altitude", "amm_level_1": "amm_level_1", "amm_level_2": "amm_level_2",
                               "code": "code", "longitude": "longitude", "latitude": "latitude",
@@ -76,6 +79,9 @@ def read_point_data(file_name,
                 list_tag.append(string_tag)
 
             df_point_select['tag'] = list_tag
+
+    # message read time-series registry end
+    print(' ---> Read time-series registry ... DONE')
 
     return df_point_select
 # ----------------------------------------------------------------------------------------------------------------------

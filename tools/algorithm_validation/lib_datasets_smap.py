@@ -15,6 +15,8 @@ import os
 import tempfile
 import pandas as pd
 import numpy as np
+from numpy.lib.recfunctions import unstructured_to_structured
+from pyswi.swi_ts.swi_ts import calc_swi_ts
 
 from lib_utils_generic import read_obj, write_obj
 
