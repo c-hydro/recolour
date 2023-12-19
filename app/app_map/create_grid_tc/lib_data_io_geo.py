@@ -47,7 +47,6 @@ def read_grid_data(file_name, output_format='data_array', output_dtype='float32'
                    coord_name_x='longitude', coord_name_y='latitude',
                    dim_name_x='longitude', dim_name_y='latitude', binary_mask=False):
 
-
     try:
         dset = rasterio.open(file_name)
         bounds, res, transform = dset.bounds, dset.res, dset.transform

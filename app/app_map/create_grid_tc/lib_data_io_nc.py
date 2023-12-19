@@ -43,56 +43,68 @@ def organize_file_nc(obj_data_in, obj_time=None, obj_variable=None, obj_cell=Non
 
     if obj_data_in is not None:
 
-        obj_variable_check = {}
+        obj_variable_check, alg_variable_missed = {}, None
         for var_name_in, var_name_out in obj_variable.items():
             if var_name_in in obj_data_in.variables:
                 obj_variable_check[var_name_in] = var_name_out
             else:
                 alg_logger.warning(' ===> File variable "' + var_name_in + '" is not available in the file')
+                if alg_variable_missed is None:
+                    alg_variable_missed = []
+                alg_variable_missed.append(var_name_in)
 
-        if isinstance(obj_data_in, xr.Dataset):
-            obj_data_tmp = obj_data_in.rename(obj_variable)
-        else:
-            alg_logger.error(' ===> Obj data format is not supported')
-            raise NotImplemented('Case not implemented yet')
+        # check availability of all variable(s)
+        if alg_variable_missed is None:
 
-        # filter dataset by variable(s)
-        obj_data_tmp = obj_data_tmp[var_name_out_list]
-
-        if obj_time is not None:
-            if 'time' in list(obj_data_in.variables):
-                time_stamp_max = pd.DatetimeIndex(obj_data_tmp['time'].values).max()
-
+            if isinstance(obj_data_in, xr.Dataset):
+                obj_data_tmp = obj_data_in.rename(obj_variable)
             else:
-                alg_logger.error(' ===> Time data is not available')
-                raise RuntimeError('Time data is needed by the algorithm to properly run')
-
-            obj_data_out = obj_data_tmp.where(obj_data_tmp['time'] == time_stamp_max, drop=True)
-        else:
-            obj_data_out = deepcopy(obj_data_tmp)
-
-        if obj_cell is not None:
-            if 'locations' in list(obj_data_out.dims):
-                obj_n = obj_data_out.dims['locations']
-                obj_arr = [obj_cell] * obj_n
-
-                obj_da = xr.DataArray(obj_arr,
-                                      dims=["locations"],
-                                      coords={'locations': ('locations', range(obj_n))})
-
-                obj_data_out['cell'] = obj_da
-
-            elif 'dim' in list(obj_data_out.dims):
-                obj_n = obj_data_out.dims['dim']
-                obj_arr = [obj_cell] * obj_n
-
-                obj_da = xr.DataArray(obj_arr,
-                                      dims=["dim"],
-                                      coords={'dim': ('dim', range(obj_n))})
-                obj_data_out['cell'] = obj_da
-            else:
-                alg_logger.error(' ===> File dimensions must be "dim" or "locations" to be used by the algorithm')
+                alg_logger.error(' ===> Obj data format is not supported')
                 raise NotImplemented('Case not implemented yet')
+
+            # filter dataset by variable(s)
+            obj_data_tmp = obj_data_tmp[var_name_out_list]
+
+            if obj_time is not None:
+                if 'time' in list(obj_data_in.variables):
+                    time_stamp_max = pd.DatetimeIndex(obj_data_tmp['time'].values).max()
+
+                else:
+                    alg_logger.error(' ===> Time data is not available')
+                    raise RuntimeError('Time data is needed by the algorithm to properly run')
+
+                obj_data_out = obj_data_tmp.where(obj_data_tmp['time'] == time_stamp_max, drop=True)
+            else:
+                obj_data_out = deepcopy(obj_data_tmp)
+
+            if obj_cell is not None:
+                if 'locations' in list(obj_data_out.dims):
+                    obj_n = obj_data_out.dims['locations']
+                    obj_arr = [obj_cell] * obj_n
+
+                    obj_da = xr.DataArray(obj_arr,
+                                          dims=["locations"],
+                                          coords={'locations': ('locations', range(obj_n))})
+
+                    obj_data_out['cell'] = obj_da
+
+                elif 'dim' in list(obj_data_out.dims):
+                    obj_n = obj_data_out.dims['dim']
+                    obj_arr = [obj_cell] * obj_n
+
+                    obj_da = xr.DataArray(obj_arr,
+                                          dims=["dim"],
+                                          coords={'dim': ('dim', range(obj_n))})
+                    obj_data_out['cell'] = obj_da
+                else:
+                    alg_logger.error(' ===> File dimensions must be "dim" or "locations" to be used by the algorithm')
+                    raise NotImplemented('Case not implemented yet')
+
+        else:
+            string_variable_missed = ','.join(alg_variable_missed)
+            alg_logger.warning(' ===> Object data does not have all variable(s). Some/All variable(s) "' +
+                               string_variable_missed + '" is/are missed')
+            obj_data_out = None
 
     else:
         alg_logger.warning(' ===> Object data is defined by NoneType. Data are not available')

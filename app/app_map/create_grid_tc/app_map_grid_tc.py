@@ -3,19 +3,20 @@
 """
 RECOLOUR APP - TC MERGED GRID PRODUCT  - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20230925'
-__version__ = '1.0.0'
+__date__ = '20231218'
+__version__ = '1.5.0'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)'
 __library__ = 'recolour'
 
 General command line:
-python app_map_grid_tc_nrt.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
+python app_map_grid_tc.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Complete list of cells:
 [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430, 1431]
 
 Version(s):
+20231218 (1.5.0) --> Operational development
 20230925 (1.0.0) --> First development
 """
 
@@ -51,8 +52,8 @@ alg_logger = logging.getLogger(logger_name_def)
 project_name = 'recolour'
 alg_name = 'Application for computing grid triple collocation soil moisture product'
 alg_type = 'Package'
-alg_version = '1.0.0'
-alg_release = '2023-09-25'
+alg_version = '1.5.0'
+alg_release = '2023-12-18'
 # -------------------------------------------------------------------------------------
 
 

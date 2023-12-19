@@ -10,6 +10,7 @@ Version:       '1.0.0'
 # ----------------------------------------------------------------------------------------------------------------------
 # Libraries
 import logging
+import re
 import pandas as pd
 
 from copy import deepcopy
@@ -143,4 +144,19 @@ def get_time_chunks(time_range, time_period='D', time_reverse=False):
         time_chunks[key] = tmp_chunks[key]
 
     return time_chunks
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to split time delta into time period and time frequency
+def split_time_parts(time_delta='12H'):
+
+    if time_delta.isalpha():
+        time_delta = '1' + time_delta
+
+    _, time_period, time_frequency = re.split('(\d+)', time_delta)
+
+    time_period = int(time_period)
+
+    return time_period, time_frequency
 # ----------------------------------------------------------------------------------------------------------------------

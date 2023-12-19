@@ -14,6 +14,7 @@ import os
 import numpy as np
 import xarray as xr
 
+from repurpose.resample import resample_to_grid
 from pygeogrids.grids import BasicGrid
 
 from lib_info_args import logger_name
@@ -23,6 +24,32 @@ alg_logger = logging.getLogger(logger_name)
 
 # debug
 # import matplotlib.pylab as plt
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to get grid data
+def get_grid_data(dframe_cell, mask_grid, geox_grid, geoy_grid, no_data=-9999.0,
+                  var_name='soil_moisture_ref', geox_name='longitude', geoy_name='latitude',
+                  resampling_radius=10000, resampling_min_neighbours=1, resampling_neighbours=8):
+
+    var_data_grid, idx_data_grid = None, None
+    if dframe_cell is not None:
+        var_data_arr = dframe_cell[var_name].values[:, 0]
+        var_geox_arr = dframe_cell[geox_name].values
+        var_geoy_arr = dframe_cell[geoy_name].values
+
+        var_obj = resample_to_grid(
+            {'data': var_data_arr},
+            var_geox_arr, var_geoy_arr, geox_grid, geoy_grid,
+            search_rad=resampling_radius, fill_values=np.nan,
+            min_neighbours=resampling_min_neighbours, neighbours=resampling_neighbours)
+        var_data_grid = var_obj['data']
+        var_data_grid[mask_grid == 0] = np.nan
+
+        idx_data_grid = np.argwhere(np.isfinite(var_data_grid))
+
+    return var_data_grid, idx_data_grid
 # ----------------------------------------------------------------------------------------------------------------------
 
 

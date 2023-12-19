@@ -106,8 +106,8 @@ class DrvData:
             # find grid fields
             obj_fields_ref, obj_fields_k1, obj_fields_k2 = find_grid_fields(
                 obj_grid_ref, obj_grid_k1, obj_grid_k2,
-                max_distance_k1=self.alg_cells['max_distance_ref_k1'],
-                max_distance_k2=self.alg_cells['max_distance_ref_k2'])
+                max_distance_k1=self.alg_cells['max_distance']['k1'],
+                max_distance_k2=self.alg_cells['max_distance']['k2'])
 
             # organize object workspace
             obj_workspace = {'geo': {'data': obj_geo_data, 'attrs': obj_geo_attrs},

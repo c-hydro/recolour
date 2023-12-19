@@ -2,6 +2,14 @@
 Changelog
 =========
 
+Version 1.2.0 [2023-12-19]
+**************************
+- PROJECT: operational release
+	- APPS: create_grid_tc
+		- add temporal periods to match avaialable products
+		- add resampling procedure to remap products to the reference grid
+		- fix artetacts in ecmwf and smap products (due to the generic grid reference)
+
 Version 1.1.0 [2023-11-28]
 **************************
 - PROJECT: operational release

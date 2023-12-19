@@ -99,13 +99,12 @@ class CouplerDataset:
             # call read method
             dset_src_step = self.read(time_step)
 
-
             if dset_src_collections is None:
-                if dset_src_step is None:
-                    alg_logger.error(f' ====> No data for day {time_step.strftime("%Y/%m/%d")}. SKIPPING ... ')
-                    raise SystemExit
-                dset_src_collections = dset_src_step.copy()
-                dset_src_time = deepcopy(time_step)
+                if dset_src_step is not None:
+                    # alg_logger.error(f' ====> No data for day {time_step.strftime("%Y/%m/%d")}. SKIPPING ... ')
+                    # raise SystemExit
+                    dset_src_collections = dset_src_step.copy()
+                    dset_src_time = deepcopy(time_step)
             else:
                 alg_logger.error(' ===> Time steps must be equal to 1')
                 raise NotImplemented('Case not implemented yet')
@@ -129,6 +128,62 @@ class CouplerDataset:
         alg_logger.info(' --------> Organize data ... DONE')
 
         return dset_src_out
+
+    # method to organize time
+    def organize_time(self, dset_src_in,
+                      time_reference_dset, time_reference_group,
+                      time_tolerance_period=12, time_tolerance_frequency='H'):
+
+        # info start method
+        alg_logger.info(' --------> Organize time ... ')
+
+        # check datasets obj
+        if dset_src_in is not None:
+
+            # check time dimension availability
+            if 'time' not in list(dset_src_in.dims):
+                alg_logger.error(' ===> Time dimension is not available in the datasets')
+                raise RuntimeError('Time dimension is needed by the algorithm to properly run')
+
+            # order dataset (to avoid misleading in time indexes)
+            dset_src_sort = dset_src_in.sortby("time", ascending=True)
+
+            # check time sorting
+            time_sort = pd.to_datetime(dset_src_sort['time'].values)
+            if time_reference_group >= time_sort[0]: # and (time_reference_group <= time_sort[-1]):
+
+                # dataset selection
+                dset_src_select = dset_src_sort.sel(time=slice(time_sort[0], time_reference_group))
+                # dataset last
+                dset_src_last = dset_src_select.isel(time=[-1])
+                # get last available time step
+                time_last = pd.to_datetime(dset_src_last['time'].values)[0]
+
+                # compute time tolerance
+                time_range_tolerance_sx = pd.date_range(end=time_reference_dset,
+                                                        periods=time_tolerance_period, freq=time_tolerance_frequency)
+                time_range_tolerance_dx = pd.date_range(start=time_reference_dset,
+                                                        periods=time_tolerance_period, freq=time_tolerance_frequency)
+                time_range_tolerance = time_range_tolerance_sx.append(time_range_tolerance_dx)
+
+                # check time last in time tolerance
+                if time_last in time_range_tolerance:
+                    dset_src_out = deepcopy(dset_src_last)
+                    dset_time = deepcopy(time_last)
+                else:
+                    alg_logger.warning(' ===> Time datasets steps are not included in the time period tolerance')
+                    dset_src_out, dset_time = None, None
+            else:
+                alg_logger.warning(' ===> Time group steps are not included in the time period tolerance')
+                dset_src_out, dset_time = None, None
+        else:
+            alg_logger.warning(' ===> Dataset obj is defined by NoneType or empty. Time information are not available')
+            dset_src_out, dset_time = None, None
+
+        # info end method
+        alg_logger.info(' --------> Organize time ... DONE')
+
+        return dset_src_out, dset_time
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -355,7 +410,7 @@ def organize_datasets_obj(dset_obj_ref, time_ref,
 # ----------------------------------------------------------------------------------------------------------------------
 # method to remap dataset to reference
 def remap_dataset_2_ref(dset_ref, dset_other, var_other='soil_moisture_k1',
-                        search_rad=25000, min_neigh=1, neigh=8,
+                        search_rad=25000, min_neigh=1, neigh=8, min_value=0.01, max_value=1,
                         filter_st_dev=5, filter_mode='center'):
 
     from repurpose.resample import resample_to_grid
@@ -366,7 +421,10 @@ def remap_dataset_2_ref(dset_ref, dset_other, var_other='soil_moisture_k1',
     ref_geo_x_2d, ref_geo_y_2d = np.meshgrid(ref_geo_x_1d, ref_geo_y_1d)
 
     other_values_source = np.squeeze(dset_other[var_other].values)
-    other_geo_x, other_geo_y = dset_other['longitude'].values, dset_other['latitude'].values
+    other_geo_x, other_geo_y = np.squeeze(dset_other['longitude'].values), np.squeeze(dset_other['latitude'].values)
+
+    if other_values_source.ndim > 1:
+        other_values_source = other_values_source[:,0]
 
     obj_resample = resample_to_grid(
         {'tmp': other_values_source},
@@ -375,7 +433,8 @@ def remap_dataset_2_ref(dset_ref, dset_other, var_other='soil_moisture_k1',
         min_neighbours=min_neigh, neighbours=neigh)
 
     other_values_resampled = obj_resample['tmp']
-    other_values_resampled[other_values_resampled < 0] = np.nan
+    other_values_resampled[other_values_resampled < min_value] = np.nan
+    other_values_resampled[other_values_resampled > max_value] = np.nan
 
     obj_kernel = Gaussian2DKernel(x_stddev=filter_st_dev, mode=filter_mode)
     other_values_filtered = convolve(other_values_resampled, obj_kernel)
@@ -383,10 +442,10 @@ def remap_dataset_2_ref(dset_ref, dset_other, var_other='soil_moisture_k1',
     ''' debug
     plt.figure()
     plt.imshow(other_values_resampled)
-    plt.colorbar(); plt.clim(0.3, 0.9)
+    plt.colorbar(); plt.clim(0, 1)
     plt.figure()
     plt.imshow(other_values_filtered)
-    plt.colorbar(); plt.clim(0.3, 0.9)
+    plt.colorbar(); plt.clim(0, 1)
     plt.show()
     '''
 
@@ -402,95 +461,120 @@ def remap_dataset_2_ref(dset_ref, dset_other, var_other='soil_moisture_k1',
 def join_dataset_obj(dset_collections_in, time_collections_in, ancillary_collections_in,
                      max_dist_k1=25000, max_dist_k2=25000, max_dist_anc=25000,
                      tag_name_ref='ref', tag_name_k1='k1', tag_name_k2='k2',
-                     remap_k1_2_ref=True, remap_k2_2_ref=False):
+                     remap_k1_2_ref=True, remap_k2_2_ref=False,
+                     bnd_value_min=0.01, bnd_value_max=1):
 
     # define datasets
     dset_ref, time_ref = dset_collections_in[tag_name_ref], time_collections_in[tag_name_ref]
     dset_k1, time_k1 = dset_collections_in[tag_name_k1], time_collections_in[tag_name_k1]
     dset_k2, time_k2 = dset_collections_in[tag_name_k2], time_collections_in[tag_name_k2]
+
+    # debug
+    if dset_k1 is None:
+        time_k1 = time_ref
+        dset_k1 = None_dataset(dset_ref, 'soil_moisture_ref', 'soil_moisture_k1', np.nan)
+    if dset_k2 is None:
+        time_k2 = time_ref
+        dset_k2 = None_dataset(dset_ref, 'soil_moisture_ref', 'soil_moisture_k2', np.nan)
+
     dset_anc = deepcopy(ancillary_collections_in)
 
     if remap_k1_2_ref:
-        dset_k1_remap = remap_dataset_2_ref(dset_ref, dset_k1, var_other='soil_moisture_k1')
+        if (dset_ref is not None) and (dset_k1 is not None):
+            dset_k1_remap = remap_dataset_2_ref(dset_ref, dset_k1,
+                                                var_other='soil_moisture_k1', search_rad=max_dist_k1)
+        else:
+            dset_k1_remap = None
     else:
         dset_k1_remap = dset_k1
 
     if remap_k2_2_ref:
-        dset_k2_remap = remap_dataset_2_ref(dset_ref, dset_k2, var_other='soil_moisture_k2')
+        if (dset_ref is not None) and (dset_k2 is not None):
+            dset_k2_remap = remap_dataset_2_ref(dset_ref, dset_k2,
+                                                var_other='soil_moisture_k2', search_rad=max_dist_k2)
+        else:
+            dset_k2_remap = None
     else:
         dset_k2_remap = dset_k2
 
     # check ancillary datasets (not defined by NoneType)
     if dset_anc is not None:
 
-        # define geo
-        geo_x_ref_raw, geo_y_ref_raw, grid_ref = get_dataset_geo(dset_ref)
-        geo_x_anc_raw, geo_y_anc_raw, grid_anc = get_dataset_geo(dset_anc)
-        geo_x_k1_raw, geo_y_k1_raw, grid_k1 = get_dataset_geo(dset_k1_remap)
-        geo_x_k2_raw, geo_y_k2_raw, grid_k2 = get_dataset_geo(dset_k2_remap)
+        # check dynamic datasets (not defined by NoneType)
+        if (dset_k1_remap is not None) and (dset_k2_remap is not None):
 
-        # define generic indexes
-        idxs_ref_anc = get_datasets_lut(grid_ref, grid_anc, max_dist=max_dist_anc)
-        idxs_ref_k1 = get_datasets_lut(grid_ref, grid_k1, max_dist=max_dist_k1)
-        idxs_ref_k2 = get_datasets_lut(grid_ref, grid_k2, max_dist=max_dist_k2)
+            # define geo
+            geo_x_ref_raw, geo_y_ref_raw, grid_ref = get_dataset_geo(dset_ref)
+            geo_x_anc_raw, geo_y_anc_raw, grid_anc = get_dataset_geo(dset_anc)
+            geo_x_k1_raw, geo_y_k1_raw, grid_k1 = get_dataset_geo(dset_k1_remap)
+            geo_x_k2_raw, geo_y_k2_raw, grid_k2 = get_dataset_geo(dset_k2_remap)
 
-        # define filtered indexes
-        idxs_ref_filter, idxs_k1_filter, idxs_k2_filter, idxs_anc_filter = [], [], [], []
-        for ref_idx, (k1_idx, k2_idx, anc_idx) in enumerate(zip(idxs_ref_k1, idxs_ref_k2, idxs_ref_anc)):
-            if (k1_idx > 0) and (k2_idx > 0) and (anc_idx > 0):
-                idxs_ref_filter.append(ref_idx)
-                idxs_k1_filter.append(k1_idx)
-                idxs_k2_filter.append(k2_idx)
-                idxs_anc_filter.append(anc_idx)
+            # define generic indexes
+            idxs_ref_anc = get_datasets_lut(grid_ref, grid_anc, max_dist=max_dist_anc)
+            idxs_ref_k1 = get_datasets_lut(grid_ref, grid_k1, max_dist=max_dist_k1)
+            idxs_ref_k2 = get_datasets_lut(grid_ref, grid_k2, max_dist=max_dist_k2)
 
-        # define filtered datasets
-        dset_ref_filter = filter_datasets_obj(dset_obj_in=dset_ref, idxs_obj=idxs_ref_filter)
-        dset_anc_filter = filter_datasets_obj(dset_obj_in=dset_anc, idxs_obj=idxs_anc_filter)
-        dset_k1_filter = filter_datasets_obj(dset_obj_in=dset_k1_remap, idxs_obj=idxs_k1_filter)
-        dset_k2_filter = filter_datasets_obj(dset_obj_in=dset_k2_remap, idxs_obj=idxs_k2_filter)
+            # define filtered indexes
+            idxs_ref_filter, idxs_k1_filter, idxs_k2_filter, idxs_anc_filter = [], [], [], []
+            for ref_idx, (k1_idx, k2_idx, anc_idx) in enumerate(zip(idxs_ref_k1, idxs_ref_k2, idxs_ref_anc)):
+                if (k1_idx > 0) and (k2_idx > 0) and (anc_idx > 0):
+                    idxs_ref_filter.append(ref_idx)
+                    idxs_k1_filter.append(k1_idx)
+                    idxs_k2_filter.append(k2_idx)
+                    idxs_anc_filter.append(anc_idx)
 
-        ''' test
-        print('TEST POINT - CPL_DATA_DYNAMIC L381')
-        sm_tmp = dset_ref_filter['soil_moisture_ref']
+            # define filtered datasets
+            dset_ref_filter = filter_datasets_obj(dset_obj_in=dset_ref, idxs_obj=idxs_ref_filter)
+            dset_anc_filter = filter_datasets_obj(dset_obj_in=dset_anc, idxs_obj=idxs_anc_filter)
+            dset_k1_filter = filter_datasets_obj(dset_obj_in=dset_k1_remap, idxs_obj=idxs_k1_filter)
+            dset_k2_filter = filter_datasets_obj(dset_obj_in=dset_k2_remap, idxs_obj=idxs_k2_filter)
 
-        sm_tmp[sm_tmp < 0] = np.nan
-        series_tmp = pd.Series(data=sm_tmp)
-        series_filled = series_tmp.fillna(method='ffill')
-        sm_filled = series_filled.values
-        dset_ref_filter['soil_moisture_ref'] = sm_filled
-        '''
+            ''' test
+            print('TEST POINT - CPL_DATA_DYNAMIC L381')
+            sm_tmp = dset_ref_filter['soil_moisture_ref']
+    
+            sm_tmp[sm_tmp < 0] = np.nan
+            series_tmp = pd.Series(data=sm_tmp)
+            series_filled = series_tmp.fillna(method='ffill')
+            sm_filled = series_filled.values
+            dset_ref_filter['soil_moisture_ref'] = sm_filled
+            '''
 
-        dset_composite_filter = create_composite_dset(dset_ref_filter, dset_k1_filter, dset_k2_filter)
+            dset_composite_filter = create_composite_dset(dset_ref_filter, dset_k1_filter, dset_k2_filter)
 
-        idxs_composite_finite = np.squeeze(np.argwhere(dset_composite_filter['soil_moisture_composite'] >= 0)).tolist()
-        idxs_ref_finite = np.squeeze(np.argwhere(dset_ref_filter['soil_moisture_ref'] >= 0)).tolist()
-        idxs_k1_finite = np.squeeze(np.argwhere(dset_k1_filter['soil_moisture_k1'] >= 0)).tolist()
-        idxs_k2_finite = np.squeeze(np.argwhere(dset_k2_filter['soil_moisture_k2'] >= 0)).tolist()
+            idxs_composite_finite = np.squeeze(np.argwhere(dset_composite_filter['soil_moisture_composite'] >= bnd_value_min)).tolist()
+            idxs_ref_finite = np.squeeze(np.argwhere(dset_ref_filter['soil_moisture_ref'] >= bnd_value_min)).tolist()
+            idxs_k1_finite = np.squeeze(np.argwhere(dset_k1_filter['soil_moisture_k1'] >= bnd_value_min)).tolist()
+            idxs_k2_finite = np.squeeze(np.argwhere(dset_k2_filter['soil_moisture_k2'] >= bnd_value_min)).tolist()
 
-        dset_composite_finite = filter_datasets_obj(
-            dset_obj_in=dset_composite_filter, idxs_obj=idxs_composite_finite, remove_no_data=True)
-        dset_ref_finite = filter_datasets_obj(
-            dset_obj_in=dset_ref_filter, idxs_obj=idxs_composite_finite, remove_no_data=True)
-        dset_anc_finite = filter_datasets_obj(
-            dset_obj_in=dset_anc_filter, idxs_obj=idxs_composite_finite, remove_no_data=False)
-        dset_k1_finite = filter_datasets_obj(
-            dset_obj_in=dset_k1_filter, idxs_obj=idxs_composite_finite, remove_no_data=True)
-        dset_k2_finite = filter_datasets_obj(
-            dset_obj_in=dset_k2_filter, idxs_obj=idxs_composite_finite, remove_no_data=True)
+            dset_composite_finite = filter_datasets_obj(
+                dset_obj_in=dset_composite_filter, idxs_obj=idxs_composite_finite, remove_no_data=True)
+            dset_ref_finite = filter_datasets_obj(
+                dset_obj_in=dset_ref_filter, idxs_obj=idxs_composite_finite, remove_no_data=True)
+            dset_anc_finite = filter_datasets_obj(
+                dset_obj_in=dset_anc_filter, idxs_obj=idxs_composite_finite, remove_no_data=False)
+            dset_k1_finite = filter_datasets_obj(
+                dset_obj_in=dset_k1_filter, idxs_obj=idxs_composite_finite, remove_no_data=True)
+            dset_k2_finite = filter_datasets_obj(
+                dset_obj_in=dset_k2_filter, idxs_obj=idxs_composite_finite, remove_no_data=True)
 
-        dframe_collections = organize_datasets_obj(
-            dset_ref_finite, time_ref,
-            dset_anc_finite, dset_k1_finite, dset_k2_finite,
-            dset_composite_finite)
+            dframe_collections = organize_datasets_obj(
+                dset_ref_finite, time_ref,
+                dset_anc_finite, dset_k1_finite, dset_k2_finite,
+                dset_composite_finite)
 
-        if 'dim' in dframe_collections.columns:
-            dframe_collections = dframe_collections.drop(['dim'], axis=1)
-        if 'locations' in dframe_collections.columns:
-            dframe_collections = dframe_collections.drop(['locations'], axis=1)
+            if 'dim' in dframe_collections.columns:
+                dframe_collections = dframe_collections.drop(['dim'], axis=1)
+            if 'locations' in dframe_collections.columns:
+                dframe_collections = dframe_collections.drop(['locations'], axis=1)
+
+        else:
+            dframe_collections = None
+            alg_logger.warning(' ===> Dynamic dataset is/are defined by NoneType. Data collections are not available')
 
     else:
         dframe_collections = None
-        alg_logger.warning(' ===> Ancillary dataset is defined by NoneType. Data are not available')
+        alg_logger.warning(' ===> Ancillary dataset is defined by NoneType. Data collections are not available')
 
     return dframe_collections
 
@@ -552,3 +636,33 @@ def create_composite_dset(dset_ref, dset_k1, dset_k2):
 
     return dset_composite
 # ----------------------------------------------------------------------------------------------------------------------
+
+def None_dataset(dset_ref:xr.Dataset, dset_ref_var:str, var:str, FillValue:float):
+    """Creates a dataset of nan values which is a copy of dset_ref.
+
+    Parameters
+    ----------
+    dset_ref: reference dataset
+    dset_ref_datarray: slice of the dataset which is the datarray containing dset_ref_var as a key
+    dset_ref_var: key to substitute
+    var: variable name which is substituted to the reference one
+    FillValue: fillvalue for the data, default np.nan
+
+    Returns
+    -------
+    xarray dataset
+
+    """
+    if FillValue is None:
+        FillValue = np.nan
+
+    dset_xr = None
+    if dset_ref is not None:
+        dset_ref_dict = dset_ref.to_dict()
+        data_ref_len = len(dset_ref_dict['data_vars'][dset_ref_var]['data'])
+        dset_ref_dict['data_vars'][dset_ref_var]['data'] = [[FillValue]] * data_ref_len
+        dset_ref_dict['data_vars'][var] = dset_ref_dict['data_vars'].pop(dset_ref_var)
+        dset_xr = xr.Dataset.from_dict(dset_ref_dict)
+
+    return dset_xr
+
