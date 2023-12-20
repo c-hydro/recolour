@@ -149,29 +149,56 @@ class CouplerDataset:
             dset_src_sort = dset_src_in.sortby("time", ascending=True)
 
             # check time sorting
-            time_sort = pd.to_datetime(dset_src_sort['time'].values)
-            if time_reference_group >= time_sort[0]: # and (time_reference_group <= time_sort[-1]):
+            time_sort_start = pd.to_datetime(dset_src_sort['time'].values)[0]
+            time_sort_end = pd.to_datetime(dset_src_sort['time'].values)[-1]
+
+            # check time reference
+            time_reference_start = pd.date_range(
+                end=time_reference_group, periods=time_tolerance_period, freq=time_tolerance_frequency)[0]
+            time_reference_end = pd.date_range(
+                start=time_reference_group, periods=time_tolerance_period, freq=time_tolerance_frequency)[-1]
+            time_reference_range = pd.date_range(start=time_reference_start, end=time_reference_end,
+                                                 freq=time_tolerance_frequency)
+
+            # select sliced times
+            if time_sort_start in time_reference_range:
+                time_start = time_sort_start
+            else:
+                time_start = time_reference_range[0]
+            if time_sort_end in time_reference_range:
+                time_end = time_sort_end
+            else:
+                time_end = time_reference_range[-1]
+
+            # check times expected with times available
+            if (time_start <= time_sort_start) or (time_sort_end <= time_end):
 
                 # dataset selection
-                dset_src_select = dset_src_sort.sel(time=slice(time_sort[0], time_reference_group))
-                # dataset last
-                dset_src_last = dset_src_select.isel(time=[-1])
-                # get last available time step
-                time_last = pd.to_datetime(dset_src_last['time'].values)[0]
+                dset_src_select = dset_src_sort.sel(time=slice(time_start, time_end))
 
-                # compute time tolerance
-                time_range_tolerance_sx = pd.date_range(end=time_reference_dset,
-                                                        periods=time_tolerance_period, freq=time_tolerance_frequency)
-                time_range_tolerance_dx = pd.date_range(start=time_reference_dset,
-                                                        periods=time_tolerance_period, freq=time_tolerance_frequency)
-                time_range_tolerance = time_range_tolerance_sx.append(time_range_tolerance_dx)
+                if dset_src_select['time'].shape[0] >= 1:
 
-                # check time last in time tolerance
-                if time_last in time_range_tolerance:
-                    dset_src_out = deepcopy(dset_src_last)
-                    dset_time = deepcopy(time_last)
+                    # dataset last
+                    dset_src_last = dset_src_select.isel(time=[-1])
+                    # get last available time step
+                    time_last = pd.to_datetime(dset_src_last['time'].values)[0]
+
+                    # compute time tolerance
+                    time_range_tolerance_sx = pd.date_range(end=time_reference_dset,
+                                                            periods=time_tolerance_period, freq=time_tolerance_frequency)
+                    time_range_tolerance_dx = pd.date_range(start=time_reference_dset,
+                                                            periods=time_tolerance_period, freq=time_tolerance_frequency)
+                    time_range_tolerance = time_range_tolerance_sx.append(time_range_tolerance_dx)
+
+                    # check time last in time tolerance
+                    if time_last in time_range_tolerance:
+                        dset_src_out = deepcopy(dset_src_last)
+                        dset_time = deepcopy(time_last)
+                    else:
+                        alg_logger.warning(' ===> Time datasets steps are not included in the time period tolerance')
+                        dset_src_out, dset_time = None, None
                 else:
-                    alg_logger.warning(' ===> Time datasets steps are not included in the time period tolerance')
+                    alg_logger.warning(' ===> Time datasets steps are not included in the sliced times')
                     dset_src_out, dset_time = None, None
             else:
                 alg_logger.warning(' ===> Time group steps are not included in the time period tolerance')

@@ -2,29 +2,29 @@
 
 #-----------------------------------------------------------------------------------------
 # Script information
-script_name='TC MERGED GRID PRODUCT'
-script_version="1.0.0"
-script_date='2023/09/25'
+script_name='RECOLOUR - CREATE GRID TC PRODUCT - HMC DR'
+script_version="1.1.0"
+script_date='2023/12/19'
 
 # Script settings
-script_folder_app='/home/hsaf/recolour/app/app_map/create_grid_tc_v2/'
+script_folder_app='/home/hsaf/recolour/app/app_map/create_grid_tc/'
 script_file_app='app_map_grid_tc.py'
-script_folder_settings='/home/hsaf/recolour/app/app_map/create_grid_tc_v2/'
+script_folder_settings='/home/hsaf/recolour/app/app_map/create_grid_tc/'
 
-script_file_settings='app_map_grid_tc_nrt_hmc_server.json'
+script_file_settings='app_map_grid_tc_hmc_dr_server.json'
 
 # Venv settings
 virtual_env_folder='/home/hsaf/recolour/conda/bin/'
 virtual_env_name='recolour_libraries'
 
 # Time settings (-u to get gmt time)
-time_now=$(date +"%Y-%m-%d %H:00")
-#time_now="2023-09-01 23:00"
+# time_now=$(date +"%Y-%m-%d %H:00")
+time_now="2023-09-01 23:00"
 
 # Time period execution
 # "dr :: 2016-01-01 -- 2023-09-20 (2820 days)"
 # "dr :: 2008-01-01 -- 2015-12-31 (2922 days)"
-time_period_days=1 # fix on 0 to provide actual time only, if providing a time period always add 1
+time_period_days=2820 # fix on 0 to provide actual time only, if providing a time period always add 1
 #-----------------------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------------------

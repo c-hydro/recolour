@@ -33,9 +33,9 @@ def set_time_file(time_start=None, time_end=None,
         raise RuntimeError('Variable "time_start" and/or "time_end" must be defined to get correctly time(s)')
 
     if time_start is not None:
-        time_start = time_start.round(time_rounding)
+        time_start = time_start.floor(time_rounding)
     if time_end is not None:
-        time_end = time_end.round(time_rounding)
+        time_end = time_end.ceil(time_rounding)
 
     if time_frequency == 'D':
         if time_start is None:
@@ -93,7 +93,7 @@ def set_time_info(time_run_args=None, time_run_file=None, time_format='%Y-%m-%d 
         if time_period > 0:
             time_range = pd.date_range(end=time_run, periods=time_period, freq=time_frequency)
         else:
-            logging.warning(' ===> TimePeriod must be greater then 0. TimePeriod is set automatically to 1')
+            alg_logger.warning(' ===> TimePeriod must be greater then 0. TimePeriod is set automatically to 1')
             time_range = pd.DatetimeIndex([time_run], freq=time_frequency)
 
         alg_logger.info(' -----> Time info defined by "time_run" argument ... DONE')

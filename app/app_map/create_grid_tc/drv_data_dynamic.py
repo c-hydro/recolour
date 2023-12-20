@@ -275,66 +275,93 @@ class DrvData:
                         # info start dataset group
                         alg_logger.info(' -------> Data "' + alg_dset_name + '" ... ')
 
+                        # get reference time (using the reference datasets selection)
                         if alg_dset_name == 'ref':
                             dset_time_reference = alg_time_group
                         else:
                             dset_time_reference = alg_time_collections['ref']
 
-                        # get datasets field(s)
-                        alg_dset_fields = alg_datasets_src_data[alg_dset_name]
+                        # check reference time format
+                        if dset_time_reference is not None:
 
-                        # prepare datasets args
-                        alg_dset_args = select_datasets_fields(alg_dset_fields)
+                            # get datasets field(s)
+                            alg_dset_fields = alg_datasets_src_data[alg_dset_name]
 
-                        # initialize dataset class
-                        coupler_dataset = CouplerDataset(
-                            time_data=alg_time_group, cell_data=alg_cell_group, grid_ref=self.grid_ref,
-                            dataset_name=alg_dset_name,
-                            dataset_template=alg_template_dset, time_template=alg_template_time,
-                            **alg_dset_args)
+                            # prepare datasets args
+                            alg_dset_args = select_datasets_fields(alg_dset_fields)
 
-                        # method to get data
-                        alg_dset_src, alg_time_src = coupler_dataset.get_data()
+                            # initialize dataset class
+                            coupler_dataset = CouplerDataset(
+                                time_data=alg_time_group, cell_data=alg_cell_group, grid_ref=self.grid_ref,
+                                dataset_name=alg_dset_name,
+                                dataset_template=alg_template_dset, time_template=alg_template_time,
+                                **alg_dset_args)
 
-                        # get time tolerance(s)
-                        dset_time_period, dset_time_frequency = split_time_parts(self.dset_max_timedelta[alg_dset_name])
+                            # method to get data
+                            alg_dset_src, alg_time_src = coupler_dataset.get_data()
 
-                        # method to organize time
-                        alg_dset_select, alg_time_select = coupler_dataset.organize_time(
-                            alg_dset_src,
-                            time_reference_dset=dset_time_reference, time_reference_group=alg_time_group,
-                            time_tolerance_period=dset_time_period, time_tolerance_frequency=dset_time_frequency)
+                            # get time tolerance(s)
+                            dset_time_period, dset_time_frequency = split_time_parts(self.dset_max_timedelta[alg_dset_name])
 
-                        # method to organize data
-                        alg_dset_dst = coupler_dataset.organize_data(alg_dset_select, alg_time_select)
+                            # method to organize time
+                            alg_dset_select, alg_time_select = coupler_dataset.organize_time(
+                                alg_dset_src,
+                                time_reference_dset=dset_time_reference, time_reference_group=alg_time_group,
+                                time_tolerance_period=dset_time_period, time_tolerance_frequency=dset_time_frequency)
 
-                        # store data in the collections object
-                        alg_dset_collections[alg_dset_name] = alg_dset_dst
-                        alg_time_collections[alg_dset_name] = alg_time_select
+                            # method to organize data
+                            alg_dset_dst = coupler_dataset.organize_data(alg_dset_select, alg_time_select)
 
-                        var_data_map = np.zeros(shape=(geo_x_2d.shape[0], geo_y_2d.shape[1]))
-                        var_data_map[:] = np.nan
-                        if alg_dset_name == 'k1':
-                            var_name = 'soil_moisture_k1'
-                        elif alg_dset_name == 'k2':
-                            var_name = 'soil_moisture_k2'
-                        elif alg_dset_name == 'ref':
-                            var_name = 'soil_moisture_ref'
+                            # check the selected datasets and time
+                            if alg_dset_dst is not None and alg_time_select is not None:
+
+                                # store data in the collections object
+                                alg_dset_collections[alg_dset_name] = alg_dset_dst
+                                alg_time_collections[alg_dset_name] = alg_time_select
+
+                                var_data_map = np.zeros(shape=(geo_x_2d.shape[0], geo_y_2d.shape[1]))
+                                var_data_map[:] = np.nan
+                                if alg_dset_name == 'k1':
+                                    var_name = 'soil_moisture_k1'
+                                elif alg_dset_name == 'k2':
+                                    var_name = 'soil_moisture_k2'
+                                elif alg_dset_name == 'ref':
+                                    var_name = 'soil_moisture_ref'
+                                else:
+                                    alg_logger.error(' ===> Dataset "' + alg_dset_name + '" is not available')
+                                    raise NotImplemented('Case not implemented yet')
+
+                                var_data_grid, idx_data_grid = get_grid_data(alg_dset_dst,
+                                                                             geo_mask, geo_x_2d, geo_y_2d,
+                                                                             var_name=var_name)
+
+                                if var_data_grid is not None:
+                                    var_data_map[idx_data_grid[:, 0], idx_data_grid[:, 1]] = var_data_grid[
+                                        idx_data_grid[:, 0], idx_data_grid[:, 1]]
+                                    # plot_data_2d(var_data_map, geo_x_2d, geo_y_2d)
+                                    alg_map_collection[alg_dset_name] = deepcopy(var_data_map)
+
+                                # info end dataset group
+                                alg_logger.info(
+                                    ' -------> Data "' + alg_dset_name + '" ... DONE')
+                            else:
+                                # info end dataset group
+                                alg_logger.info(
+                                    ' -------> Data "' + alg_dset_name +
+                                    '" ... SKIPPED. Datasets is not available due to the selected dataset time')
+                                # store data in the collections object
+                                alg_dset_collections[alg_dset_name] = None
+                                alg_time_collections[alg_dset_name] = None
+
                         else:
-                            alg_logger.error(' ===> Dataset "' + alg_dset_name + '" is not available')
-                            raise NotImplemented('Case not implemented yet')
 
-                        var_data_grid, idx_data_grid = get_grid_data(alg_dset_dst,
-                                                                     geo_mask, geo_x_2d, geo_y_2d,
-                                                                     var_name=var_name)
-
-                        if var_data_grid is not None:
-                            var_data_map[idx_data_grid[:, 0], idx_data_grid[:, 1]] = var_data_grid[idx_data_grid[:, 0], idx_data_grid[: ,1]]
-                            # plot_data_2d(var_data_map, geo_x_2d, geo_y_2d)
-                            alg_map_collection[alg_dset_name] = deepcopy(var_data_map)
-
-                        # info start dataset group
-                        alg_logger.info(' -------> Data "' + alg_dset_name + '" ... DONE')
+                            # info end dataset group
+                            alg_logger.info(
+                                ' -------> Data "' + alg_dset_name +
+                                '" ... SKIPPED. Datasets is not available due to the reference dataset time')
+                            # store data in the collections object
+                            alg_dset_collections[alg_dset_name] = None
+                            alg_time_collections[alg_dset_name] = None
 
                     # info start dataset group
                     alg_logger.info(' ------> (2) Dataset Group ... DONE')
