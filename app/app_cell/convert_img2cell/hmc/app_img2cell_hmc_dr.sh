@@ -8,7 +8,7 @@ script_date='2023/09/18'
 
 # Script settings
 script_folder_app='/home/hsaf/recolour/app/app_cell/convert_img2cell/hmc/'
-script_file_app='app_img2cell_hmc.py'
+script_file_app='app_img2cell_gldas.py'
 script_folder_settings='/home/hsaf/recolour/tools/algorithm_grid2ts/hmc/'
 
 script_file_settings='app_grid2ts_hmc_dr_server.json'

@@ -26,16 +26,34 @@ from pytesmo.time_series.filters import exp_filter, boxcar_filter
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+# Method to add year description
+def add_dframe_year(dframe_data, column_year='year'):
+    dframe_time = dframe_data.index
+    grp_year = [pd.Timestamp(t_stamp).year for t_stamp in dframe_time]
+    dframe_data[column_year] = grp_year
+    return dframe_data
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
 # Method to add seasonal description
-def add_dframe_seasons(dframe_data, column_season='season', lut_season=None):
+def add_dframe_seasons(dframe_data, column_season='season', lut_season=None, lut_flag=True):
+
+    # season filter
+    if lut_season is None:
+        if lut_flag:
+            lut_season = {
+                1: 'DJF', 2: 'DJF', 3: 'MAM', 4: 'MAM', 5: 'MAM', 6: 'JJA',
+                7: 'JJA', 8: 'JJA', 9: 'SON', 10: 'SON', 11: 'SON', 12: 'DJF'}
+        else:
+            lut_season = {
+                1: 'ALL', 2: 'ALL', 3: 'ALL', 4: 'ALL', 5: 'ALL', 6: 'ALL',
+                7: 'ALL', 8: 'ALL', 9: 'ALL', 10: 'ALL', 11: 'ALL', 12: 'ALL'}
 
     dframe_time = dframe_data.index
-
     grp_season = [lut_season.get(pd.Timestamp(t_stamp).month) for t_stamp in dframe_time]
     dframe_data[column_season] = grp_season
-
     return dframe_data
-
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -373,6 +391,10 @@ def select_time_series_by_variable(ts_dframe_generic, ts_search_variables=None):
         # message select variable end
         print(' ----> Variable "' + step_select_variable + '" ... DONE')
 
+    # add seasons and year columns
+    ts_dframe_selected = add_dframe_seasons(ts_dframe_selected, column_season='season', lut_season=None, lut_flag=True)
+    ts_dframe_selected = add_dframe_year(ts_dframe_selected, column_year='year')
+
     # message select time-series end
     print(' ---> Select time-series variable ... DONE')
 
@@ -416,6 +438,8 @@ def join_time_series(ts_dframe_product, ts_dframe_datasets):
 
     if 'season' in list(ts_dframe_datasets.columns):
         ts_dframe_datasets = ts_dframe_datasets.drop(columns=['season'])
+    if 'year' in list(ts_dframe_datasets.columns):
+        ts_dframe_datasets = ts_dframe_datasets.drop(columns=['year'])
     ts_dframe_common = ts_dframe_product.join(ts_dframe_datasets)
 
     # message join time-series end
@@ -423,14 +447,4 @@ def join_time_series(ts_dframe_product, ts_dframe_datasets):
 
     return ts_dframe_common
 
-# ----------------------------------------------------------------------------------------------------------------------
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-# method to read data obj
-def read_obj_OLD(file_name):
-    data = None
-    if os.path.exists(file_name):
-        data = pickle.load(open(file_name, "rb"))
-    return data
 # ----------------------------------------------------------------------------------------------------------------------

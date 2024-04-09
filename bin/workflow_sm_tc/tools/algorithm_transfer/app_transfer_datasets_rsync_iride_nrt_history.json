@@ -1,0 +1,64 @@
+{ "ancillary": {
+	"tag_name_list": ["planetek"]
+  },
+  "template_string": {
+    "tag_name": "tag_name_string"
+  },
+  "template_time": {
+    "dset_datetime_src": "%Y%m%d000000",
+    "dset_sub_path_src": "%Y/%m/",
+    "dset_datetime_dst": "%Y%m%d",
+    "dset_sub_path_dst": "%Y/%m/%d"
+  },
+  "method": {
+    "__comment__": "mode: [local2remote, remote2local, local2local]",
+    "mode": "local2remote",
+    "ftp": {
+      "settings": {
+        "machine_host": "",
+        "machine_user": "",
+        "machine_pwd": "",
+        "machine_folder": ""
+      },
+      "command_ancillary": {"create_folder":  null},
+      "command_exec": "",
+      "command_line": ""
+    },
+    "rsync": {
+      "settings": {
+        "machine_host": "130.251.104.65",
+        "machine_user": "idrologia"
+      },
+      "command_ancillary": {
+      	"create_folder":  "ssh {machine_user}@{machine_host} mkdir -p {folder_name_dst}"
+      },
+      "command_exec": "rsync -avr --progress",
+      "command_line": "{folder_name_src}/{file_name_src} {machine_user}@{machine_host}:{folder_name_dst}/{file_name_dst}"
+    }
+  },
+  "time": {
+    "time_run": null,
+    "time_start": null,
+    "time_end": null,
+    "time_period": 125,
+    "time_frequency": "D",
+    "time_rounding": "D"
+  },
+  "log": {
+  	"folder_name": "/share/home/idrologia/project/sm_tc/log/transfer/",
+  	"file_name": "app_transfer_datasets_rsync_iride_nrt_history.txt"
+  },
+  "source": {
+    "datasets_planetek": {
+      "folder_name": "/share/SM_TC/map_sm/{dset_sub_path_src}",
+      "file_name": "sm_{dset_datetime_src}.tiff",
+      "method": "rsync"
+    }
+  },
+  "destination": {
+    "datasets_planetek": {
+      "folder_name": "/home/idrologia/share/IRIDE/planetek/S_S6-01-02_V0/{dset_sub_path_dst}",
+      "file_name": "IRIDE-S_S6-01-02_{dset_datetime_dst}_V0.tif"
+    }
+  }
+}

@@ -335,7 +335,6 @@ def compute_stats_pearson(df_obj, variable_carea='committed_area',
         var_data_name=variable_data)
     num_global.append(df_filtered_nan)
 
-
     # compute percentage(s) of committed and global case(s)
     perc_comm = num_comm / (df_obj[variable_carea] == 1).sum() * 100.
 

@@ -1,0 +1,174 @@
+{
+  "flags": {
+    "cleaning_static_destination": false,
+    "cleaning_dynamic_ancillary_model_collections": false,
+    "cleaning_dynamic_ancillary_datasets_obj": false,
+    "cleaning_dynamic_ancillary_datasets_reference": false,
+    "cleaning_dynamic_ancillary_datasets_group": false,
+    "cleaning_dynamic_ancillary_datasets_collections": false,
+    "cleaning_dynamic_analysis": false,
+    "cleaning_dynamic_destination": true,
+    "active_variables" : ["soil_moisture"]
+  },
+  "template": {
+    "dataset_var_name": "string_dataset_var_name",
+    "model_var_name": "string_model_var_name",
+    "point_group": "string_point_group",
+    "source_dset_datetime": "%Y%m%d%H%M",
+    "source_dset_sub_path_time": "%Y/%m/%d/",
+    "source_model_datetime": "%Y%m%d%H%M",
+    "source_model_sub_path_time": "%Y/%m/%d/",
+    "ancillary_datetime": "%Y%m%d",
+    "ancillary_sub_path_time": "%Y/%m/",
+    "destination_datetime": "%Y%m%d%H%M",
+    "destination_sub_path_time": "%Y/%m/%d/"
+  },
+  "parameters": {
+    "chunks": 1000,
+    "cpu_datasets": 40,
+    "cpu_analysis": 100
+  },
+  "data": {
+    "static": {
+      "source": {
+        "terrain": {
+          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_static/",
+          "file_name": "Po.dem.txt"
+        },
+        "cn": {
+          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_static/",
+          "file_name": "Po.cn.txt"
+        },
+        "channel_network": {
+          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_static/",
+          "file_name": "Po.choice.txt"
+        },
+        "soil_moisture": {
+          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_dynamic/source/sm_sentinel/",
+          "file_name": "DTHydrology_RT1_S1_processing_irpi_v02_2016_2019.nc"
+        }
+      },
+      "destination": {
+        "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_static/",
+        "file_name": "static_data.workspace"
+      }
+    },
+    "dynamic": {
+      "source": {
+        "datasets": {
+          "soil_moisture": {
+            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_dynamic/source/sm_sentinel/",
+            "file_name": "DTHydrology_RT1_S1_processing_irpi_v02_2016_2019.nc",
+            "file_compression": false,
+            "var_name": "Nmean",
+            "time_start": "2016-01-01 00:00",
+            "time_end": "2019-12-31 23:00",
+            "time_frequency": null,
+            "time_rounding": null
+          }
+        },
+        "model": {
+          "soil_moisture": {
+            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_dynamic/source/hmc_calibrated/{source_model_sub_path_time}/",
+            "file_name": "hmc.output-grid.{source_model_datetime}.nc.gz",
+            "file_compression": true,
+            "var_name": "SM",
+            "time_start": "2016-01-01 00:00",
+            "time_end": "2019-12-31 23:00",
+            "time_frequency": "12H",
+            "time_rounding": "H"
+          }
+        }
+      },
+      "ancillary": {
+        "datasets" : {
+          "soil_moisture": {
+            "time_series_obj": {
+              "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_dynamic/ancillary/point_data_group/",
+              "file_name": "sm.point_obj.workspace",
+              "var_name": "soil_moisture"
+            },
+            "time_series_reference": {
+              "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_dynamic/ancillary/point_data_group/",
+              "file_name": "sm.point_chunks_{point_chunk_element}.workspace",
+              "var_name": "soil_moisture"
+            },
+            "time_series_group": {
+              "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_dynamic/ancillary/point_data_group/",
+              "file_name": "sm.point_{point_chunk_element}_{point_chunk_group}.workspace",
+              "var_name": "soil_moisture"
+            },
+            "time_series_collections": {
+              "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_dynamic/ancillary/point_data_group/",
+              "file_name": "sentinel.{dataset_var_name}.time_series.workspace",
+              "var_name": "soil_moisture"
+            }
+          }
+        },
+        "model": {
+          "soil_moisture": {
+            "time_series_collections": {
+              "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_dynamic/ancillary/point_data_group/",
+              "file_name": "hmc.soil_moisture.time_series.workspace",
+              "var_name": "soil_moisture"
+            }
+          }
+        }
+      },
+      "analysis": {
+        "soil_moisture": {
+          "statistics_group": {
+            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_dynamic/ancillary/point_analysis_group/",
+            "file_name": "analysis.{dataset_var_name}.statistics_{point_chunk_element}_{point_chunk_group}.workspace"
+          },
+          "time_series_group": {
+            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_dynamic/ancillary/point_analysis_group/",
+            "file_name": "analysis.{dataset_var_name}.time_series_{point_chunk_element}_{point_chunk_group}.workspace"
+          },
+          "statistics_collections": {
+            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_dynamic/ancillary/point_analysis_collections/",
+            "file_name": "analysis.{dataset_var_name}.statistics.workspace"
+          },
+          "time_series_collections": {
+            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_dynamic/ancillary/point_analysis_collections/",
+            "file_name": "analysis.{dataset_var_name}.time_series.workspace"
+          },
+          "statistics_map": {
+            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_dynamic/ancillary/map_analysis/",
+            "file_name": "map.{dataset_var_name}.statistics.tiff"
+          }
+        }
+      },
+      "destination": {
+        "soil_moisture": {
+          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_dynamic/outcome/sm/masked/{destination_sub_path_time}/",
+          "file_name": "soil_moisture.sentinel.{destination_datetime}.tiff",
+          "var_name": "soil_moisture",
+          "var_scale_factor": 1,
+          "var_mask_channel_network": true,
+          "file_compression": false,
+          "time_start": "2016-01-01 00:00",
+          "time_end": "2019-12-31 23:00",
+          "time_frequency": "12H",
+          "time_rounding": "H"
+        }
+      }
+    }
+  },
+  "time": {
+    "time_run": null,
+    "time_start": "2016-01-01 00:00",
+    "time_end": "2019-12-31 23:00",
+    "time_period": null,
+    "time_frequency": "H",
+    "time_rounding": "H"
+  },
+  "log" : {
+    "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/log/",
+    "file_name": "dte_preprocessing_datasets_sm.txt"
+  },
+  "tmp" : {
+    "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_dynamic/tmp/",
+    "file_name": null
+  }
+}

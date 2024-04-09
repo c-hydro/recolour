@@ -15,6 +15,17 @@ import logging
 
 
 # -------------------------------------------------------------------------------------
+# method to get data by tag
+def get_data_by_tag(data_settings, data_tag='log', data_default=None):
+    if data_tag in list(data_settings.keys()):
+        data_values = data_settings[data_tag]
+    else:
+        data_values = deepcopy(data_default)
+    return data_values
+# -------------------------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------------------------
 # method to get data settings
 def get_data_settings(file_name):
     if os.path.exists(file_name):

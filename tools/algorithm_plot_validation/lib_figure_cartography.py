@@ -736,6 +736,9 @@ class CartoMap():
         if norm is None:
             norm = mc.Normalize(vmin=vmin, vmax=vmax)
 
+        if norm is not None:
+            vmin, vmax = None, None
+
         artist = self.ax.imshow(data, norm=norm, cmap=cmap, zorder=zorder,
                                 extent=data_extent, interpolation=None,
                                 transform=data_crs, origin='upper',

@@ -21,33 +21,78 @@ log_stream = logging.getLogger(logger_name)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+# method to combine data over the expected time range
+def combine_data_point_by_time(point_data_collections_src, point_geo,
+                               time_start_expected, time_end_expected,
+                               time_frequency_expected='D', time_reverse=True):
+    # create time range expected
+    time_range_expected = pd.date_range(start=time_start_expected, end=time_end_expected, freq=time_frequency_expected)
+
+    # iterate over variable(s)
+    point_data_collections_dst = {}
+    if point_data_collections_src is not None:
+        for point_var, point_data_raw in point_data_collections_src.items():
+
+            # create null data
+            null_data = np.zeros(shape=(time_range_expected.shape[0], point_geo.shape[0]))
+            null_data[:, :] = np.nan
+            null_dict = {}
+            for point_id, point_label in enumerate(point_data_raw.columns):
+                null_dict[point_label] = null_data[:, point_id]
+            point_data_expected = pd.DataFrame(data=null_dict, index=time_range_expected)
+
+            # update expected data with raw data
+            point_data_expected.update(point_data_raw)
+            # time reverse flag
+            if time_reverse:
+                point_data_expected = point_data_expected.sort_index(ascending=False)
+
+            # store data in a common obj
+            point_data_collections_dst[point_var] = point_data_expected
+
+    else:
+        log_stream.warning(' ===> No data available to combine over the expected time range')
+        point_data_collections_dst = None
+
+    return point_data_collections_dst
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
 # method to join data point
 def join_data_point(point_time, point_data, point_collection, name_index='time'):
 
     # join point collections
     if point_collection is None:
         # iterate over variable(s)
-        point_collection = {}
-        for var_name, var_value in point_data.items():
-            # create dataframe collection
-            var_df = pd.DataFrame(data=var_value, index=[point_time])
-            var_df.index.name = name_index
-            # store dataframe in a common obj
-            point_collection[var_name] = var_df
+        if point_data is not None:
+            point_collection = {}
+            for var_name, var_value in point_data.items():
+                # create dataframe collection
+                var_df = pd.DataFrame(data=var_value, index=[point_time])
+                var_df.index.name = name_index
+                # store dataframe in a common obj
+                point_collection[var_name] = var_df
+        else:
+            log_stream.warning(' ===> No data available to join')
     else:
 
         # iterate over variable(s)
-        for var_name, var_value in point_data.items():
-            # get tmp collection
-            collection_df = point_collection[var_name]
-            # create dataframe collection
-            tmp_df = pd.DataFrame(data=var_value, index=[point_time])
-            tmp_df.index.name = name_index
+        if point_data is not None:
+            for var_name, var_value in point_data.items():
+                # get tmp collection
+                collection_df = point_collection[var_name]
+                # create dataframe collection
+                tmp_df = pd.DataFrame(data=var_value, index=[point_time])
+                tmp_df.index.name = name_index
 
-            # append new line to dataframe collection
-            collection_df = pd.concat([collection_df, tmp_df])
-            # store in the collection
-            point_collection[var_name] = collection_df
+                # append new line to dataframe collection
+                collection_df = pd.concat([collection_df, tmp_df])
+                # store in the collection
+                point_collection[var_name] = collection_df
+        else:
+            log_stream.warning(' ===> No data available to join')
 
     return point_collection
 # ----------------------------------------------------------------------------------------------------------------------

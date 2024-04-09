@@ -16,15 +16,33 @@ from datetime import datetime
 from datetime import timedelta
 from copy import deepcopy
 
+import pdbufr
 import numpy as np
 import xarray as xr
 import pandas as pd
 
+from cadati.cal_date import cal2dt
+
+from ascat.utils import get_toi_subset, get_roi_subset
 from ascat.eumetsat.level2 import AscatL2File
 from ascat.read_native.cdr import AscatGriddedNcTs
 from ascat.file_handling import ChronFiles
 
 from pygeobase.utils import split_daterange_in_intervals
+
+# defined nan values
+bufr_nan = 1.7e+38
+float32_nan = -999999.
+uint8_nan = np.iinfo(np.uint8).max
+uint16_nan = np.iinfo(np.uint16).max
+int32_nan = np.iinfo(np.int32).max
+
+nan_val_dict = {
+    np.float32: float32_nan,
+    np.uint8: uint8_nan,
+    np.uint16: uint16_nan,
+    np.int32: int32_nan
+}
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -259,6 +277,311 @@ class AscatEpsBufrFileList(ChronFiles):
         return data_merged
 # ----------------------------------------------------------------------------------------------------------------------
 
+class AscatNrtBufrWrapper(AscatL2File):
+
+    msg_name_lookup = {
+            'satelliteIdentifier': "Satellite Identifier",
+            'orbitNumber': "Orbit Number",
+            'beamIdentifier': "f_Beam Identifier",
+            'directionOfMotionOfMovingObservingPlatform': 'Direction Of Motion Of Moving Observing Platform',
+            'crossTrackCellNumber': 'Cross-Track Cell Number',
+            'latitude': "latitude",
+            'longitude': "longitude",
+            'year': "year",
+            'month': "month",
+            'day': "day",
+            'hour': "hour",
+            'minute': "minute",
+            'second': "second",
+            'estimatedErrorInSurfaceSoilMoisture': "Estimated Error In Surface Soil Moisture",
+            'surfaceSoilMoisture': "Surface Soil Moisture (Ms)",
+            'meanSurfaceSoilMoisture': "Mean Surface Soil Moisture",
+            'soilMoistureCorrectionFlag': "Soil Moisture Correction Flag",
+            'soilMoistureProcessingFlag': "Soil Moisture Processing Flag",
+            'soilMoistureQuality': "Soil Moisture Quality",
+            'snowCover': "Snow Cover",
+            'frozenLandSurfaceFraction': "Frozen Land Surface Fraction",
+            'topographicComplexity': "Topographic Complexity",
+        }
+
+    def read(self, toi=None, roi=None, generic=True, to_xarray=False):
+
+        data, metadata = self.select(generic=generic, to_xarray=to_xarray)
+
+        if data is not None:
+            if toi:
+                data = get_toi_subset(data, toi)
+
+            if roi:
+                data = get_roi_subset(data, roi)
+
+        return data, metadata
+
+    def select(self, generic=False, to_xarray=False):
+
+        # select datasets columns
+        columns_name = tuple(list(self.msg_name_lookup.keys()))
+
+        # get dataset
+        try:
+            df = pdbufr.read_bufr(self.filename, columns=columns_name)
+        except Exception as e:
+            logging.warning(' ===> Errors in reading BUFR file: "' + str(e) + '". Data are not available.')
+            data, metadata = None, None
+            return data, metadata
+        # check if dataset is not empty
+        if df.empty:
+            logging.warning(' ===> Empty dataframe. Data are not available.')
+            data, metadata = None, None
+            return data, metadata
+
+        # rename dataset columns
+        col_rename = {}
+        for i, col in enumerate(df.columns.to_list()):
+            name = self.msg_name_lookup[col]
+            if name is not None:
+                col_rename[col] = name
+        data = df.rename(columns=col_rename)
+
+        # check if all selected data are available
+        var_na = []
+        for var in list(self.msg_name_lookup.values()):
+            if var not in data.columns:
+                var_na.append(var)
+        if var_na:
+            var_str = ', '.join(var_na)
+            logging.warning(' ===> Variable(s) "' + var_str + '" not available. Data are not complete.')
+            data, metadata = None, None
+            return data, metadata
+
+        # adapt, convert and organize dataset
+        data["lat"] = df["latitude"].values.astype(np.float32)
+        data["lon"] = df["longitude"].values.astype(np.float32)
+
+        year = df["year"].values.astype(int)
+        month = df["month"].values.astype(int)
+        day = df["day"].values.astype(int)
+        hour = df["hour"].values.astype(int)
+        minute = df["minute"].values.astype(int)
+        seconds = df["second"].values.astype(int)
+        milliseconds = np.zeros(seconds.size)
+        cal_dates = np.vstack(
+            (year, month, day, hour, minute, seconds, milliseconds)).T
+
+        data['time'] = cal2dt(cal_dates)
+        data = data.to_records(index=False)
+        data = {name:data[name] for name in data.dtype.names}
+
+        # control to the soil moisture datasets
+        if not np.all(data["Mean Surface Soil Moisture"]) is None: # add to avoid error for all data equal to None
+            data["Mean Surface Soil Moisture"] *= 100.
+        elif np.all(data["Mean Surface Soil Moisture"]) is None:
+            logging.warning(' ===> Soil Moisture data are not available')
+            data, metadata = None, None
+            return data, metadata
+        else:
+            logging.error(' ===> Soil moisture data format is not expected')
+            raise NotImplemented('Case not implemented yet')
+
+        # control to the snow cover datasets
+        if np.all(data["Snow Cover"]) is None:
+            data["Snow Cover"] = np.zeros(data["Snow Cover"].size, dtype=np.uint8)
+        # control to the topographic complexity datasets
+        if np.all(data["Topographic Complexity"] ) is None:
+            data["Topographic Complexity"] = np.full(data["Topographic Complexity"].size, np.nan)
+
+        # organize metadata
+        metadata = {
+            'platform_id': data['Satellite Identifier'][0].astype(int),
+            'orbit_start': np.uint32(data['Orbit Number'][0]),
+            'filename': os.path.basename(self.filename)}
+
+        # add/rename/remove fields according to generic format
+        if generic:
+            data = conv_bufrl2_generic(data, metadata)
+
+        # convert dict to xarray.Dataset or numpy.ndarray
+        if to_xarray:
+            for k in data.keys():
+                if len(data[k].shape) == 1:
+                    dim = ['obs']
+                elif len(data[k].shape) == 2:
+                    dim = ['obs', 'beam']
+
+                data[k] = (dim, data[k])
+
+            coords = {}
+            coords_fields = ['lon', 'lat', 'time']
+            for cf in coords_fields:
+                coords[cf] = data.pop(cf)
+
+            data = xr.Dataset(data, coords=coords, attrs=metadata)
+        else:
+            # collect dtype info
+            dtype = []
+            # fill_value = []
+
+            for var_name in data.keys():
+
+                if len(data[var_name].shape) == 1:
+                    dtype.append((var_name, data[var_name].dtype.str))
+                    # fill_value.append(data[var_name].fill_value)
+
+                elif len(data[var_name].shape) > 1:
+                    dtype.append((var_name, data[var_name].dtype.str,
+                                  data[var_name].shape[1:]))
+                    # fill_value.append(data[var_name].shape[1] *
+                    #                   [data[var_name].fill_value])
+
+            ds = np.ma.empty(data['time'].size, dtype=np.dtype(dtype))
+            # fill_value_arr = np.array((*fill_value, ), dtype=np.dtype(dtype))
+
+            for k, v in data.items():
+                ds[k] = v
+
+            # ds.fill_value = fill_value_arr
+            data = ds
+
+        return data, metadata
+
+def conv_bufrl2_generic(data, metadata):
+    """
+    Rename and convert data types of dataset.
+
+    Spacecraft_id vs sat_id encoding
+
+    BUFR encoding - Spacecraft_id
+    - 1 ERS 1
+    - 2 ERS 2
+    - 3 Metop-1 (Metop-B)
+    - 4 Metop-2 (Metop-A)
+    - 5 Metop-3 (Metop-C)
+
+    Internal encoding - sat_id
+    - 1 ERS 1
+    - 2 ERS 2
+    - 3 Metop-2 (Metop-A)
+    - 4 Metop-1 (Metop-B)
+    - 5 Metop-3 (Metop-C)
+
+    Parameters
+    ----------
+    data: dict of numpy.ndarray
+        Original dataset.
+    metadata: dict
+        Metadata.
+
+    Returns
+    -------
+    data: dict of numpy.ndarray
+        Converted dataset.
+    """
+    skip_fields = ['Satellite Identifier']
+
+    gen_fields_beam = {
+        #'Radar Incidence Angle': ('inc', np.float32),
+        #'Backscatter': ('sig', np.float32),
+        #'Antenna Beam Azimuth': ('azi', np.float32),
+        #'ASCAT Sigma-0 Usability': ('f_usable', np.uint8),
+        'Beam Identifier': ('beam_num', np.uint8),
+        #'Radiometric Resolution (Noise Value)': ('kp_noise', np.float32),
+        #'ASCAT KP Estimate Quality': ('kp', np.float32),
+        #'ASCAT Land Fraction': ('f_land', np.float32)
+    }
+
+    gen_fields_lut = {
+        'Orbit Number': ('abs_orbit_nr', np.int32),
+        'Cross-Track Cell Number': ('node_num', np.uint8),
+        'Direction Of Motion Of Moving Observing Platform': ('sat_track_azi', np.float32),
+        'Surface Soil Moisture (Ms)': ('sm', np.float32),
+        'Estimated Error In Surface Soil Moisture': ('sm_noise', np.float32),
+        #'Backscatter': ('sig40', np.float32),
+        #'Estimated Error In Sigma0 At 40 Deg Incidence Angle': ('sig40_noise', np.float32),
+        #'Slope At 40 Deg Incidence Angle': ('slope40', np.float32),
+        #'Estimated Error In Slope At 40 Deg Incidence Angle': ('slope40_noise', np.float32),
+        #'Soil Moisture Sensitivity': ('sm_sens', np.float32),
+        #'Dry Backscatter': ('dry_sig40', np.float32),
+        #'Wet Backscatter': ('wet_sig40', np.float32),
+        'Mean Surface Soil Moisture': ('sm_mean', np.float32),
+        # 'Rain Fall Detection': ('rf', np.float32),
+        'Soil Moisture Correction Flag': ('corr_flag', np.uint8),
+        'Soil Moisture Processing Flag': ('proc_flag', np.uint8),
+        'Soil Moisture Quality': ('agg_flag', np.uint8),
+        'Snow Cover': ('snow_prob', np.uint8),
+        'Frozen Land Surface Fraction': ('frozen_prob', np.uint8),
+        #'Inundation And Wetland Fraction': ('wetland', np.uint8),
+        'Topographic Complexity': ('topo', np.uint8)
+    }
+
+    for var_name in skip_fields:
+        if var_name in data:
+            data.pop(var_name)
+
+    for var_name, (new_name, new_dtype) in gen_fields_lut.items():
+        mask = (data[var_name] == bufr_nan) | (np.isnan(data[var_name]))
+        data[var_name][mask] = nan_val_dict[new_dtype]
+
+        data[new_name] = np.ma.array(data.pop(var_name).astype(new_dtype), mask=mask)
+        data[new_name].fill_value = nan_val_dict[new_dtype]
+
+    '''
+    for var_name, (new_name, new_dtype) in gen_fields_beam.items():
+
+        f = ['{}_{}'.format(b, var_name) for b in ['f', 'm', 'a']]
+
+        mask = np.vstack((data[f[0]] == bufr_nan, data[f[1]] == bufr_nan,
+                          data[f[2]] == bufr_nan)).T
+
+        data[new_name] = np.ma.vstack((data.pop(f[0]), data.pop(f[1]),
+                                       data.pop(f[2]))).T.astype(new_dtype)
+
+        data[new_name].mask = mask
+        data[new_name][mask] = nan_val_dict[new_dtype]
+
+        data[new_name].fill_value = nan_val_dict[new_dtype]
+    '''
+
+    if data['node_num'].max() == 82:
+        data['swath_indicator'] = np.ma.array(1 * (data['node_num'] > 41),
+                                              dtype=np.uint8,
+                                              mask=data['node_num'] > 82)
+    elif data['node_num'].max() == 42:
+        data['swath_indicator'] = np.ma.array(1 * (data['node_num'] > 21),
+                                              dtype=np.uint8,
+                                              mask=data['node_num'] > 42)
+    else:
+        raise ValueError('Cross-track cell number size unknown')
+
+    n_lines = data['lat'].shape[0] / data['node_num'].max()
+    line_num = np.arange(n_lines).repeat(data['node_num'].max())
+    data['line_num'] = np.ma.array(line_num,
+                                   dtype=np.uint16,
+                                   mask=np.zeros_like(line_num),
+                                   fill_value=uint16_nan)
+
+    sat_id = np.ma.array([0, 0, 0, 4, 3, 5], dtype=np.uint8)
+    data['sat_id'] = np.ma.zeros(data['time'].size,
+                                 dtype=np.uint8) + sat_id[int(
+                                     metadata['platform_id'])]
+    data['sat_id'].mask = np.zeros(data['time'].size)
+    data['sat_id'].fill_value = uint8_nan
+
+    # compute ascending/descending direction
+    data['as_des_pass'] = np.ma.array(data['sat_track_azi'] < 270,
+                                      dtype=np.uint8,
+                                      mask=np.zeros(data['time'].size),
+                                      fill_value=uint8_nan)
+
+    mask = data['lat'] == bufr_nan
+    data['lat'] = np.ma.array(data['lat'], mask=mask, fill_value=float32_nan)
+
+    mask = data['lon'] == bufr_nan
+    data['lon'] = np.ma.array(data['lon'], mask=mask, fill_value=float32_nan)
+
+    data['time'] = np.ma.array(data['time'], mask=mask, fill_value=0)
+
+    return data
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Class to handle nrt bufr file
@@ -293,14 +616,22 @@ class AscatNrtBufrFileList(ChronFiles):
         if filename_template is None:
             filename_template = '{product_id}_{date}*.buf'
 
-        super().__init__(root_path, AscatL2File, filename_template,
+        super().__init__(root_path, AscatNrtBufrWrapper, filename_template,
                          sf_templ=subfolder_template)
 
     def tstamps_for_daterange(self, dt_start, dt_end, dt_delta=timedelta(days=1)):
 
         file_names, file_timestamps = [], []
 
-        ts_start, ts_end = pd.Timestamp(dt_start), pd.Timestamp(dt_end)
+        if not isinstance(dt_start, pd.Timestamp):
+            ts_start = pd.Timestamp(dt_start)
+        else:
+            ts_start = deepcopy(dt_start)
+        if not isinstance(dt_end, pd.Timestamp):
+            ts_end = pd.Timestamp(dt_end)
+        else:
+            ts_end = deepcopy(dt_end)
+
         ts_totalseconds = (ts_end - ts_start).total_seconds()
         dt_totalseconds = dt_delta.total_seconds()
 
@@ -316,9 +647,11 @@ class AscatNrtBufrFileList(ChronFiles):
 
         file_time_stamps, file_time_intervals = None, None
         for dt_cur in dt_range.astype(datetime):
-            files, dates = self.search_date(dt_cur, return_date=True)
+            files, dates = self.search_date(
+                dt_cur,
+                return_date=True, search_date_str="%Y%m%d*", date_str="%Y%m%d", date_field="date")
             for f, dt in zip(files, dates):
-                if (files not in file_names) and (dt >= dt_start and dt <= dt_end):
+                if (files not in file_names) and (dt_start <= dt <= dt_end):
 
                     if file_time_stamps is None:
                         file_time_stamps = []
@@ -342,6 +675,28 @@ class AscatNrtBufrFileList(ChronFiles):
                 if f not in filenames and dt >= dt_start and dt <= dt_end:
                     filenames.append(f)
         return filenames
+
+    def read_period(self, dt_start, dt_end, dt_delta=timedelta(days=1),
+                    dt_buffer=timedelta(days=1), **kwargs):
+
+        filenames = self.search_period(dt_start-dt_buffer, dt_end, dt_delta)
+        data = []
+        for filename in filenames:
+
+            logging.info(' ------> Read file: {}'.format(filename) + ' ... ')
+
+            self._open(filename)
+            d = self.fid.read(None, None, **kwargs)
+            if d[0] is not None and d[1] is not None:
+                data.append(d)
+                logging.info(' ------> Read file: {}'.format(filename) + ' ... DONE')
+            else:
+                logging.info(' ------> Read file: {}'.format(filename) + ' ... SKIPPED. DATA NOT FOUND.')
+
+        if data:
+            data = self._merge_data(data)
+
+        return data
 
     def resample_image(self, array, index, distance, weights):
 
@@ -414,7 +769,7 @@ class AscatNrtBufrFileList(ChronFiles):
 
         return fn_read_fmt, sf_read_fmt, fn_write_fmt, sf_write_fmt
 
-    def _parse_date(self, filename):
+    def _parse_date(self, filename, date_str, date_field):
         """
         Parse date from filename.
 

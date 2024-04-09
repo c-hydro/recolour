@@ -3,8 +3,8 @@
 """
 RECOLOUR TOOLS - SMAP IMG2CELL - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20231128'
-__version__ = '1.6.0'
+__date__ = '20240315'
+__version__ = '1.7.0'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)'
     'Martina Natali (martina01.natali@edu.unife.it)'
@@ -14,6 +14,7 @@ General command line:
 python app_img2cell_smap.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
+20240315 (1.7.0) --> Add log parameters, update codes and fix bugs
 20231128 (1.6.0) --> Code refactor and fix bugs
 20231120 (1.5.1) --> Compatibility with multilayer tiffs
 20230921 (1.5.0) --> Add "data_record" and "nrt" mode
@@ -31,7 +32,7 @@ from argparse import ArgumentParser
 from lib_utils_smap import create_file_grid
 from lib_utils_time import set_time_info, update_time_info
 from lib_info_args import time_format_datasets as time_format
-from lib_info_settings import get_data_settings, parse_data_settings
+from lib_info_settings import get_data_settings, parse_data_settings, get_data_by_tag
 
 from lib_reshuffle_smap import main as main_runner
 # -------------------------------------------------------------------------------------
@@ -41,8 +42,8 @@ from lib_reshuffle_smap import main as main_runner
 project_name = 'recolour'
 alg_name = 'img2cell'
 alg_type = 'Application'
-alg_version = '1.6.0'
-alg_release = '2023-11-28'
+alg_version = '1.7.0'
+alg_release = '2024-03-15'
 # -------------------------------------------------------------------------------------
 
 
@@ -53,11 +54,14 @@ def main_wrapper():
     # -------------------------------------------------------------------------------------
     # method to get script argument(s)
     file_settings, time_settings = get_args()
-    # set logging
-    set_logging()
 
     # read data settings
     data_settings = get_data_settings(file_settings)
+
+    # set logging
+    log_settings = get_data_by_tag(
+        data_settings, data_tag='log', data_default={'path': os.path.dirname(__file__), "file": "log.txt"})
+    set_logging(logger_file=os.path.join(log_settings['path'], log_settings['file']))
     # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------

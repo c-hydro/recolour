@@ -46,7 +46,8 @@ def get_datasets_committed(df_globals, field='committed_area'):
 def organize_datasets_cell(
         cell_list=None, cell_digits=4,
         list_variable_in=None, list_variable_out=None,
-        folder_name_datasets='', file_name_datasets='{cell}.nc'):
+        folder_name_datasets='', file_name_datasets='{cell}.nc',
+        variable_not_found='warning'):
 
     # info script start
     logging.info(' ----> Get cell datasets ... ')
@@ -96,6 +97,16 @@ def organize_datasets_cell(
                         var_data_tmp = cell_datasets_out[var_name_out]
                         var_data_tmp = np.concatenate([var_data_tmp, var_data_in])
                         cell_datasets_out[var_name_out] = var_data_tmp
+
+                else:
+                    if variable_not_found == 'warning':
+                        logging.warning(' ===> Variable "' + var_name_in + '" not found in file "' +
+                                        file_path_datasets + '"')
+                        logging.warning(' ===> Variable "' + var_name_out + '" not saved in datasets')
+                    elif variable_not_found == 'error':
+                        logging.error(' ===> Variable "' + var_name_in + '" not found in file "' +
+                                      file_path_datasets + '"')
+                        raise RuntimeError('Variable "' + var_name_out + '" not saved in datasets')
 
             # info start cell
             logging.info(' ----> Cell "' + cell_string + '" ... DONE')

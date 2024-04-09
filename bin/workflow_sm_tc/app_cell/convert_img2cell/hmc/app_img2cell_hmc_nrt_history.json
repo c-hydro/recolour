@@ -1,0 +1,44 @@
+{
+  "product": {
+    "__comment__" : "bbox format:: [6, 35, 18, 47] or null",
+    "name": "hmc",
+    "bbox": null
+  },
+  "flags": {
+    "reset_static": false,
+    "reset_dynamic": true
+  },
+  "grid": {
+    "folder_name": "/share/HMC/auxiliary/",
+    "file_name": "hmc_grid.nc"
+  },
+  "template": {
+    "dataset": {
+      "cell_n": "%04d"
+    },
+    "time": {
+      "datetime_source": "%Y%m%d%H0000",
+      "sub_path_source": "%Y/%m/%d/",
+      "datetime_destination": "%Y%m%d%H",
+      "sub_path_destination": "%Y/%m/%d/"
+    },
+    "file": {
+      "file_name_source": "SoilMoistureItaly_{datetime_source}.tif",
+      "file_name_destination": "{cell_n}.nc"
+    }
+  },
+  "variables": ["soil_moisture"],
+  "data": {
+    "path_grid": "/share/HMC/nrt/",
+    "path_ts": "/share/SM_TC/ts_hmc/",
+    "path_stack": "/share/SM_TC/ts_hmc/"
+  },
+  "time": {
+    "time_now": null,
+    "time_start": null,
+    "time_end": null,
+    "time_period": 1,
+    "time_frequency": "D",
+    "time_rounding" : "H"
+  }
+}

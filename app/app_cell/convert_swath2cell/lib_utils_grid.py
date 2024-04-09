@@ -55,6 +55,44 @@ def read_grid_file(file_name):
 # -----------------------------------------------------------------------------
 
 
+# -------------------------------------------------------------------------------------
+# method to create subgrid using a bbox
+def subgrid4bbox(grid, min_lon, min_lat, max_lon, max_lat):
+    """
+    Select a spatial subset for the grid by bound box corner points
+
+    Parameters
+    ----------
+    grid: BasicGrid or CellGrid
+        Grid object to trim.
+    min_lon: float
+        Lower left corner longitude
+    min_lat: float
+        Lower left corner latitude
+    max_lon: float
+        Upper right corner longitude
+    max_lat: float
+        Upper right corner latitude
+
+    Returns
+    -------
+    subgrid: BasicGrid or CellGrid
+        Subset of the input grid.
+    """
+    gpis, lons, lats, _ = grid.get_grid_points()
+    assert len(gpis) == len(lats) == len(lons)
+    bbox_gpis = gpis[
+        np.where(
+            (lons <= max_lon)
+            & (lons >= min_lon)
+            & (lats <= max_lat)
+            & (lats >= min_lat)
+        )
+    ]
+
+    return grid.subgrid_from_gpis(bbox_gpis)
+# -------------------------------------------------------------------------------------
+
 # -----------------------------------------------------------------------------
 # Method to open netcdf grid file
 def read_grid_file_OLD(filename):

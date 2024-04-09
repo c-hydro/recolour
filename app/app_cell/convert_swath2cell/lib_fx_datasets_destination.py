@@ -10,8 +10,13 @@ Version:       '1.0.0'
 # ----------------------------------------------------------------------------------------------------------------------
 # libraries
 import os
+import psutil
 import logging
 import warnings
+import shutil
+
+from datetime import datetime
+from copy import deepcopy
 
 import pandas as pd
 import numpy as np
@@ -1433,7 +1438,7 @@ class GriddedNcContiguousRaggedTs(GriddedNcTs):
         kwargs['ioclass'] = ContiguousRaggedTs
         super(GriddedNcContiguousRaggedTs, self).__init__(*args, **kwargs)
 
-    def write_cell(self, cell, gpi, data, datefield):
+    def write_cell(self, cell, gpi, data, datefield, remove_file_tmp=False):
         """
         Write complete data set into cell file.
 
@@ -1450,77 +1455,299 @@ class GriddedNcContiguousRaggedTs(GriddedNcTs):
         """
 
         if isinstance(self.grid, CellGrid) is False:
+            logging.error(' ===> Associated grid is not of type pygeogrids.CellGrid')
             raise TypeError("Associated grid is not of type "
                             "pygeogrids.CellGrid.")
 
         if self.mode != 'w':
-            raise ValueError("File not opened in write mode.")
+            logging.error(' ===> File not opened in write mode.')
+            raise ValueError("File must be opened in write mode to correctly work")
 
         tmp_cell = np.unique(self.grid.arrcell[gpi])
 
         if tmp_cell.size > 1 or tmp_cell != cell:
+            logging.error(' ===> GPIs do not correspond to given cell.')
             raise ValueError("GPIs do not correspond to given cell.")
 
+        # get longitude, latitude and gpis
         lons = self.grid.arrlon[gpi]
         lats = self.grid.arrlat[gpi]
         gpis = self.grid.gpis[gpi]
 
-        cell_string = self.fn_format.format(cell)
-        filename = os.path.join(self.path, self.file_name_ts.format(cell_n=cell_string))
+        # create filename (as a function of the cell number)
+        logging.info(' -------> Define destination file  ... ')
+        date_now = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        if os.path.isfile(filename):
+        cell_string_data = self.fn_format.format(cell)
+        cell_string_tmp = self.fn_format.format(cell) + '_' + date_now
+        filename_data = os.path.join(self.path, self.file_name_ts.format(cell_n=cell_string_data))
+        filename_tmp = os.path.join(self.path, self.file_name_ts.format(cell_n=cell_string_tmp))
+
+        # RAM % usage of virtual_memory (3rd field)
+        mem_ram_perc = str(psutil.virtual_memory()[2])
+        # RAM usage of virtual_memory in GB ( 4th field)
+        mem_ram_used = str(round(psutil.virtual_memory()[3] / 1000000000, 1))
+
+        # info to monitor both filename and ram usage
+        logging.info(' :: Info (1) :: Filename :: "' + filename_data + '"')
+        logging.info(' :: info (2) :: RAM Used :: %: "' + mem_ram_perc + '" Amount: "' + mem_ram_used + '" GB')
+
+        if os.path.isfile(filename_data):
             mode = 'a'
+            shutil.copy2(filename_data, filename_tmp)
+            logging.info(' -------> Define destination file ... in "append" mode')
         else:
+            logging.info(' -------> Define destination file ... in "write" mode')
             mode = 'w'
 
+        # info open destination file
+        logging.info(' -------> Open destination file  ... ')
         if self.previous_cell != cell:
+
             self.flush()
             self.close()
             self.previous_cell = cell
+
             if self.mode == 'w':
                 if 'n_loc' not in self.ioclass_kws:
                     n_loc = self.grid.grid_points_for_cell(cell)[0].size
                     self.ioclass_kws['n_loc'] = n_loc
-            self.fid = self.ioclass(filename, mode=mode,
-                                    **self.ioclass_kws)
+
+            if mode == 'a':
+                fid_tmp = self.ioclass(filename_tmp, mode=mode, **self.ioclass_kws)
+            else:
+                fid_tmp = None
+
+            self.fid = self.ioclass(filename_data, mode='w', **self.ioclass_kws)
             self.ioclass_kws.pop('n_loc', None)
         else:
-            print('previous cell == actual cell ... open filename ' + filename + ' skipeed')
+            logging.warning(' ===> Previous cell == actual cell ... open filename ' + filename_data + ' skipped')
+            fid_tmp = None
 
         if type(data) != dict:
             data = {key: data[key] for key in data.dtype.names}
 
-        dates = data[datefield]
+        dates_actual = data[datefield]
         del data[datefield]
 
+        # info open destination file
+        logging.info(' -------> Open destination file  ... DONE')
+
+        # info write destination file
+        logging.info(' -------> Write destination file  ... ')
         if self.fid is not None:
 
-            row_size = self.fid.variables['row_size'][:]
+            # get previous data (if available)
+            if mode == 'a':
+                var_list = list(fid_tmp.variables)
+                data_previous = {key: fid_tmp.variables[key][:] for key in var_list}
+                gpi_previous = fid_tmp.variables['location_id'][:]
+            else:
+                data_previous, gpi_previous = None, None
 
-            gpis_unique = np.unique(gpis)
+            # iterate over available gpis
+            gpis_actual = np.unique(gpis)
+            if gpi_previous is not None:
+
+                if isinstance(gpi_previous, np.ma.core.MaskedArray):
+                    gpi_previous = gpi_previous.data
+                if isinstance(gpis_actual, np.ma.core.MaskedArray):
+                    gpis_actual = gpis_actual.data
+
+                # remove undefined values (masked with - in masked array)
+                gpi_previous = gpi_previous[gpi_previous > 0]
+                gpis_actual = gpis_actual[gpis_actual > 0]
+
+                gpis_actual = list(gpis_actual)
+                gpis_previous = list(gpi_previous)
+
+                if len(gpis_previous) > len(gpis_actual):
+
+                    logging.info(' --------> Previous GPIS are greater than actual GPIS  ... ')
+                    if set(gpis_actual).issubset(set(gpis_previous)):
+                        gpis_common = deepcopy(gpis_previous)
+                    else:
+                        logging.warning(' ===> Actual gpis are not subset of previous gpis')
+                        gpis_common = deepcopy(gpis_actual)
+                    logging.info(' --------> Previous GPIS are greater than actual GPIS  ... DONE')
+
+                elif len(gpis_previous) < len(gpis_actual):
+
+                    logging.info(' --------> Actual GPIS are greater than previous GPIS  ... ')
+                    if set(gpis_previous).issubset(set(gpis_actual)):
+                        gpis_common = deepcopy(gpis_actual)
+                    else:
+                        logging.warning(' ===> Previous gpis are not subset of actual gpis')
+                        gpis_common = deepcopy(gpis_previous)
+                    logging.info(' --------> Actual GPIS are greater than previous GPIS  ... DONE')
+
+                elif len(gpis_previous) == len(gpis_actual):
+
+                    logging.info(' --------> Previous and actual GPIS are the same ... ')
+                    gpis_common = deepcopy(gpis_previous)
+                    logging.info(' --------> Previous and actual GPIS are the same ... DONE')
+
+                else:
+                    logging.error(' ===> GPIS case is not expected')
+                    raise NotImplemented(' ===> Case not implemented yet')
+
+            else:
+                gpis_common = deepcopy(gpis_actual.data)
+
+            # get data keys
             data_keys = list(data.keys())
-            for gpi_n in gpis_unique:
 
-                gpi_idx = np.argwhere(gpi_n == gpis)[:, 0]
+            # sort gpis to write data in the same order
+            gpis_common = sorted(gpis_common)
+            # iterate over gpis
+            for gpi_n in gpis_common:
 
-                gpi_date = dates[gpi_idx]
-                gpi_data = {key: data[key][gpi_idx] for key in data_keys}
-                gpi_lon, gpi_lat = np.unique(lons[gpi_idx]), np.unique(lats[gpi_idx])
+                # get actual info
+                gpi_idx_actual = np.argwhere(gpi_n == gpis)[:, 0]
+                if gpi_idx_actual.size > 0:
 
-                if gpi_lon.shape[0] > 1:
-                    raise RuntimeError()
-                if gpi_lat.shape[0] > 1:
-                    raise RuntimeError()
+                    gpi_date_actual = dates_actual[gpi_idx_actual]
+                    gpi_idx_sort = np.argsort(gpi_date_actual)
 
-                gpi_lon, gpi_lat = gpi_lon[0], gpi_lat[0]
-                self.fid.write_ts(gpi_n, gpi_data, gpi_date, lon=gpi_lon, lat=gpi_lat, dates_direct=True)
+                    gpi_date_actual = gpi_date_actual[gpi_idx_sort]
+                    gpi_data_actual = {}
+                    for key in data_keys:
+                        data_selected = data[key][gpi_idx_actual]
+                        data_sorted = data_selected[gpi_idx_sort]
+                        gpi_data_actual[key] = data_sorted
 
-            #self.fid.write_ts(gpis, data, dates, lon=lons, lat=lats, dates_direct=True)
+                    # gpi_data_actual = {key: data[key][gpi_idx_actual] for key in data_keys}
+                    gpi_lon_actual, gpi_lat_actual = np.unique(lons[gpi_idx_actual]), np.unique(lats[gpi_idx_actual])
+                    gpi_lon_actual, gpi_lat_actual = gpi_lon_actual.data.tolist(), gpi_lat_actual.data.tolist()
+                else:
+                    gpi_date_actual, gpi_data_actual, gpi_lon_actual, gpi_lat_actual = [], {}, [], []
 
+                # get previous info
+                if data_previous is not None:
+
+                    # get info previous
+                    obj_idx_group = np.argwhere(gpi_n == data_previous['location_id'])
+
+                    if obj_idx_group.size > 0:
+
+                        gpi_idx_previous = obj_idx_group[:, 0][0]
+                        dates_previous = data_previous['time']
+                        row_size_previous = data_previous['row_size']
+                        lons_previous = data_previous['lon']
+                        lats_previous = data_previous['lat']
+
+                        # create cumulative idxs
+                        row_idx_cumulative_previous = np.append(0, np.cumsum(row_size_previous).data)
+                        # set start and end idxs
+                        row_idx_start_previous = row_idx_cumulative_previous[gpi_idx_previous]
+                        row_idx_end_previous = row_idx_cumulative_previous[gpi_idx_previous + 1]
+                        # organize data and date previous for gpi
+                        gpi_date_previous = dates_previous[row_idx_start_previous:row_idx_end_previous]
+                        gpi_data_previous = {key: data_previous[key][row_idx_start_previous:row_idx_end_previous] for key in data_keys}
+
+                        # get lon and lat
+                        gpi_lon_previous = [lons_previous[gpi_idx_previous]]
+                        gpi_lat_previous = [lats_previous[gpi_idx_previous]]
+
+                    else:
+                        gpi_lon_previous, gpi_lat_previous = [], []
+                        gpi_data_previous, gpi_date_previous = None, None
+
+                else:
+                    # case no previous data
+                    gpi_lat_previous, gpi_lon_previous = [], []
+                    gpi_data_previous, gpi_date_previous = None, None
+
+                # merge gpi data
+                if gpi_data_previous is not None:
+                    gpi_data_merged, gpi_date_merged = {}, None
+
+                    if len(gpi_date_actual) > 0:
+                        gpi_date_merged = np.concatenate((gpi_date_previous, gpi_date_actual))
+                    else:
+                        gpi_date_merged = deepcopy(gpi_date_previous)
+                    gpi_idx_sort = np.argsort(gpi_date_merged)
+
+                    for var_name in data_keys:
+
+                        if var_name != 'time':
+                            tmp_data_previous = gpi_data_previous[var_name]
+                            if var_name in list(gpi_data_actual.keys()):
+                                tmp_data_actual = gpi_data_actual[var_name]
+                                tmp_data_merged = np.concatenate((tmp_data_previous, tmp_data_actual))
+                            else:
+                                tmp_data_merged = deepcopy(tmp_data_previous)
+
+                            tmp_data_sorted = tmp_data_merged[gpi_idx_sort]
+
+                            gpi_data_merged[var_name] = tmp_data_sorted
+
+                else:
+                    gpi_data_merged = deepcopy(gpi_data_actual)
+                    gpi_date_merged = deepcopy(gpi_date_actual)
+
+                if gpi_lon_previous.__len__() > 0 and len(gpi_lon_actual) > 0:
+                    assert gpi_lon_previous[0] == gpi_lon_actual[0], \
+                        ' ===> GPI longitude previous and actual must be the same'
+                if gpi_lat_previous.__len__() > 0 and len(gpi_lat_actual) > 0:
+                    assert gpi_lat_previous[0] == gpi_lat_actual[0], \
+                        ' ===> GPI latitude previous and actual must be the same'
+
+                if len(gpi_lon_actual) > 0:
+                    gpi_lon_merged, gpi_lat_merged = gpi_lon_actual, gpi_lat_actual
+                else:
+                    gpi_lon_merged, gpi_lat_merged = gpi_lon_previous, gpi_lat_previous
+
+                # check gpi datasets
+                write_ts_flag = True
+                if len(gpi_lon_merged) > 1:
+                    raise RuntimeError(' ===> GPI longitude must be defined by unique value')
+                if len(gpi_lat_merged) > 1:
+                    raise RuntimeError(' ===> GPI latitude must be defined by unique value')
+                if len(gpi_lon_merged) < 1:
+                    data_n = 0
+                    if 'sm' in list(gpi_data_merged.keys()):
+                        data_n = gpi_data_merged['sm'].shape
+                    lon_n_actual, lon_n_previous = len(gpi_lon_actual), len(gpi_lon_previous)
+                    logging.warning(' ===> GPI longitude is not defined')
+                    logging.warning(' ===> Actual longitude n: ' + str(lon_n_actual) +
+                                    ' - Previous longitude n: ' + str(lon_n_previous) + ' - Data n: ' + str(data_n))
+                    write_ts_flag = False
+
+                if len(gpi_lat_merged) < 1:
+
+                    data_n = 0
+                    if 'sm' in list(gpi_data_merged.keys()):
+                        data_n = gpi_data_merged['sm'].shape
+                    lat_n_actual, lat_n_previous = len(gpi_lat_actual), len(gpi_lat_previous)
+                    logging.warning(' ===> GPI latitude is not defined')
+                    logging.warning(' ===> Actual latitude n: ' + str(lat_n_actual) +
+                                    ' - Previous latitude n: ' + str(lat_n_previous) + ' - Data n: ' + str(data_n))
+                    write_ts_flag = False
+
+                if gpi_date_merged is None:
+                    raise RuntimeError(' ===> GPI times must be defined. Check the datefield parameter.')
+
+                # write time-series (for each gpi)
+                if write_ts_flag:
+                    gpi_lon, gpi_lat = gpi_lon_merged[0], gpi_lat_merged[0]
+                    self.fid.write_ts(gpi_n, gpi_data_merged, gpi_date_merged,
+                                      lon=gpi_lon, lat=gpi_lat, dates_direct=True)
+                else:
+                    logging.warning(' ===> Write time-series for gpi ' + str(gpi_n) + ' skipped')
+
+            # flush and close destination filename
             self.flush()
             self.close()
+
+            # remove tmp file (if required)
+            if remove_file_tmp:
+                if os.path.exists(filename_tmp):
+                    os.remove(filename_tmp)
+
+            logging.info(' -------> Write destination file  ... DONE')
         else:
-            print(' fid of filename ' + filename + ' is None')
+            logging.info(' -------> Write destination file  ... SKIPPED. Filename ' + filename + ' is not opened')
 
 
 # class to create indexed ts in nc format

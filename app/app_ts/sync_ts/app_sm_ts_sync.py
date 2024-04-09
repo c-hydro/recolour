@@ -1,18 +1,17 @@
 #!/usr/bin/python3
 """
 RECOLOUR APP - TIME-SERIES - CSV SYNCHRONIZER  - REprocess paCkage for sOiL mOistUre pRoducts
-__date__ = '20231123'
-__version__ = '1.1.0'
-__author__ =
-        'Fabio Delogu (fabio.delogu@cimafoundation.org',
-        'Francesco Silvestro (francesco.silvestro@cimafoundation.org)'
 
+__date__ = '20240305'
+__version__ = '1.2.0'
+__author__ = 'Fabio Delogu (fabio.delogu@cimafoundation.org'
 __library__ = 'recolour'
 
 General command line:
-python3 app_sm_ts_sync.py -settings_file configuration.json
+python3 app_sm_ts_sync.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
+20240305 (1.2.0) --> Operational release
 20231123 (1.1.0) --> Bug fixing about management of time-series indexes (not included times conditions)
 20231016 (1.0.0) --> Beta release
 """
@@ -42,8 +41,8 @@ log_stream = logging.getLogger(logger_name)
 project_name = 'recolour'
 alg_name = 'Application for synchronizing the reference and k(n) time-series'
 alg_type = 'Package'
-alg_version = '1.1.0'
-alg_release = '2023-11-23'
+alg_version = '1.2.0'
+alg_release = '2024-03-05'
 # -------------------------------------------------------------------------------------
 
 

@@ -16,7 +16,7 @@ import numpy as np
 
 from datetime import datetime
 
-from lib_notebook_time_series import add_dframe_seasons
+from lib_notebook_time_series import add_dframe_seasons, add_dframe_year
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -163,12 +163,19 @@ def read_time_series_datasets(
     ts_dframe_hmc = add_dframe_seasons(ts_dframe_hmc, column_season='season', lut_season=file_season_lut)
     ts_dframe_smap = add_dframe_seasons(ts_dframe_smap, column_season='season', lut_season=file_season_lut)
 
-    #ts_dframe_complete = ts_dframe_complete.dropna(how='all')
-    #ts_dframe_ecmwf_l1 = ts_dframe_ecmwf_l1.dropna(how='any')
-    #ts_dframe_ecmwf_l2 = ts_dframe_ecmwf_l2.dropna(how='any')
-    #ts_dframe_ecmwf_l3 = ts_dframe_ecmwf_l3.dropna(how='any')
-    #ts_dframe_hmc = ts_dframe_hmc.dropna(how='any')
-    #ts_dframe_smap = ts_dframe_smap.dropna(how='any')
+    ts_dframe_complete = add_dframe_year(ts_dframe_complete, column_year='year')
+    ts_dframe_ecmwf_l1 = add_dframe_year(ts_dframe_ecmwf_l1, column_year='year')
+    ts_dframe_ecmwf_l2 = add_dframe_year(ts_dframe_ecmwf_l2, column_year='year')
+    ts_dframe_ecmwf_l3 = add_dframe_year(ts_dframe_ecmwf_l3, column_year='year')
+    ts_dframe_hmc = add_dframe_year(ts_dframe_hmc, column_year='year')
+    ts_dframe_smap = add_dframe_year(ts_dframe_smap, column_year='year')
+
+    # ts_dframe_complete = ts_dframe_complete.dropna(how='all')
+    # ts_dframe_ecmwf_l1 = ts_dframe_ecmwf_l1.dropna(how='any')
+    # ts_dframe_ecmwf_l2 = ts_dframe_ecmwf_l2.dropna(how='any')
+    # ts_dframe_ecmwf_l3 = ts_dframe_ecmwf_l3.dropna(how='any')
+    # ts_dframe_hmc = ts_dframe_hmc.dropna(how='any')
+    # ts_dframe_smap = ts_dframe_smap.dropna(how='any')
 
     # message read time-series datasets end
     print(' ---> Read time-series datasets ... DONE')
@@ -265,6 +272,10 @@ def read_time_series_product(
     ts_dframe_complete = add_dframe_seasons(ts_dframe_complete, column_season='season', lut_season=file_season_lut)
     ts_dframe_obs = add_dframe_seasons(ts_dframe_obs, column_season='season', lut_season=file_season_lut)
     ts_dframe_mod = add_dframe_seasons(ts_dframe_mod, column_season='season', lut_season=file_season_lut)
+
+    ts_dframe_complete = add_dframe_year(ts_dframe_complete, column_year='year')
+    ts_dframe_obs = add_dframe_year(ts_dframe_obs, column_year='year')
+    ts_dframe_mod = add_dframe_year(ts_dframe_mod, column_year='year')
 
     if mandatory_ts_obs and mandatory_ts_mod:
         ts_dframe_complete = ts_dframe_complete.dropna(how='any')

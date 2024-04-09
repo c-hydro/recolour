@@ -36,6 +36,7 @@ def read_file_cell(file_name, file_variables=None):
                     variable_tmp = file_handle.variables[variable_name][:]
                 else:
                     variable_tmp = None
+
             else:
                 variable_tmp = file_handle.variables[variable_name][:]
 

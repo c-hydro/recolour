@@ -1,7 +1,7 @@
 """
 Class Features
 
-Name:          driver_data_dynamic_src
+Name:          driver_data_dynamic
 Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
 Date:          '20231010'
 Version:       '1.0.0'
@@ -18,7 +18,7 @@ from copy import deepcopy
 from lib_data_io_csv import read_file_csv
 from lib_data_io_pickle import read_obj, write_obj
 from lib_data_io_json import write_file_json
-from lib_data_io_generic import (adjust_data_point,
+from lib_data_io_generic import (adjust_data_point, adjust_data_time, range_data_point, combine_data_point_by_time,
                                  join_data_point, resample_data_point, fill_data_point,
                                  convert_registry_point_to_dict, convert_datasets_point_to_dict)
 from lib_data_io_csv import write_file_csv
@@ -79,7 +79,8 @@ class DriverData:
         self.file_name_tag, self.folder_name_tag, self.path_name_tag = 'file_name', 'folder_name', 'path_name'
         self.value_min_tag, self.value_max_tag, self.scale_factor_tag = 'value_min', 'value_max', 'scale_factor'
         self.value_nodata_tag = 'value_no_data'
-        self.fields_tag, self.format_tag = 'fields', 'format'
+        self.fields_tag, self.format_tag, self.delimiter_tag = 'fields', 'format', 'delimiter'
+        self.date_format_tag, self.decimal_precision_tag = 'date_format', 'decimal_precision'
 
         # time tag(s)
         self.time_period_tag, self.time_reference_tag = "time_period", 'time_reference'
@@ -107,12 +108,15 @@ class DriverData:
 
             # get info data
             (folder_name_src, file_name_src, fields_src, format_src, scale_factor_src,
-             value_min_src, value_max_src, value_no_data_src) = self.get_info_data(self.source_dict[dset_name])
+             value_min_src, value_max_src, value_no_data_src,
+             delimiter_src, decimal_precision_src, date_format_src) = self.get_info_data(
+                self.source_dict[dset_name])
             file_path_src = os.path.join(folder_name_src, file_name_src)
             # zip info data
             dset_obj_step = self.zip_info_data(folder_name_src, file_name_src, file_path_src,
                                                fields_src, format_src, scale_factor_src,
-                                               value_min_src, value_max_src, value_no_data_src)
+                                               value_min_src, value_max_src, value_no_data_src,
+                                               delimiter_src, decimal_precision_src, date_format_src)
             # get info time
             (time_ref_src, time_period_src, time_round_src, time_freq_src,
              time_start_src, time_end_src) = self.get_info_time(self.source_dict[dset_name])
@@ -125,17 +129,20 @@ class DriverData:
             self.time_obj_src[dset_name] = time_obj_step
 
         # ancillary object(s)
-        (self.folder_name_anc, self.file_name_anc, _, _, _, _, _, _) = self.get_info_data(self.ancillary_dict)
+        (self.folder_name_anc, self.file_name_anc, _, _, _, _, _, _, _, _, _) = self.get_info_data(
+            self.ancillary_dict)
         self.file_path_anc = os.path.join(self.folder_name_anc, self.file_name_anc)
 
         # destination object(s)
         (self.folder_name_dst, self.file_name_dst,
          self.fields_dst, self.format_dst, self.scale_factor_dst,
-         self.value_min_dst, self.value_max_dst, self.value_no_data_dst) = self.get_info_data(self.destination_dict)
+         self.value_min_dst, self.value_max_dst, self.value_no_data_dst,
+         self.delimiter_dst, self.decimal_precision_dst, self.date_format_dst) = self.get_info_data(
+            self.destination_dict)
         self.file_path_dst = os.path.join(self.folder_name_dst, self.file_name_dst)
 
         # tmp object(s)
-        (self.folder_name_tmp, self.file_name_tmp, _, _, _, _, _, _) = self.get_info_data(self.tmp_dict)
+        (self.folder_name_tmp, self.file_name_tmp, _, _, _, _, _, _, _, _, _) = self.get_info_data(self.tmp_dict)
 
         # check fields from source to destination
         for dset_name in self.dset_list_tag:
@@ -155,10 +162,13 @@ class DriverData:
     # -------------------------------------------------------------------------------------
     # method to zip info data
     def zip_info_data(self, folder_name, file_name, path_name, fields, format, scale_factor,
-                      value_min, value_max, value_no_data):
+                      value_min, value_max, value_no_data,
+                      delimiter_data, decimal_precision, date_format):
         info_obj = {self.folder_name_tag: folder_name, self.file_name_tag: file_name, self.path_name_tag: path_name,
                     self.fields_tag: fields, self.format_tag: format, self.scale_factor_tag: scale_factor,
-                    self.value_min_tag: value_min, self.value_max_tag: value_max, self.value_nodata_tag: value_no_data}
+                    self.value_min_tag: value_min, self.value_max_tag: value_max,
+                    self.value_nodata_tag: value_no_data, self.delimiter_tag: delimiter_data,
+                    self.decimal_precision_tag: decimal_precision, self.date_format_tag: date_format}
         return info_obj
     # -------------------------------------------------------------------------------------
 
@@ -174,11 +184,15 @@ class DriverData:
         vmin = check_key_of_obj(self.value_min_tag, obj_data, value_data_default=None)
         vmax = check_key_of_obj(self.value_max_tag, obj_data, value_data_default=None)
         vnodata = check_key_of_obj(self.value_nodata_tag, obj_data, value_data_default=np.nan)
+        delimiter = check_key_of_obj(self.delimiter_tag, obj_data, value_data_default=',')
+        decimal_precision = check_key_of_obj(self.decimal_precision_tag, obj_data, value_data_default=2)
+        date_format = check_key_of_obj(self.date_format_tag, obj_data, value_data_default='%Y-%m-%d %H:%M')
 
         if vnodata is None:
             vnodata = np.nan
 
-        return folder_name, file_name, fields, format, scale_factor, vmin, vmax, vnodata
+        return (folder_name, file_name, fields, format, scale_factor, vmin, vmax, vnodata,
+                delimiter, decimal_precision, date_format)
     # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------
@@ -255,8 +269,13 @@ class DriverData:
         # get static object
         point_obj = self.point_obj
 
-        # get path(s)
+        # get file path(s)
         file_path_anc_raw, file_path_dst_raw = self.file_path_anc, self.file_path_dst
+        # get file settings
+        file_value_no_data_dst = self.value_no_data_dst
+        file_delimiter_dst = self.delimiter_dst
+        file_decimal_precision_dst = self.decimal_precision_dst
+        file_date_format_dst = self.date_format_dst
 
         # iterate over dataframe
         if dframe_point is not None:
@@ -289,8 +308,11 @@ class DriverData:
                     # write data in csv format
                     write_file_csv(
                         file_path_dst_step, point_dframe,
-                        dframe_sep=',', dframe_decimal='.', dframe_float_format='%.2f',
-                        dframe_index=True, dframe_header=True, dframe_index_label='time')
+                        dframe_sep=file_delimiter_dst, dframe_decimal='.',
+                        dframe_no_data=file_value_no_data_dst,
+                        dframe_float_format='%.{:}f'.format(str(file_decimal_precision_dst)),
+                        dframe_index=True, dframe_header=True,
+                        dframe_index_label='time', dframe_index_format=file_date_format_dst)
 
                 elif self.format_dst == 'json':
 
@@ -337,7 +359,8 @@ class DriverData:
 
         # get time(s)
         time_run = self.time_run
-        time_range_anls, time_start_anls, time_end_anls = self.time_range, self.time_start, self.time_end
+        time_range_anls = self.time_range
+        time_start_anls, time_end_anls = self.time_start, self.time_end
         # get static object
         point_obj = self.point_obj
 
@@ -398,7 +421,8 @@ class DriverData:
 
         # get time(s)
         time_run = self.time_run
-        time_range_anls, time_start_anls, time_end_anls = self.time_range, self.time_start, self.time_end
+        time_range_anls = self.time_range
+        time_start_anls, time_end_anls = self.time_start, self.time_end
         # get static object
         point_obj_registry = self.point_obj
 
@@ -443,7 +467,7 @@ class DriverData:
                 file_path_src_raw = dset_fields[self.path_name_tag]
                 format_src, scale_factor_src = dset_fields[self.format_tag], dset_fields[self.scale_factor_tag]
                 value_min_src, value_max_src = dset_fields[self.value_min_tag], dset_fields[self.value_max_tag]
-                value_nodata_src = dset_fields[self.value_nodata_tag]
+                value_nodata_src, delimiter_src = dset_fields[self.value_nodata_tag], dset_fields[self.delimiter_tag]
                 time_start_src, time_end_src = time_fields[self.time_start_tag], time_fields[self.time_end_tag]
 
                 # define source file name
@@ -458,13 +482,18 @@ class DriverData:
                     if format_src == 'csv':
 
                         # method to get data
-                        point_obj_data_raw = read_file_csv(file_path_src_step)
-                        # method to select data
+                        point_obj_data_raw = read_file_csv(file_path_src_step, dframe_sep=delimiter_src)
+
+                        # method to adjust data time
+                        time_start_src, time_end_src, time_frequency_src = adjust_data_time(
+                            point_obj_data_raw, time_start=time_start_src, time_end=time_end_src)
+
+                        # method to adjust data values
                         point_obj_data_sel = adjust_data_point(
                             point_obj_data_raw,
                             scale_factor=scale_factor_src,
                             value_min=value_min_src, value_max=value_max_src, value_no_data=value_nodata_src,
-                            time_start=time_start_src, time_end=time_end_src)
+                            time_start=time_start_src, time_end=time_end_src, time_freq=time_frequency_src)
                     else:
                         log_stream.error(' ===> Source data type "' + format_src + '" is not supported.')
                         raise NotImplemented('Case not implemented yet')
@@ -482,11 +511,25 @@ class DriverData:
             # get data end
             log_stream.info(' -----> Get datasets ... DONE')
 
+            # combine data start
+            log_stream.info(' -----> Combine datasets by time ... ')
+            # method to range data point
+            time_frequency_expected, time_start_expected, time_end_expected, time_range_expected = range_data_point(
+                point_obj_collections_raw, time_run_reference=self.time_run,
+                time_start_reference=self.time_start, time_end_reference=self.time_end)
+            # method to combine data point to the expected time range
+            point_obj_collections_combined = combine_data_point_by_time(
+                point_obj_collections_raw, point_obj_registry,
+                time_start_expected=time_start_expected, time_end_expected=time_end_expected,
+                time_frequency_expected=time_frequency_expected, time_reverse=True)
+            # combine data end
+            log_stream.info(' -----> Combine datasets by time ... DONE')
+
             # join data start
             log_stream.info(' -----> Join datasets ... ')
             # method to join data point(s)
             point_obj_collections_joined = join_data_point(
-                time_range_anls, point_obj_collections_raw, point_obj_registry)
+                time_range_expected, point_obj_collections_combined, point_obj_registry)
             # join data end
             log_stream.info(' -----> Join datasets ... ')
 

@@ -68,36 +68,6 @@ def read_grid_file(file_name):
 # -----------------------------------------------------------------------------
 
 
-# -----------------------------------------------------------------------------
-# Method to open netcdf grid file
-def read_grid_file_OLD(filename):
-
-    fileobj = netCDF4.Dataset(filename, 'r')
-
-    fileresult = {}
-    for filevar in fileobj.variables:
-
-        filevar = str(filevar)
-        filedata = fileobj[filevar][:]
-
-        if isinstance(filedata, np.ma.MaskedArray):
-            filedata = filedata.data
-
-        fileresult[filevar] = filedata
-
-    fileobj.close()
-
-    if 'land_flag' in fileresult:
-        land_id = np.where(fileresult['land_flag'][:] == 1)
-
-        for var in fileresult:
-            data = fileresult[var][land_id]
-            fileresult[var] = data
-
-    return fileresult
-# -----------------------------------------------------------------------------
-
-
 # ----------------------------------------------------------------------------------------------------------------------
 # method to get grid reference
 def get_grid_reference(dset_obj, dset_key_root='reference',

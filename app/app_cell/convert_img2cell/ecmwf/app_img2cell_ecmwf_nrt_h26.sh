@@ -11,7 +11,7 @@ script_folder_app='/home/hsaf/recolour/tools/algorithm_grid2ts/ecmwf/'
 script_file_app='app_img2cell_ecmwf.py'
 script_folder_settings='/home/hsaf/recolour/app/app_cell/convert_img2cell/ecmwf/'
 
-script_file_settings='app_img2cell_ecmwf_nrt_h26.json'
+script_file_settings='app_img2cell_ecmwf_nrt_h26_server.json'
 
 # Venv settings
 virtual_env_folder='/home/hsaf/recolour/conda/bin/'

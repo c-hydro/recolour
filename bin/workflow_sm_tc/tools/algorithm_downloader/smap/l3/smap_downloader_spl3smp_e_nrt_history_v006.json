@@ -1,0 +1,131 @@
+{
+  "algorithm":{
+    "flags": {
+      "downloading_mp": false,
+      "cleaning_dynamic_data_source": false,
+      "cleaning_dynamic_data_ancillary_global": false,
+      "cleaning_dynamic_data_ancillary_domain": false,
+      "cleaning_dynamic_data_outcome": false,
+      "cleaning_dynamic_data_tmp": false
+    },
+    "ancillary": {
+      "domain" : "italy",
+      "process_mp": 4
+    },
+    "general": {
+      "title": "Satellite SMAP - Downloading tool",
+      "web-site": "",
+      "source": "Python library developed by CIMA Research Foundation",
+      "history": "1.0.2 [20200511]",
+      "project-info": "Hydrological Data Engines - HyDE Library/Project",
+      "algorithm": "Downloading tool developed by CIMA Research Foundation"
+    },
+    "template": {
+      "var_name": "string_variable",
+      "group_name": "string_group",
+      "file_name": "string_filename",
+      "domain": "string_domain",
+      "source_sub_path_time": "%Y/%m/%d/",
+      "source_datetime": "%Y%m%d",
+      "ancillary_sub_path_time": "%Y/%m/%d/",
+      "ancillary_datetime": "%Y%m%d",
+      "outcome_sub_path_time": "%Y/%m/%d/",
+      "outcome_datetime": "%Y%m%d",
+      "run_datetime": "%Y%m%d"
+    }
+  },
+  "product": {
+    "comment": "Make sure all variables which are retrieved are consistent with L2 product layers in lib_data_smap",
+    "short_name": ["SPL3SMP_E"],
+    "version": ["006"],
+    "template_root": ["HDF5:{file_name}://Soil_Moisture_Retrieval_Data_{var_name}"],
+    "template_vars_data": [
+      ["AM/soil_moisture", "PM/soil_moisture_pm",
+        "AM/bulk_density", "PM/bulk_density_pm",
+        "AM/retrieval_qual_flag", "PM/retrieval_qual_flag_pm",
+        "AM/surface_temperature", "PM/surface_temperature_pm",
+        "AM/vegetation_water_content", "PM/vegetation_water_content_pm",
+        "AM/vegetation_opacity", "PM/vegetation_opacity_pm"
+      ]
+    ],
+    "template_group_data": [
+      ["am", "pm",
+        "am", "pm",
+        "am", "pm",
+        "am", "pm",
+        "am", "pm"]
+      ]
+  },
+  "data": {
+    "static": {
+      "bounding_box": {
+        "lon_left": 6.50251,
+        "lon_right": 19.05251,
+        "lat_bottom": 36.29749,
+        "lat_top": 47.74309
+      },
+      "geo_file" : {
+        "folder": "/home/hsaf/share/recolour/domain/",
+        "filename": "italy_sm_smap.tiff"
+      }
+    },
+    "dynamic": {
+      "time": {
+        "time_forecast_period": 0,
+        "time_forecast_frequency": "D",
+        "time_observed_period": 1,
+        "time_observed_frequency": "D",
+        "time_rounding": "D",
+        "time_format" : "%Y-%m-%d"
+      },
+      "url": {
+        "cmr_url": ["https://cmr.earthdata.nasa.gov"],
+        "urs_url": ["https://urs.earthdata.nasa.gov"],
+        "cmr_page_size" : [2000],
+        "url_list" : [[]],
+        "polygon" : [""],
+        "filename_filter": [""],
+        "cmr_file_url": ["{0}/search/granules.json?provider=NSIDC_ECS&sort_key[]=start_date&sort_key[]=producer_granule_id&scroll=true&page_size={1}"]
+      },
+
+      "source": {
+        "filename": ["SMAP_L3_SM_P_E_{source_datetime}_R18290_001.h5"],
+        "folder": ["/home/hsaf/share/recolour/smap_ancillary/spl3smp_e/raw/"]
+      },
+      "ancillary": {
+        "global" : {
+          "filename": ["smap_ancillary_{ancillary_datetime}_{var_name}_global.tiff"],
+          "folder": ["/home/hsaf/share/recolour/smap_ancillary/spl3smp_e/multilayer/global/{ancillary_sub_path_time}"]
+        },
+        "domain" : {
+          "filename": ["smap_ancillary_{ancillary_datetime}_{var_name}_{domain}.tiff"],
+          "folder": ["/home/hsaf/share/recolour/smap_ancillary/spl3smp_e/multilayer/domain/{ancillary_sub_path_time}"]
+        }
+      },
+      "outcome": {
+        "filename": ["smap_{outcome_datetime}_{var_name}.tiff"],
+        "folder": ["/home/hsaf/share/recolour/smap_grid/spl3smp_e/multilayer/{outcome_sub_path_time}"]
+      }
+    },
+    "log": {
+        "filename": "smap_downloader_spl3smp_e_nrt_history_v006.txt",
+        "folder": "/home/hsaf/share/recolour/log/smap_downloader/"
+      },
+    "library": {
+      "filename": "",
+      "folder": ""
+    },
+    "bin": {
+      "filename": "",
+      "folder": ""
+    }
+  },
+  "time": {
+  	"time_now": null ,
+    "time_start": "2023-09-01",
+    "time_end": "2023-12-01",
+    "time_period": 100,
+    "time_frequency": "D",
+    "time_rounding": "D"
+  }
+}

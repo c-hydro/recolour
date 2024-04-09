@@ -103,11 +103,13 @@
     "file_name": "sm_grid_hmc2csv_liguria.txt"
   },
     "time": {
-    "time_reference": null,
-    "time_period": null,
-    "time_frequency": "D",
-    "time_rounding": "D",
-    "time_start": "2023-06-20 00:00",
-    "time_end": "2023-08-01 00:00"
+      "__comment__": "time_period: [0, 1, 2 ...]; CURRENT_MONTH, PREVIOUS_MONTH",
+      "__test__": "2023-06-20 00:00, 2023-08-01 00:00",
+      "time_reference": null,
+      "time_period": "PREVIOUS_MONTH",
+      "time_frequency": "D",
+      "time_rounding": "D",
+      "time_start": null,
+      "time_end": null
   }
 }

@@ -3,8 +3,8 @@
 """
 RECOLOUR APP - TIME-SERIES GRID SMAP 2 CSV  - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20231121'
-__version__ = '1.1.0'
+__date__ = '20240229'
+__version__ = '1.2.0'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)'
 __library__ = 'recolour'
@@ -13,6 +13,9 @@ General command line:
 python app_sm_grid_smap2csv.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
+20240229 (1.2.0) --> Update the time and data management
+    (1) month periods (previous months or current month time selection)
+    (2) in the case of lack of data or fails in opening files
 20231121 (1.1.0) --> Update and refactor codes and methods (to include new cases)
 20231027 (1.0.0) --> First development
 """
@@ -44,8 +47,8 @@ log_stream = logging.getLogger(logger_name)
 project_name = 'recolour'
 alg_name = 'Application for making time-series grid smap 2 csv'
 alg_type = 'Package'
-alg_version = '1.1.0'
-alg_release = '2023-11-21'
+alg_version = '1.2.0'
+alg_release = '2024-02-29'
 # -------------------------------------------------------------------------------------
 
 

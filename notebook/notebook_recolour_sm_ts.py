@@ -1,21 +1,22 @@
 #!/usr/bin/python3
 """
 RECOLOUR NOTEBOOK - TIME-SERIES ANALYSIS  - REprocess paCkage for sOiL mOistUre pRoducts
-__date__ = '20231023'
-__version__ = '1.0.0'
+__date__ = '2024-02-29'
+__version__ = '1.6.0'
 __author__ =
         'Fabio Delogu (fabio.delogu@cimafoundation.org'
-__library__ = 'SM'
+__library__ = 'recolour'
 
 General command line:
-python3 app_sm_ts_analysis.py -settings_file configuration.json
+python3 notebook_recolour_sm_ts.py -settings_file configuration.json
 
 Version(s):
-20231023 (1.0.0) --> Beta release
+20240229 (1.6.0) --> Update methods to multiyear analysis
+20231123 (1.5.0) --> Beta release
 """
 
-# -------------------------------------------------------------------------------------
-# Complete library
+# ----------------------------------------------------------------------------------------------------------------------
+# libraries
 import time
 import os
 from argparse import ArgumentParser
@@ -30,31 +31,32 @@ from lib_notebook_time_series import (join_time_series, scale_time_series, strip
                                       apply_time_series_filter)
 from lib_notebook_geo import read_point_data
 from lib_notebook_generic import fill_tags2string, make_folder
+from lib_notebook_figure import plot_ts_generic, plot_ts_by_year
 
 import matplotlib.pylab as plt
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # algorithm information
 project_name = 'recolour'
 alg_name = 'Notebook for analyzing time-series reference and k1'
 alg_type = 'Package'
-alg_version = '1.5.0'
-alg_release = '2023-11-23'
-# -------------------------------------------------------------------------------------
+alg_version = '1.6.0'
+alg_release = '2024-02-29'
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # Script Main
 def main(file_name_settings):
 
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # set algorithm settings
     data_settings = read_file_settings(file_name_settings)
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # -------------------------------------------------------------------------------------
-    # Info algorithm
+    # ------------------------------------------------------------------------------------------------------------------
+    # info algorithm
     print(' ============================================================================ ')
     print(' ==> ' + alg_name + ' (Version: ' + alg_version + ' Release_Date: ' + alg_release + ')')
     print(' ==> START ... ')
@@ -62,18 +64,18 @@ def main(file_name_settings):
 
     # Time algorithm information
     start_time = time.time()
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # get settings object(s)
     obj_parameters = data_settings['parameters']
     obj_template = data_settings['template']
     obj_data = data_settings['data']
     obj_figure = data_settings['figure']
     obj_metrics = data_settings['metrics']
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # set figure info
     folder_name_figure = obj_figure['folder_name']
     file_name_figure = obj_figure['file_name']
@@ -83,9 +85,9 @@ def main(file_name_settings):
     folder_name_metrics = obj_metrics['folder_name']
     file_name_metrics = obj_metrics['file_name']
     file_path_metrics_template = os.path.join(folder_name_metrics, file_name_metrics)
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # get registry info
     folder_name_registry = obj_data['registry']['folder_name']
     file_name_registry = obj_data['registry']['file_name']
@@ -102,9 +104,9 @@ def main(file_name_settings):
         print('Point available: "' + name_list + '"')
         raise RuntimeError(' ===> Point "' + registry_tag_value + '" is not available in the registry')
     registry_dict = registry_point.to_dict('records')[0]
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # get time-series info
     folder_name_ts = obj_data['time_series']['folder_name']
     file_name_ts = obj_data['time_series']['file_name']
@@ -168,136 +170,58 @@ def main(file_name_settings):
         ts_dframe_scaled, ts_search_variables=['control', 'sm_obs', 'sm_smap'])
     # remove time-series by variable
     ts_dframe_smap = remove_time_series_by_variable(ts_dframe_smap, ts_remove_variables=['sm_smap'])
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # select finite period (to skip the control series)
     ts_dframe_scaled = strip_time_series(ts_dframe_scaled, ts_threshold=2)
     ts_dframe_hmc = strip_time_series(ts_dframe_hmc, ts_threshold=2)
     ts_dframe_ecmwf = strip_time_series(ts_dframe_ecmwf, ts_threshold=2)
     ts_dframe_smap = strip_time_series(ts_dframe_smap, ts_threshold=2)
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # -------------------------------------------------------------------------------------
-    # plot smap datasets
-    ts_title_label = 'Soil Moisture SMAP :: Loco Carchelli'
-    ts_dframe_tmp = deepcopy(ts_dframe_smap)
+    # ------------------------------------------------------------------------------------------------------------------
+    # plot yearly ecmwf time-series
+    plot_ts_by_year(ts_dframe_ecmwf, tag_ref='sm_obs', tag_kn=['sm_ecmwf_layer_0_7', 'sm_ecmwf_layer_0_28'],
+                    tag_year=[2021, 2022, 2023],
+                    figure_legend=['obs', 'sm_ecmwf_layer_0_7', 'sm_ecmwf_layer_0_28'],
+                    figure_title='Soil Moisture ECMWF', figure_point=registry_tag_value)
 
-    fig, ax = plt.subplots()
+    # plot yearly hmc time-series
+    plot_ts_by_year(ts_dframe_hmc, tag_ref='sm_obs', tag_kn=['sm_hmc'],
+                    tag_year=[2021, 2022, 2023],
+                    figure_legend=['obs', 'sm_hmc'],
+                    figure_title='Soil Moisture Continuum', figure_point=registry_tag_value)
 
-    ts_dframe_tmp['sm_obs'].plot(figsize=(10, 5), ax=ax, marker='o', color='black')
-    ts_dframe_tmp['sm_smap_exp_t02'].plot(figsize=(10, 5), ax=ax, color='red')
-    ts_dframe_tmp['sm_smap_exp_t04'].plot(figsize=(10, 5), ax=ax, color='blue')
+    # plot yearly smap time-series
+    plot_ts_by_year(ts_dframe_smap, tag_ref='sm_obs', tag_kn=['sm_smap_exp_t02', 'sm_smap_exp_t04'],
+                    tag_year=[2021, 2022, 2023],
+                    figure_legend=['obs', 'sm_smap_exp_t02', 'sm_smap_exp_t04'],
+                    figure_title='Soil Moisture SMAP', figure_point=registry_tag_value)
 
-    ax.set_xlabel('time')
-    ax.set_ylabel('sm [%]')
-    ax.grid(True)
+    # plot generic smap time-series
+    plot_ts_generic(ts_dframe_smap, tag_ref='sm_obs', tag_kn=['sm_smap_exp_t02', 'sm_smap_exp_t04'],
+                    figure_legend=['obs', 'sm_smap_exp_t02', 'sm_smap_exp_t04'],
+                    figure_title='Soil Moisture SMAP', figure_point=registry_tag_value)
 
-    ax.legend(["obs", "sm_smap_exp_t02", "sm_smap_exp_t04"])
+    # ------------------------------------------------------------------------------------------------------------------
 
-    plt.ylim(0, 100)
-    plt.title(ts_title_label)
-    plt.show()
-    # -------------------------------------------------------------------------------------
-
-    # -------------------------------------------------------------------------------------
-    # plot hmc datasets
-    ts_title_label = 'Soil Moisture Continuum :: Loco Carchelli'
-    ts_dframe_tmp = deepcopy(ts_dframe_hmc)
-
-    fig, ax = plt.subplots()
-
-    ts_dframe_tmp['sm_obs'].plot(figsize=(10, 5), ax=ax, marker='o', color='black')
-    ts_dframe_tmp['sm_hmc'].plot(figsize=(10, 5), ax=ax, color='red')
-
-    ax.set_xlabel('time')
-    ax.set_ylabel('sm [%]')
-    ax.grid(True)
-
-    ax.legend(["obs", "sm_hmc"])
-
-    plt.ylim(0, 100)
-    plt.title(ts_title_label)
-    plt.show()
-    # -------------------------------------------------------------------------------------
-
-    # -------------------------------------------------------------------------------------
-    # plot ecmwf datasets
-    ts_title_label = 'Soil Moisture ECMWF :: Loco Carchelli'
-    ts_dframe_tmp = deepcopy(ts_dframe_ecmwf)
-
-    fig, ax = plt.subplots()
-
-    #ts_dframe_tmp.plot(figsize=(10, 5), ax=ax)
-    ts_dframe_tmp['sm_obs'].plot(figsize=(10, 5), ax=ax, marker='o', color='black')
-    # ts_dframe_tmp['sm_obs'].plot(figsize=(10, 5), ax=ax, color='black')
-    ts_dframe_tmp['sm_ecmwf_layer_0_7'].plot(figsize=(10, 5), ax=ax, color='red')
-    ts_dframe_tmp['sm_ecmwf_layer_0_28'].plot(figsize=(10, 5), ax=ax, color='blue')
-    ts_dframe_tmp['sm_ecmwf_layer_0_100'].plot(figsize=(10, 5), ax=ax, color='green')
-    #ts_dframe_tmp['control'].plot(figsize=(10, 5), ax=ax, color='white')
-
-    ax.set_xlabel('time')
-    ax.set_ylabel('sm [%]')
-    ax.grid(True)
-
-    ax.legend(["obs", "sm_ecmwf_layer_0_7", "sm_ecmwf_layer_0_28", "sm_ecmwf_layer_0_100"])
-
-    plt.ylim(0, 100)
-    plt.title(ts_title_label)
-    plt.show()
-    # -------------------------------------------------------------------------------------
-
-
-
-
-    # -------------------------------------------------------------------------------------
-    # plot generic datasets
-    fig, ax = plt.subplots()
-
-    #ts_dframe_scaled['control'].plot(figsize=(10, 5), ax=ax, color='white')
-    ts_dframe_scaled['sm_obs'].plot(figsize=(10, 5), ax=ax, marker='o', color='black')
-
-    ts_dframe_scaled['sm_ecmwf_layer_0_7'].plot(figsize=(10, 5), ax=ax, color='green')
-    ts_dframe_scaled['sm_hmc'].plot(figsize=(10, 5), ax=ax, color='red')
-    ts_dframe_scaled['sm_smap_exp_t04'].plot(figsize=(10, 5), ax=ax, color='pink')
-
-    if "sm_tc" in list(ts_dframe_scaled.columns):
-        ts_dframe_scaled['sm_tc'].plot(figsize=(10, 5), ax=ax, color='blue')
-
-    #ts_dframe_scaled.plot(figsize=(10, 5), ax=ax)  # , color='red')
-    ax.grid(True)
-    ax.set_xlabel('time')
-    ax.set_ylabel('sm [%]')
-    if "sm_tc" in list(ts_dframe_scaled.columns):
-        ax.legend(["", "obs", "ecmwf_l1", "hmc", "smap", "tc"])
-    else:
-        ax.legend(["", "obs", "ecmwf_l1", "hmc", "smap"])
-    ax.grid(True)
-
-    plt.ylim(0, 100)
-    plt.title('sm - datasets')
-    plt.show()
-
-    # Info
-    print(' ==> Plot the time-series figure ... DONE')
-    # -------------------------------------------------------------------------------------
-
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # set figure info
     folder_name_figure = obj_figure['folder_name']
     file_name_figure = obj_figure['file_name']
     file_path_figure_template = os.path.join(folder_name_figure, file_name_figure)
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # set metrics info
     folder_name_metrics = obj_metrics['folder_name']
     file_name_metrics = obj_metrics['file_name']
     file_path_metrics_template = os.path.join(folder_name_metrics, file_name_metrics)
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # -------------------------------------------------------------------------------------
-    # Info algorithm
+    # ------------------------------------------------------------------------------------------------------------------
+    # info algorithm
     time_elapsed = round(time.time() - start_time, 1)
 
     print(' ')
@@ -306,13 +230,13 @@ def main(file_name_settings):
     print(' ==> ... END')
     print(' ==> Bye, Bye')
     print(' ============================================================================ ')
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-# -------------------------------------------------------------------------------------
-# Method to get script argument(s)
+# ----------------------------------------------------------------------------------------------------------------------
+# method to get script argument(s)
 def get_args():
     parser_handle = ArgumentParser()
     parser_handle.add_argument('-settings_file', action="store", dest="alg_settings")
@@ -327,11 +251,11 @@ def get_args():
 
     return alg_settings, alg_time
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-# ----------------------------------------------------------------------------
-# Call script from external library
+# ----------------------------------------------------------------------------------------------------------------------
+# call script from external library
 if __name__ == '__main__':
 
     folder_name_settings = os.getcwd()
@@ -343,4 +267,4 @@ if __name__ == '__main__':
     path_name_settings = os.path.join(folder_name_settings, file_name_settings)
 
     main(path_name_settings)
-# ----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------

@@ -1,0 +1,49 @@
+{
+  "product": {
+    "__comment__" : "bbox format:: [6, 35, 18, 47] or null",
+    "name": "gldas_v2.1",
+    "bbox": null
+  },
+  "flags": {
+    "reset_static": true,
+    "reset_dynamic": true
+  },
+  "grid": {
+    "folder_name": "/share/VALIDATION_HSAF/data_record/gldas_static/",
+    "file_name": "gldas_grid.nc"
+  },
+  "template": {
+    "dataset": {
+      "cell_n": "%04d"
+    },
+    "time": {
+      "datetime_source": "%Y%m%d.%H00",
+      "sub_path_source": "%Y/%j/",
+      "datetime_destination": "%Y%m%d",
+      "sub_path_destination": ""
+    },
+    "file": {
+      "__comment__": "GLDAS_NOAH025_3H.A20221231.1800.021.nc4",
+      "file_name_source": "GLDAS_NOAH025_3H.A{datetime_source}.021.nc4",
+      "file_name_destination": "{cell_n}.nc"
+    }
+  },
+  "variables": ["SoilMoi0_10cm_inst", "SoilTMP0_10cm_inst", "SWE_inst"],
+  "data": {
+    "path_grid": "/share/GLDAS/gldas_noah025_3h_v2.1_grid/",
+    "path_ts": "/share/VALIDATION_HSAF/data_record/gldas_cell/20190601_20230531/nc/",
+    "path_stack": "/share/VALIDATION_HSAF/data_record/gldas_cell/20190601_20230531/stack/"
+  },
+  "time": {
+    "time_now": null,
+    "time_start": "2019-06-01",
+    "time_end": "2023-05-31",
+    "time_period": 1,
+    "time_frequency": "D",
+    "time_rounding" : "D"
+  },
+  "log" : {
+  	"path": "/share/home/idrologia/project/validation_hsaf/log/",
+  	"file": "app_img2cell_gldas_dr_20190601_20230531.txt"
+  }
+}

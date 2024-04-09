@@ -1,0 +1,121 @@
+{
+  "algorithm": {
+    "general": {
+      "title": "Preprocessing tool to convert soil moisture ecmwf from grid to csv",
+      "web-site": "",
+      "source": "Python library developed by CIMA Research Foundation",
+      "history": "1.2.0 [20240229]",
+      "project-info": "recolour",
+      "algorithm": "Algorithm developed by CIMA Research Foundation"
+    },
+    "flags": {
+      "reset_static": false,
+      "reset_dynamic_source": true,
+      "reset_dynamic_destination": true
+    },
+    "parameter": {
+      "format_source": "ecmwf_grid_nc",
+      "format_destination": "csv",
+      "geo_method_search": "nearest",
+      "geo_radius_influence": 50000,
+      "geo_neighbours": 1,
+      "geo_spatial_window": 1,
+      "geo_spatial_operation": "average",
+      "geo_spatial_mask": true
+    },
+    "template": {
+      "datasets": {
+        "var_name": "string_var_name"
+      },
+      "time" : {
+        "source_sub_path_time": "%Y/%m/%d/",
+        "source_datetime": "%Y%m%d00",
+        "source_datetime_start": "%Y%m%d00",
+        "source_datetime_end": "%Y%m%d00",
+        "ancillary_sub_path_time": "%Y",
+        "ancillary_datetime": "%Y%m%d%H%M",
+        "ancillary_datetime_start": "%Y%m",
+        "ancillary_datetime_end": "%Y%m",
+        "destination_sub_path_time": "%Y/%m/",
+        "destination_datetime": "%Y%m%d%H%M",
+        "destination_datetime_start": "%Y%m",
+        "destination_datetime_end": "%Y%m"
+      }
+    }
+  },
+  "data": {
+    "static": {
+      "source": {
+        "point_reference": {
+          "folder_name": "/share/WEATHER_STATIONS/auxiliary/liguria/",
+          "file_name": "sm_ws_registry.csv",
+          "fields": {
+            "code": "code",
+            "longitude": "longitude",
+            "latitude": "latitude",
+            "name": "name",
+            "valid": "valid",
+            "tag": "tag"
+          },
+          "no_data": -9999.0
+        },
+        "grid_reference": {
+          "folder_name": "/share/HSAF_SM/ecmwf/auxiliary/h26/",
+          "file_name": "ecmwf_grid_h26.nc",
+          "fields": {}
+        }
+      },
+      "destination": {
+        "folder_name": "/share/WEATHER_STATIONS/ancillary/liguria/geo/",
+        "file_name": "geo_reference_ecmwf_liguria_h26.workspace",
+        "fields": {}
+      }
+    },
+    "dynamic": {
+      "source": {
+        "folder_name": "/share/HSAF_SM/ecmwf/nrt/h26/{source_sub_path_time}",
+        "file_name": "h26_{source_datetime}_R01.nc",
+        "fields": {
+          "var_data_k1": "var40",
+          "var_data_k2": "var41",
+          "var_data_k3": "var42",
+          "var_data_k4": "var43",
+          "var_data_k5": "var200"
+        }
+      },
+      "ancillary": {
+        "folder_name": "/share/WEATHER_STATIONS/ancillary/liguria/data/{ancillary_sub_path_time}/",
+        "file_name": "sm_datasets_ecmwf_{ancillary_datetime_end}_liguria.workspace",
+        "fields": {}
+      },
+      "destination": {
+        "folder_name": "/share/WEATHER_STATIONS/nrt/liguria/{destination_sub_path_time}",
+        "file_name": "sm_datasets_ecmwf_{destination_datetime_end}_{var_name}_liguria.csv",
+        "fields": {
+          "var_rzsm_k1": "rzsm_layer_0_7_cm",
+          "var_rzsm_k2": "rzsm_layer_0_28_cm",
+          "var_rzsm_k3": "rzsm_layer_0_100_cm"
+        },
+        "no_data": -9999.0
+      }
+    }
+  },
+  "tmp": {
+    "folder_name": "/share/home/idrologia/project/sm_ts/tmp/",
+    "file_name": null
+  },
+  "log": {
+    "folder_name": "/share/home/idrologia/project/sm_ts/log/",
+    "file_name": "sm_grid_ecmwf2csv_liguria_realtime_current_month_h26.txt"
+  },
+    "time": {
+      "__comment__": "time_period: [0, 1, 2 ...]; CURRENT_MONTH, PREVIOUS_MONTH",
+      "__test__": "2023-07-16 00:00, 2023-08-01 00:00",
+      "time_reference": null,
+      "time_period": "CURRENT_MONTH",
+      "time_frequency": "D",
+      "time_rounding": "D",
+      "time_start": null,
+      "time_end": null
+  }
+}

@@ -22,10 +22,10 @@
         "source_datetime": "%Y%m%d%H%M",
         "source_datetime_start": "%Y%m%d%H%M",
         "source_datetime_end": "%Y%m%d%H%M",
-        "ancillary_sub_path_time": "%Y/%m/%d/",
-        "ancillary_datetime": "%Y%m%d%H%M",
-        "destination_sub_path_time": "%Y/%m/%d/",
-        "destination_datetime": "%Y%m%d%H%M"
+        "ancillary_sub_path_time": "%Y/%m/",
+        "ancillary_datetime": "%Y%m",
+        "destination_sub_path_time": "%Y/%m/",
+        "destination_datetime": "%Y%m"
       }
     }
   },
@@ -53,7 +53,7 @@
         "file_name": "UmiditaSuoloIgrometro_{point_name}_{source_datetime_start}_{source_datetime_end}.txt",
         "format": "ascii",
         "time_start": "2021-01-01 00:00",
-        "time_end": "2023-12-31 23:00",
+        "time_end": null,
         "time_frequency": "Y",
         "time_rounding": "H",
         "type": null,
@@ -66,8 +66,8 @@
       }
     },
     "ancillary": {
-      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/weather_stations_obs/ancillary/regione_liguria/",
-      "file_name": "weather_station_datasets_liguria.workspace"
+      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/weather_stations_obs/ancillary/regione_liguria/{ancillary_sub_path_time}",
+      "file_name": "sm_ts_obs_{ancillary_datetime}_vwc_liguria.workspace"
     },
     "destination": {
       "registry" : {
@@ -91,7 +91,7 @@
       "datasets" : {
         "__comment__": "type: [all_pnt_one_var, one_pnt_all_var]",
         "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/weather_stations_obs/destination/regione_liguria/data_dynamic/{destination_sub_path_time}",
-        "file_name": "sm_ws_{destination_datetime}_{variable_name}_{point_name}_liguria.csv",
+        "file_name": "sm_ts_obs_{destination_datetime}_{variable_name}_{point_name}_liguria.csv",
         "format": "csv",
         "time_start": null,
         "time_end": null,

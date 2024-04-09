@@ -14,10 +14,12 @@ import warnings
 import os
 import numpy as np
 
+from copy import deepcopy
 from datetime import timedelta
 
 from ascat.read_native.cdr import load_grid
 
+from lib_utils_grid import subgrid4bbox
 from lib_utils_generic import reset_folder
 
 from lib_fx_datasets_source import AscatNrtBufrFileList, AscatEpsBufrFileList
@@ -45,20 +47,23 @@ product_list = ['h16', 'h101', 'h102', 'h103', 'h104', 'h105']
 class DrvFxRunner:
 
     # method to initialize class
-    def __init__(self, product_name,
+    def __init__(self, product_name, product_bbox,
                  time_start, time_end,
                  sub_path_swath, sub_path_cell, sub_path_workspace, sub_path_ts,
                  folder_name_swath, file_name_swath,
                  folder_name_ts, file_name_ts,
                  folder_name_cell, file_name_cell,
+                 folder_name_chunk, file_name_chunk,
                  folder_name_workspace, file_name_workspace,
                  folder_name_grid, file_name_grid='TUW_WARP5_grid_info_2_3.nc',
                  writing_mode='w', write_n_resampled=1000,
                  spatial_resolution=25000, weight_function='hamming',
-                 reset_ancillary_cell=False, reset_ancillary_workspace=False, reset_datasets_ts=False,
+                 reset_ancillary_cell=False, reset_ancillary_chunk=False, reset_ancillary_workspace=False,
+                 reset_datasets_ts=False,
                  **kwargs):
 
         self.product_name = product_name
+        self.product_bbox = product_bbox
         self.time_start = time_start
         self.time_end = time_end
 
@@ -73,6 +78,8 @@ class DrvFxRunner:
         self.file_name_cell = file_name_cell
         self.folder_name_workspace = folder_name_workspace
         self.file_name_workspace = file_name_workspace
+        self.folder_name_chunk = folder_name_chunk
+        self.file_name_chunk = file_name_chunk
         self.folder_name_ts = folder_name_ts
         self.file_name_ts = file_name_ts
 
@@ -85,13 +92,24 @@ class DrvFxRunner:
         self.spatial_resolution = spatial_resolution
         self.weight_function = weight_function
 
+        # load reference grid
         if os.path.exists(os.path.join(self.folder_name_grid, self.file_name_grid)):
-            self.target_grid = load_grid(os.path.join(self.folder_name_grid, self.file_name_grid))
+            tmp_grid = load_grid(os.path.join(self.folder_name_grid, self.file_name_grid))
         else:
             logging.error(' ===> File grid "' + os.path.join(self.folder_name_grid, self.file_name_grid) + "' not found")
             raise FileNotFoundError('File grid must be defined to correctly run the algorithm')
 
+        # select grid based on boundary box
+        if product_bbox is not None:
+            min_lon, min_lat, max_lon, max_lat = product_bbox[0], product_bbox[1], product_bbox[2], product_bbox[3]
+            self.target_grid = subgrid4bbox(
+                tmp_grid, min_lon=min_lon, min_lat=min_lat, max_lon=max_lon, max_lat=max_lat)
+        else:
+            self.target_grid = deepcopy(tmp_grid)
+
+        # set reset flag(s)
         self.reset_ancillary_cell = reset_ancillary_cell
+        self.reset_ancillary_chunk = reset_ancillary_chunk
         self.reset_ancillary_workspace = reset_ancillary_workspace
         self.reset_datasets_ts = reset_datasets_ts
 
@@ -156,7 +174,7 @@ class DrvFxRunner:
 
         time_start, time_end = self.time_start,  self.time_end
 
-        if self.product_name == 'h16':
+        if self.product_name == 'h16' or self.product_name == 'h103':
 
             # product_sub_folder_tmpl = {'years': '{year}', 'months': '{month}', 'days': '{day}', 'hours': '{hour}'}
             product_sub_folder_tmpl = convert_sub_path_str_2_dict(self.sub_path_swath)
@@ -171,7 +189,7 @@ class DrvFxRunner:
                 subfolder_template=product_sub_folder_tmpl)
 
             product_time_stamps, product_time_intervals = np.array(
-                product_class_driver.tstamps_for_daterange(time_start, time_end))
+                product_class_driver.tstamps_for_daterange(time_start, time_end, dt_delta=timedelta(days=1)))
             product_file_names = product_class_driver.search_period(time_start, time_end)
 
             product_dt_delta = timedelta(minutes=3)
@@ -272,6 +290,7 @@ class DrvFxRunner:
     # method to execute fx class resampler
     def execute_class_fx_resampler(self, fx_class_driver, fx_time_intervals,
                                    init_file_ws=False, use_file_ws=False,
+                                   init_file_chunk=False, use_file_chunk=False,
                                    init_file_cell=False, use_file_cell=False):
 
         # info method start
@@ -279,8 +298,12 @@ class DrvFxRunner:
 
         # organize workspace folders and filename(s)
         reset_folder(self.folder_name_workspace, self.reset_ancillary_workspace)
-        file_path_workspace = os.path.join(self.folder_name_workspace, self.file_name_workspace)
+        file_path_ws = os.path.join(self.folder_name_workspace, self.file_name_workspace)
         os.makedirs(self.folder_name_workspace, exist_ok=True)
+        # organize chunk folders and filename(s)
+        reset_folder(self.folder_name_chunk, self.reset_ancillary_chunk)
+        file_path_chunk = os.path.join(self.folder_name_chunk, self.file_name_chunk)
+        os.makedirs(self.folder_name_chunk, exist_ok=True)
         # organize cell folders and filename(s)
         reset_folder(self.folder_name_cell, self.reset_ancillary_cell)
         file_path_cell = os.path.join(self.folder_name_cell, self.file_name_cell)
@@ -294,7 +317,8 @@ class DrvFxRunner:
         fx_class_driver.resample(
             fx_time_intervals,
             write_n_resampled=self.write_n_resampled,
-            init_file_ws=init_file_ws, use_file_ws=use_file_ws, name_file_ws=file_path_workspace,
+            init_file_ws=init_file_ws, use_file_ws=use_file_ws, name_file_ws=file_path_ws,
+            init_file_chunk=init_file_chunk, use_file_chunk=use_file_chunk, name_file_chunk=file_path_chunk,
             init_file_cell=init_file_cell, use_file_cell=use_file_cell, name_file_cell=file_path_cell,
             name_file_ts=file_path_ts)
 

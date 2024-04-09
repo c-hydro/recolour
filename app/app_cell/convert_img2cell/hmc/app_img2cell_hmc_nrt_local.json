@@ -39,5 +39,9 @@
     "time_period": 1,
     "time_frequency": "D",
     "time_rounding" : "H"
+  },
+  "log": {
+  	"path": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/log/",
+  	"file": "app_img2cell_hmc.txt"
   }
 }

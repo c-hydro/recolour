@@ -174,9 +174,6 @@ class DriverData:
         # get flag(s)
         reset_dst = self.reset_dst
 
-        # define ancillary file
-        file_path_anc_def = self.define_file_name(file_path_anc_raw, time_start=self.time_start, time_end=self.time_end)
-
         # check destination format
         if self.format_dst == 'csv' or self.format_dst == 'csv_dr':
 

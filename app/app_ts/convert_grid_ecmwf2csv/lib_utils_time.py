@@ -10,7 +10,10 @@ Version:       '1.0.0'
 # -------------------------------------------------------------------------------------
 # Libraries
 import logging
+import re
 import pandas as pd
+
+from copy import deepcopy
 from datetime import date
 
 from lib_info_args import logger_name
@@ -71,11 +74,39 @@ def set_time(time_ref_args=None, time_ref_file=None, time_format='%Y-%m-%d %H:$M
         time_tmp = pd.Timestamp(time_ref)
         time_ref = time_tmp.floor(time_rounding)
 
-        if time_period > 0:
-            time_range = pd.date_range(end=time_ref, periods=time_period, freq=time_frequency)
+        if isinstance(time_period, int):
+
+            if time_period > 0:
+                time_range = pd.date_range(end=time_ref, periods=time_period, freq=time_frequency)
+            else:
+                log_stream.warning(' ===> TimePeriod must be greater then 0. TimePeriod is set automatically to 1')
+                time_range = pd.DatetimeIndex([time_ref], freq=time_frequency)
+
+        elif isinstance(time_period, str):
+
+            if time_period == 'CURRENT_MONTH':
+
+                time_current_first = time_ref.replace(day=1, hour=0)
+                time_current_end = deepcopy(time_ref)
+                time_range = pd.date_range(start=time_current_first, end=time_current_end, freq=time_frequency)
+
+            elif time_period == 'PREVIOUS_MONTH':
+
+                time_current_first = time_ref.replace(day=1)
+                time_delta = pd.Timedelta(days=1)
+                time_previous_tmp = time_current_first - time_delta
+
+                time_previous_end = time_previous_tmp + pd.offsets.MonthEnd(n=0)
+                time_previous_start = time_previous_end.replace(day=1)
+
+                time_range = pd.date_range(start=time_previous_start, end=time_previous_end, freq=time_frequency)
+
+            else:
+                log_stream.error(' ===> TimePeriod "' + time_period + '" expression is not supported')
+                raise NotImplementedError('Case not implemented yet')
         else:
-            log_stream.warning(' ===> TimePeriod must be greater then 0. TimePeriod is set automatically to 1')
-            time_range = pd.DatetimeIndex([time_ref], freq=time_frequency)
+            log_stream.error(' ===> TimePeriod "' + str(time_period) + '" type is not supported')
+            raise NotImplementedError('Case not implemented yet')
 
         logging.info(' -----> Time info defined by "time_run" argument ... DONE')
 
@@ -112,6 +143,32 @@ def set_time(time_ref_args=None, time_ref_file=None, time_format='%Y-%m-%d %H:$M
 
     return [time_ref, time_range]
 
+# -------------------------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------------------------
+# method to define time frequency
+def define_time_frequency(time_index, time_freq_default='D'):
+
+    if isinstance(time_index, pd.DatetimeIndex):
+        if time_index.shape[0] >= 3:
+            time_freq_raw = pd.infer_freq(time_index)
+            time_freq_str = re.findall("[a-zA-Z]+", time_freq_raw)[0]
+        elif time_index.shape[0] == 2:
+            time_delta = time_index[1] - time_index[0]
+            time_freq_str = time_delta.resolution_string
+        elif time_index.shape[0] == 1:
+            time_freq_str = time_freq_default
+        else:
+            log_stream.error(' ===> Time index is not correctly defined. Check your settings file.')
+            raise RuntimeError('Time index is not correctly defined')
+    else:
+        log_stream.warning(' ===> Time index is not defined by pd.DatetimeIndex. '
+                           'The time frequency is set to "' + time_freq_default + '"')
+        time_freq_str = time_freq_default
+
+    return time_freq_str
+# -------------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------------
 
 

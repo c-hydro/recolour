@@ -33,7 +33,7 @@ class DrvFxWrapper:
     def __init__(self, alg_settings,
                  alg_time_reference=None, alg_time_start=None, alg_time_end=None,
                  tag_section_flags='flags',
-                 tag_section_info='info', tag_section_parameters='parameters',
+                 tag_section_product='product', tag_section_parameters='parameters',
                  tag_section_template='template',
                  tag_section_datasets='datasets',
                  tag_section_time='time', tag_section_log='log'):
@@ -43,13 +43,14 @@ class DrvFxWrapper:
         self.alg_time_end = alg_time_end
 
         self.alg_flags = alg_settings[tag_section_flags]
-        self.alg_info = alg_settings[tag_section_info]
+        self.alg_product = alg_settings[tag_section_product]
         self.alg_parameters = alg_settings[tag_section_parameters]
         self.alg_template = alg_settings[tag_section_template]
         self.alg_time = alg_settings[tag_section_time]
         self.alg_datasets_grid = alg_settings[tag_section_datasets]['static']
         self.alg_datasets_swath = alg_settings[tag_section_datasets]['dynamic']['swath']
         self.alg_datasets_cell = alg_settings[tag_section_datasets]['dynamic']['ancillary']['cell']
+        self.alg_datasets_chunk = alg_settings[tag_section_datasets]['dynamic']['ancillary']['chunk']
         self.alg_datasets_workspace = alg_settings[tag_section_datasets]['dynamic']['ancillary']['workspace']
         self.alg_datasets_ts = alg_settings[tag_section_datasets]['dynamic']['ts']
         self.alg_log = alg_settings[tag_section_log]
@@ -60,6 +61,7 @@ class DrvFxWrapper:
         self.tag_flag_initialize = 'initialize'
 
         self.reset_ancillary_cell = self.alg_flags['reset_ancillary_cell']
+        self.reset_ancillary_chunk = self.alg_flags['reset_ancillary_chunk']
         self.reset_ancillary_workspace = self.alg_flags['reset_ancillary_workspace']
         self.reset_datasets_ts = self.alg_flags['reset_datasets_ts']
         self.reset_logs = self.alg_flags['reset_logs']
@@ -81,6 +83,12 @@ class DrvFxWrapper:
         self.flag_active_cell = self.alg_datasets_cell[self.tag_flag_active]
         self.flag_initialize_cell = self.alg_datasets_cell[self.tag_flag_initialize]
         self.file_path_cell = os.path.join(self.folder_name_cell, self.file_name_cell)
+
+        self.folder_name_chunk = self.alg_datasets_chunk[self.tag_folder_name]
+        self.file_name_chunk = self.alg_datasets_chunk[self.tag_file_name]
+        self.flag_active_chunk = self.alg_datasets_chunk[self.tag_flag_active]
+        self.flag_initialize_chunk = self.alg_datasets_chunk[self.tag_flag_initialize]
+        self.file_path_chunk = os.path.join(self.folder_name_chunk, self.file_name_chunk)
 
         self.folder_name_workspace = self.alg_datasets_workspace[self.tag_folder_name]
         self.file_name_workspace = self.alg_datasets_workspace[self.tag_file_name]
@@ -120,8 +128,11 @@ class DrvFxWrapper:
         logging.info(' ---> Organize fx args ... ')
 
         alg_product_name = None
-        if 'product_name' in list(self.alg_info.keys()):
-            alg_product_name = self.alg_info['product_name']
+        if 'name' in list(self.alg_product.keys()):
+            alg_product_name = self.alg_product['name']
+        alg_product_bbox = None
+        if 'bbox' in list(self.alg_product.keys()):
+            alg_product_bbox = self.alg_product['bbox']
         alg_write_mode = 'w'
         if 'writing_mode' in list(self.alg_parameters.keys()):
             alg_write_mode = self.alg_parameters['writing_mode']
@@ -158,6 +169,16 @@ class DrvFxWrapper:
         if 'sub_path_cell' in list(self.alg_template.keys()):
             alg_sub_path_tmpl_cell = self.alg_template['sub_path_cell']
 
+        alg_datetime_tmpl_chunk_start = None
+        if 'datetime_chunk_start' in list(self.alg_template.keys()):
+            alg_datetime_tmpl_chunk_start = self.alg_template['datetime_chunk_start']
+        alg_datetime_tmpl_chunk_end = None
+        if 'datetime_chunk_end' in list(self.alg_template.keys()):
+            alg_datetime_tmpl_chunk_end = self.alg_template['datetime_chunk_end']
+        alg_sub_path_tmpl_chunk = None
+        if 'sub_path_chunk' in list(self.alg_template.keys()):
+            alg_sub_path_tmpl_chunk = self.alg_template['sub_path_chunk']
+
         alg_datetime_tmpl_workspace_start = None
         if 'datetime_workspace_start' in list(self.alg_template.keys()):
             alg_datetime_tmpl_workspace_start = self.alg_template['datetime_workspace_start']
@@ -181,6 +202,12 @@ class DrvFxWrapper:
             ['datetime_cell', 'sub_path_cell'],
             [alg_datetime_tmpl_cell, alg_sub_path_tmpl_cell])
         folder_name_cell, file_name_cell = os.path.split(file_path_cell)
+        # fill path chunk
+        file_path_chunk = fill_time_string(
+            self.file_path_chunk, alg_time_reference,
+            [],
+            [alg_sub_path_tmpl_chunk])
+        folder_name_chunk, file_name_chunk = os.path.split(file_path_chunk)
         # fill path workspace
         file_path_workspace = fill_time_string(
             self.file_path_workspace,
@@ -196,19 +223,21 @@ class DrvFxWrapper:
         folder_name_ts, file_name_ts = os.path.split(file_path_ts)
 
         fx_kwargs = {
-            'product_name': alg_product_name,
+            'product_name': alg_product_name, 'product_bbox': alg_product_bbox,
             'writing_mode': alg_write_mode, 'write_n_resampled': alg_write_n_resampled,
             'time_reference': alg_time_reference, 'time_start': alg_time_start, 'time_end': alg_time_end,
             "folder_name_swath": self.folder_name_swath, "file_name_swath": self.file_name_swath,
             'folder_name_ts': folder_name_ts, 'file_name_ts': file_name_ts,
             'folder_name_grid': self.folder_name_grid, 'file_name_grid': self.file_name_grid,
             'folder_name_workspace': folder_name_workspace, 'file_name_workspace': file_name_workspace,
+            'folder_name_chunk': folder_name_chunk, 'file_name_chunk': file_name_chunk,
             'folder_name_cell': folder_name_cell, 'file_name_cell': file_name_cell,
             'spatial_resolution': alg_spatial_resolution, 'weight_function': alg_weight_function,
             'sub_path_swath': alg_sub_path_tmpl_swath,
             'sub_path_cell': alg_sub_path_tmpl_cell, 'sub_path_workspace': alg_sub_path_tmpl_workspace,
             'sub_path_ts': alg_sub_path_tmpl_ts,
             'reset_ancillary_cell': self.reset_ancillary_cell,
+            'reset_ancillary_chunk': self.reset_ancillary_chunk,
             'reset_ancillary_workspace': self.reset_ancillary_workspace,
             'reset_datasets_ts': self.reset_datasets_ts}
 
@@ -262,6 +291,7 @@ class DrvFxWrapper:
         self.drv_fx_obj.execute_class_fx_resampler(
             fx_class_driver, fx_time_intervals,
             init_file_ws=self.flag_initialize_workspace, use_file_ws=self.flag_active_workspace,
+            init_file_chunk=self.flag_initialize_chunk, use_file_chunk=self.flag_active_chunk,
             init_file_cell=self.flag_initialize_cell, use_file_cell=self.flag_active_cell
         )
 

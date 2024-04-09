@@ -3,8 +3,8 @@
 """
 RECOLOUR TOOLS - ASCAT SWATH2CELL - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20231128'
-__version__ = '1.1.0'
+__date__ = '20240322'
+__version__ = '1.3.0'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)'
 __library__ = 'recolour'
@@ -13,7 +13,9 @@ General command line:
 python app_swath2cell_ascat.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
-20231128 (1.1.0) --> Code refactor
+20240322 (1.3.0) --> Fix bugs in nc file and update code(s) for improving log messages
+20240218 (1.2.0) --> Code refactor for the data record and nrt mode
+20231128 (1.1.0) --> Code refactor for the recolour package
 20230804 (1.0.0) --> First development
 """
 # -------------------------------------------------------------------------------------
@@ -21,6 +23,7 @@ Version(s):
 # -------------------------------------------------------------------------------------
 # libraries
 import os
+import pandas as pd
 import time
 import logging
 from argparse import ArgumentParser
@@ -39,8 +42,8 @@ from drv_fx_wrapper import DrvFxWrapper
 project_name = 'recolour'
 alg_name = 'swath2cell'
 alg_type = 'Application'
-alg_version = '1.1.0'
-alg_release = '2023-11-28'
+alg_version = '1.3.0'
+alg_release = '2024-03-22'
 # -------------------------------------------------------------------------------------
 
 

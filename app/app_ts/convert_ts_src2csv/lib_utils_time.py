@@ -10,6 +10,7 @@ Version:       '1.1.0'
 # ----------------------------------------------------------------------------------------------------------------------
 # libraries
 import logging
+import re
 import pandas as pd
 from datetime import date
 
@@ -148,6 +149,31 @@ def set_time(time_ref_args=None, time_ref_file=None, time_format='%Y-%m-%d %H:$M
 
     return [time_ref, time_range]
 
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to define time frequency
+def define_time_frequency(time_index, time_freq_default='D'):
+
+    if isinstance(time_index, pd.DatetimeIndex):
+        if time_index.shape[0] >= 3:
+            time_freq_raw = pd.infer_freq(time_index)
+            time_freq_str = re.findall("[a-zA-Z]+", time_freq_raw)[0]
+        elif time_index.shape[0] == 2:
+            time_delta = time_index[1] - time_index[0]
+            time_freq_str = time_delta.resolution_string
+        elif time_index.shape[0] == 1:
+            time_freq_str = time_freq_default
+        else:
+            log_stream.error(' ===> Time index is not correctly defined. Check your settings file.')
+            raise RuntimeError('Time index is not correctly defined')
+    else:
+        log_stream.warning(' ===> Time index is not defined by pd.DatetimeIndex. '
+                           'The time frequency is set to "' + time_freq_default + '"')
+        time_freq_str = time_freq_default
+
+    return time_freq_str
 # ----------------------------------------------------------------------------------------------------------------------
 
 

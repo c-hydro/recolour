@@ -13,9 +13,7 @@ import logging
 import os
 import sys
 import warnings
-
-import pandas as pd
-import progressbar
+import psutil
 
 from functools import partial
 from datetime import timedelta, datetime
@@ -79,7 +77,8 @@ class OrbitResamplerBase(object):
                  wfunc='hamming', min_num_nn=3, max_num_nn=None, dt=15,
                  write_orbit_buffer=False, buffer_saved=False, buffer_init=True,
                  resample_first=True, to_xarray=False,
-                 dt_delta=timedelta(minutes=3), dt_buffer=timedelta(days=0)):
+                 dt_delta=timedelta(minutes=3), dt_buffer=timedelta(days=0),
+                 timefield='jd'):
 
         if isinstance(orbit_io, AscatNrtBufrFileList):
             pass
@@ -166,7 +165,7 @@ class OrbitResamplerBase(object):
         self.dt_buffer = dt_buffer
         self.to_xarray = to_xarray
 
-        self.timefield = None
+        self.timefield = timefield
 
     def __enter__(self):
         """
@@ -261,22 +260,26 @@ class OrbitResamplerBase(object):
         resampled_data = []
 
         self.count_instructed_resampled = self.count_instructed_resampled + 1
-        try:
 
-            if float(ascat.__version__.split('.')[0]) <= 1 and sys.version_info[0] == 2:
-                orbit = self.orbit_io.read(timestamp, mask=True)
-            elif float(ascat.__version__.split('.')[0]) >= 2.0 and sys.version_info[0] == 3:
-                orbit = self.orbit_io.read_period(timestamp[0], timestamp[1],
-                                                  dt_buffer=self.dt_buffer,
-                                                  dt_delta=self.dt_delta,
-                                                  **{'to_xarray': self.to_xarray})
-            else:
-                raise RuntimeError('python and ascat libraries are not tested for this case')
+        if float(ascat.__version__.split('.')[0]) <= 1 and sys.version_info[0] == 2:
+            orbit = self.orbit_io.read(timestamp, mask=True)
+        elif float(ascat.__version__.split('.')[0]) >= 2.0 and sys.version_info[0] == 3:
+            orbit = self.orbit_io.read_period(timestamp[0], timestamp[1],
+                                              dt_buffer=self.dt_buffer,
+                                              dt_delta=self.dt_delta,
+                                              **{'to_xarray': self.to_xarray})
+        else:
+            raise RuntimeError('python and ascat libraries are not tested for this case')
 
-            if orbit is None:
-                raise Exception("No data for timestamp")
-        except Exception as ex:
-            print(ex)
+        if orbit is None:
+            raise Exception("No data for timestamp")
+
+        if orbit is None:
+            logging.error(' ===> Data are not available for the selected timestamp')
+            raise Exception("No data for timestamp")
+
+        if not orbit:
+            logging.warning(' ===> Datasets are empty for the selected timestamp')
             return np.array([]), np.array([])
 
         if isinstance(orbit, Image):
@@ -422,39 +425,17 @@ class OrbitResamplerBase(object):
 
     # method to resample datasets
     def resample(self, time_stamps,
-                 write_n_resampled=14 * 2 * 365,
+                 write_n_resampled=14 * 2 * 365, thr_n_resampled=2000,
                  use_memon=True,
                  init_file_ws=False, use_file_ws=True,
                  name_file_ws='ws_{datetime_workspace_start}_{datetime_workspace_end}.workspace',
+                 init_file_chunk=True, use_file_chunk=True,
+                 name_file_chunk='ws_{datetime_chunk_start}_{datetime_chunk_end}.workspace',
                  init_file_cell=False, use_file_cell=True,
                  name_file_cell='cell_{cell_n}.data',
                  name_file_ts='{cell_n}.nc',
                  time_format_file='%Y%m%d%H%M', time_format_print='%Y%m%d %H:%M',
                  **kwargs):
-
-        """
-        Run re-sampling for given time_stamps.
-        Data is written if available memory becomes low
-        or if write_n_resampled files have been resampled.
-
-        Parameters
-        ----------
-        time_stamps : numpy.ndarray
-            Orbit time stamp information.
-        write_n_resampled: int, optional
-            Write data if more than n timestamps have been resampled.
-            The default is one year of ASCAT data at the moment.
-        use_memon: boolean, optional
-            If True then use the MemoryMonitor class to decide
-            when to write to disk. This can fail if the machine is shared
-            in which case it should be disabled.
-
-        Returns
-        -------
-        resampled_timestamps: list
-            list of resampled timestamps that actually contained
-            data on the target grid
-        """
 
         # initialize variable(s)
         orbit_data, gpi_data = [], []
@@ -463,16 +444,26 @@ class OrbitResamplerBase(object):
         mem_mon = MemoryMonitor()
         mem_mon.start()
 
+        # message for resampled n data less than threshold
+        if write_n_resampled < thr_n_resampled:
+            logging.warning(' ===> Number of resampled values [' + str(write_n_resampled) +
+                            '] is lower than the expected threshold [' + str(thr_n_resampled) +
+                            ']. Process could be have issues in managing GPIS data')
+
         # get time information
-        time_period_start, time_period_end = time_stamps[0][0], time_stamps[-1][1]
-        time_file_start, time_file_end = time_period_start.strftime(time_format_file), \
-            time_period_end.strftime(time_format_file)
+        if time_stamps is not None:
+            time_period_start, time_period_end = time_stamps[0][0], time_stamps[-1][1]
+            time_file_start, time_file_end = time_period_start.strftime(time_format_file), \
+                time_period_end.strftime(time_format_file)
+        else:
+            logging.error(' ===> Time start and time end variables are not defined')
+            raise RuntimeError('Time stamps are defined by NoneType object')
 
         # define workspace file
         name_file_ws = name_file_ws.format(
             datetime_workspace_start=time_file_start, datetime_workspace_end=time_file_end)
 
-        # condition(s) to restore or delete tmp file(s)
+        # condition(s) to restore or delete workspace file(s)
         if use_file_ws:
             if init_file_ws:
                 if os.path.exists(name_file_ws):
@@ -490,30 +481,75 @@ class OrbitResamplerBase(object):
                 # time information
                 dt_start, dt_end = t[0], t[1]
                 ts_start, ts_end = dt_start.strftime(time_format_print), dt_end.strftime(time_format_print)
+                fs_start, fs_end = dt_start.strftime(time_format_file), dt_end.strftime(time_format_file)
+                # sub path information
+                dt_sub_path = dt_start.strftime('%Y/%m/%d')
+
                 # time info start
                 logging.info(' ----> Resample data from "' + ts_start + '" to "' + ts_end + '" ...')
+
+                # define chunk file
+                file_chunk_step = name_file_chunk.format(
+                    sub_path_chunk=dt_sub_path, datetime_chunk_start=fs_start, datetime_chunk_end=fs_end)
+                folder_step, file_step = os.path.split(file_chunk_step)
+                os.makedirs(folder_step, exist_ok=True)
+
+                # condition(s) to restore or delete chunk file(s)
+                if use_file_chunk:
+                    if init_file_chunk:
+                        if os.path.exists(name_file_chunk):
+                            os.remove(name_file_chunk)
+                else:
+                    if os.path.exists(name_file_chunk):
+                        os.remove(name_file_chunk)
 
                 try:
                     # start memory recording
                     mem_mon.start_recording()
 
-                    # get gpis and orbit data
-                    gpis, orbit = self.resample_orbit(t)
+                    # check swath(s)
+                    logging.info(' -----> Swaths analyzing ... ')
+                    if not os.path.exists(file_chunk_step):
+
+                        # get gpis and orbit data
+                        gpis, orbit = self.resample_orbit(t)
+
+                        # dump gpis and orbit data
+                        orbit_obj = {'gpis': gpis, 'orbit': orbit}
+                        write_file_obj(file_chunk_step, orbit_obj)
+
+                        logging.info(' -----> Swaths analyzing ... DONE')
+
+                    else:
+
+                        # get gpis and orbit data
+                        orbit_obj = read_file_obj(file_chunk_step)
+                        gpis, orbit = orbit_obj['gpis'], orbit_obj['orbit']
+
+                        logging.info(' -----> Swaths analyzing ... PREVIOUSLY COMPUTED')
+
+                    # check gpis and orbit size
+                    logging.info(' -----> Get data of the selected period ... ')
                     if gpis.size > 0 and orbit.size > 0:
+
                         gpi_data.append(gpis)
                         orbit_data.append(orbit)
-                        logging.info(' ----> ... Data found ...')
-                    else:
-                        logging.info(' ----> ... Data not found ...')
 
+                        logging.info(' -----> Get data of the selected period ... FOUND')
+                    else:
+                        logging.info(' -----> Get data of the selected period ... NOT FOUND')
+
+                    # store resample time(s)
                     resample_times_list.append(t)
 
-                except:
+                except BaseException as base_error:
+
                     # stop memory recording (due to errors)
                     mem_mon.stop_recording()
                     mem_mon.stop()
-                    logging.error(' ===> Resampling data failed at the "' + t + '" time step')
-                    raise RuntimeError('Algorithm failed in resampling data. Check the datasets')
+                    logging.error(' ===> Resampling data failed from "' + ts_start + '" to "' + ts_end + '" time step')
+                    raise RuntimeError('Algorithm failed in resampling data. '
+                                       'Check the error message "' + str(base_error) + '"')
 
                 # stop memory recording
                 mem_mon.stop_recording()
@@ -527,15 +563,27 @@ class OrbitResamplerBase(object):
                 except ValueError:
                     memory_full = False
 
-                # dump data to disk if free memory is short
-                if ((memory_full is True or
-                     len(resample_times_list) > write_n_resampled) and
-                        len(gpi_data) > 0):
+                # check data and memory for resampling
+                n_data_step, n_data_thr = str(len(resample_times_list)), str(write_n_resampled)
+                # RAM % usage of virtual_memory (3rd field)
+                mem_ram_perc = str(psutil.virtual_memory()[2])
+                # RAM usage of virtual_memory in GB ( 4th field)
+                mem_ram_used = str(round(psutil.virtual_memory()[3] / 1000000000, 1))
+                # monitoring info
+                logging.info(' -----> Monitoring ... ')
+                logging.info(' ------> Data == N: "' + n_data_step + '" Threshold: "' + n_data_thr + '"')
+                logging.info(' ------> RAM Used == %: "' + mem_ram_perc + '" Amount: "' + mem_ram_used + '" GB')
+                logging.info(' -----> Monitoring ... DONE')
 
-                    logging.info(' -----> Write resampled data to disk (memory full) ... ')
+                # dump data to disk if free memory is short
+                #if ((memory_full is True or
+                if (len(resample_times_list) > write_n_resampled) and (len(gpi_data) > 0):
+
+                    logging.info(' -----> Write resampled data to disk (partial period) ... ')
                     gpi_data = np.hstack(gpi_data)
                     orbit_data = np.hstack(orbit_data)
 
+                    # write resampled data to disk
                     self.write_resampled_data(
                         gpi_data, orbit_data,
                         init_file_cell=init_file_cell, use_file_cell=use_file_cell, name_file_cell=name_file_cell,
@@ -546,7 +594,7 @@ class OrbitResamplerBase(object):
                     gpi_data = []
                     orbit_data = []
 
-                    logging.info(' ----> Write resampled data to disk (memory full) ... DONE')
+                    logging.info(' ----> Write resampled data to disk (partial period) ... DONE')
 
                 mem_mon.clear_recording_history()
 
@@ -556,7 +604,8 @@ class OrbitResamplerBase(object):
             # save ancillary workspace file
             logging.info(' ----> Save ancillary workspace ... ')
             if use_file_ws:
-                data_ws = {'gpi': gpi_data, 'orbit': orbit_data, 'time': resample_times_list, 'timefield': 'jd'}
+                data_ws = {'gpi': gpi_data, 'orbit': orbit_data,
+                           'time': resample_times_list, 'timefield': self.timefield}
                 write_file_obj(name_file_ws, data_ws)
                 logging.info(' ----> Save ancillary workspace ... DONE')
             else:
@@ -577,8 +626,10 @@ class OrbitResamplerBase(object):
             logging.info(' ----> Read ancillary workspace ... DONE')
 
         # write remaining data to disk
-        logging.info(' ----> Write resampled data to disk ... ')
+        logging.info(' ----> Write resampled data to disk (end of period) ... ')
         if len(gpi_data) > 0:
+
+            # write resampled data to disk
             gpi_data = np.hstack(gpi_data)
             orbit_data = np.hstack(orbit_data)
             self.write_resampled_data(
@@ -587,9 +638,9 @@ class OrbitResamplerBase(object):
                 name_file_ts=name_file_ts)
             all_resampled_times.extend(resample_times_list)
 
-            logging.info(' ----> Write resampled data to disk ... DONE')
+            logging.info(' ----> Write resampled data to disk (end of period) ... DONE')
         else:
-            logging.info(' ----> Write resampled data to disk ... SKIPPED. No data found')
+            logging.info(' ----> Write resampled data to disk (end of period) ... SKIPPED. No data found')
 
         mem_mon.stop()
         self.orbit_io.close()
@@ -602,18 +653,7 @@ class OrbitResamplerBase(object):
                              init_file_cell=True, use_file_cell=True,
                              name_file_cell='{cell_n}.data',
                              name_file_ts='{cell_n}.nc'):
-        """
-        write the data.
 
-        Parameters
-        ----------
-        gpi_data : numpy.recarray
-            Grid point information. A grid point indices
-            for each element in the orbit data array.
-        orbit_data : numpy.recarray
-            record array containing the resampled data at the grid point
-            indices of gpi_data
-        """
         cells = self.target_grid.gpi2cell(gpi_data)
         indSort = np.argsort(cells)
         gpi_data = gpi_data[indSort]
@@ -627,9 +667,25 @@ class OrbitResamplerBase(object):
         gpi_act = self.resam_io.grid.activegpis
         gpi_idx = np.apply_along_axis(lambda f: gpi_act.searchsorted(f), 0, gpi_data)
 
-        # iterate over cell(s)
-        for i in np.arange(0, n_cells):
+        # check the timefield variable
+        if self.timefield is None:
+            logging.error(' ===> Time field is defined by NoneType object')
+            raise RuntimeError('Time field must be defined by string object with time information ["jd"]')
+        if self.timefield != 'jd':
+            logging.warning(' ===> Time field is not defined by "jd" object. Errors could be raised during the process')
 
+        n_cells = 10; print('debug - write only first 10 cells')
+        s_cells = 0  # usually == 0
+        # iterate over cell(s)
+        for i in np.arange(s_cells, n_cells):
+
+            ''' start debug cell
+            print('cell debug activated')
+            cell_test = 856
+            i = np.argwhere(uniq_cells == cell_test)[0][0]
+            '''
+
+            # info start cell
             logging.info(' ------> Dump cell: ' + str(uniq_cells[i]) + ' ... ')
 
             cell_i = uniq_cells[i]
@@ -651,11 +707,11 @@ class OrbitResamplerBase(object):
                 cell_obj = {'gpi': gpi_i_local, 'orbit': orbit_i}
                 write_file_obj(name_file_step, cell_obj)
 
-
             name_file_ts = name_file_ts.format(cell_n=cell_i)
 
             self.resam_io.write_cell(cell_i, gpi_i_local, orbit_i, self.timefield)
 
+            # info end cell
             logging.info(' ------> Dump cell: ' + str(uniq_cells[i]) + ' ... DONE')
 
     @staticmethod

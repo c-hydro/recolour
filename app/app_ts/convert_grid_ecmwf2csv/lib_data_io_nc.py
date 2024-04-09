@@ -88,31 +88,44 @@ def read_file_nc(file_name, file_variables_selected=None,
     if os.path.exists(file_name):
 
         # open file
-        file_dset_tmp = xr.open_dataset(file_name)
+        try:
+            file_dset_tmp = xr.open_dataset(file_name)
+        except BaseException as base_exc:
+            alg_logger.warning(' ===> File "' + file_name + '" not correctly open with error "' + str(base_exc) + '"')
+            file_dset_tmp = None
 
-        # adjust coords
-        file_geo_x_max = np.nanmax(file_dset_tmp.coords[var_name_geo_x])
-        if file_geo_x_max > 180:
-            file_dset_tmp.coords[var_name_geo_x] = (file_dset_tmp.coords[var_name_geo_x] + 180) % 360 - 180
-            file_dset_tmp = file_dset_tmp.sortby(file_dset_tmp[var_name_geo_x])
+        # check data availability
+        if file_dset_tmp is not None:
 
-        # select variable(s)
-        file_variables_found = list(file_dset_tmp.variables)
+            # adjust coords
+            file_geo_x_max = np.nanmax(file_dset_tmp.coords[var_name_geo_x])
+            if file_geo_x_max > 180:
+                file_dset_tmp.coords[var_name_geo_x] = (file_dset_tmp.coords[var_name_geo_x] + 180) % 360 - 180
+                file_dset_tmp = file_dset_tmp.sortby(file_dset_tmp[var_name_geo_x])
 
-        data_obj, data_attrs = {}, {}
-        for var_name in file_variables_selected:
-            if var_name in file_variables_found:
-                file_values_tmp = np.squeeze(file_dset_tmp[var_name].values)
-                file_attrs_tmp = file_dset_tmp[var_name].attrs
-                data_obj[var_name] = file_values_tmp
-                data_attrs[var_name] = file_attrs_tmp
-            else:
-                alg_logger.warning(' ===> Variable "' + var_name + '" not found in the filename "' + file_name + '"')
+            # select variable(s)
+            file_variables_found = list(file_dset_tmp.variables)
 
-        data_lons = file_dset_tmp[var_name_geo_x].values
-        data_lats = file_dset_tmp[var_name_geo_y].values
+            data_obj, data_attrs = {}, {}
+            for var_name in file_variables_selected:
+                if var_name in file_variables_found:
+                    file_values_tmp = np.squeeze(file_dset_tmp[var_name].values)
+                    file_attrs_tmp = file_dset_tmp[var_name].attrs
+                    data_obj[var_name] = file_values_tmp
+                    data_attrs[var_name] = file_attrs_tmp
+                else:
+                    alg_logger.warning(' ===> Variable "' + var_name + '" not found in the filename "' + file_name + '"')
 
-        common_attrs = file_dset_tmp.attrs
+            data_lons = file_dset_tmp[var_name_geo_x].values
+            data_lats = file_dset_tmp[var_name_geo_y].values
+
+            common_attrs = file_dset_tmp.attrs
+
+        else:
+            alg_logger.warning(' ===> File "' + file_name + '" not correctly open')
+            data_obj, data_attrs = None, None
+            data_lons, data_lats = None, None
+            common_attrs = None
 
     else:
         alg_logger.warning(' ===> File "' + file_name + '" not found')

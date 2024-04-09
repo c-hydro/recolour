@@ -17,11 +17,12 @@ from copy import deepcopy
 from lib_data_io_nc import read_file_nc
 from lib_data_io_tiff import read_file_tiff
 from lib_data_io_pickle import read_obj, write_obj
-from lib_data_io_generic import extract_data_grid2point, join_data_point
+from lib_data_io_generic import extract_data_grid2point, join_data_point, combine_data_point_by_time
 
 from lib_utils_fx import convert_dataset_to_rzsm
 from lib_utils_obj import create_dict_from_list, create_dataset, filter_dataset, convert_dataset_to_data_array
 from lib_utils_system import fill_tags2string, make_folder
+from lib_utils_time import define_time_frequency
 
 from lib_info_args import logger_name, time_format_algorithm
 
@@ -46,6 +47,7 @@ class DriverData:
 
         self.time_start = pd.DatetimeIndex([time_obj[0], time_obj[-1]]).min()
         self.time_end = pd.DatetimeIndex([time_obj[0], time_obj[-1]]).max()
+        self.time_frequency = define_time_frequency(time_obj)
 
         self.time_end, self.time_start = time_obj[0], time_obj[-1]
         self.static_obj = static_obj
@@ -170,27 +172,39 @@ class DriverData:
                         grid_data, grid_attrs, grid_geo_x, grid_geo_y, geo_attrs = read_file_nc(
                             file_path_src_step, file_variables_selected=list(self.fields_src.values()))
 
-                        # method to create dataset
-                        grid_obj_dset_raw = create_dataset(
-                            grid_data, grid_geo_x, grid_geo_y,
-                            data_time=time_step, data_attrs=grid_attrs, common_attrs=geo_attrs)
-                        # method to select dataset
-                        grid_obj_dset_def = filter_dataset(grid_obj_dset_raw, dset_vars_filter=self.fields_src)
-                        # method to convert dset to darray collection
-                        grid_obj_da_vars = convert_dataset_to_data_array(grid_obj_dset_def)
+                        # check source data availability
+                        if grid_data is not None:
 
-                        # method to compute rzsm datasets
-                        grid_obj_da_rzsm = convert_dataset_to_rzsm(grid_obj_da_vars)
+                            # method to create dataset
+                            grid_obj_dset_raw = create_dataset(
+                                grid_data, grid_geo_x, grid_geo_y,
+                                data_time=time_step, data_attrs=grid_attrs, common_attrs=geo_attrs)
+                            # method to select dataset
+                            grid_obj_dset_def = filter_dataset(grid_obj_dset_raw, dset_vars_filter=self.fields_src)
+                            # method to convert dset to darray collection
+                            grid_obj_da_vars = convert_dataset_to_data_array(grid_obj_dset_def)
+
+                            # method to compute destination datasets
+                            grid_obj_da_rzsm = convert_dataset_to_rzsm(grid_obj_da_vars)
+                        else:
+                            # destination datasets not available
+                            grid_obj_da_rzsm = None
 
                     else:
                         log_stream.error(' ===> Source data type "' + self.format_src + '" is not supported.')
                         raise NotImplemented('Case not implemented yet')
 
-                    # method to get data point(s)
-                    point_data = extract_data_grid2point(
-                        grid_obj_da_rzsm, grid_obj_geo, point_obj_geo,
-                        method_spatial_operation=self.geo_spatial_operation,
-                        method_spatial_mask=self.geo_spatial_mask)
+                    # check destination data availability
+                    if grid_obj_da_rzsm is not None:
+                        # method to get data point(s)
+                        point_data = extract_data_grid2point(
+                            grid_obj_da_rzsm, grid_obj_geo, point_obj_geo,
+                            method_spatial_operation=self.geo_spatial_operation,
+                            method_spatial_mask=self.geo_spatial_mask)
+                    else:
+                        # data point(s) not available
+                        point_data = None
+
                     # method to join data point(s)
                     point_collections = join_data_point(time_step, point_data, point_collections)
 
@@ -228,6 +242,12 @@ class DriverData:
 
             # get data end
             log_stream.info(' -----> Get datasets ... SKIPPED. Datasets were previously saved')
+
+        # method to combine data point to the expected time range
+        point_collections = combine_data_point_by_time(
+            point_collections, point_obj_geo,
+            time_start_expected=self.time_start, time_end_expected=self.time_end,
+            time_frequency_expected=self.time_frequency, time_reverse=True)
 
         # method end info
         log_stream.info(' ----> Organize source object(s) ... DONE')

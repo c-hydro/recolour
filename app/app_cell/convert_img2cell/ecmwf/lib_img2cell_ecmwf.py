@@ -181,7 +181,6 @@ class Img2Ts(object):
         else:
             self.resample = True if self.target_grid is not self.input_grid else False
 
-
         # if the target grid is not a cell grid make it one
         # default is just one cell for the entire grid
         if not isinstance(self.target_grid, grids.CellGrid):

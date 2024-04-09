@@ -10,7 +10,7 @@
   },
   "grid": {
     "folder_name": "/home/hsaf/share/recolour/ecmwf_static/",
-    "file_name": "ecmwf_grid_h141.nc"
+    "file_name": "ecmwf_grid_h26.nc"
   },
   "template": {
     "dataset": {

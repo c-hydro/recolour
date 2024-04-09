@@ -11,9 +11,8 @@ Version:       '1.5.0'
 # libraries
 import logging
 import os
-import numpy as np
-import pandas as pd
 
+from lib_data_io_generic import combine_data_point_by_time, range_data_point
 from lib_data_io_ascii import wrap_datasets_ascii
 from lib_data_io_csv import wrap_registry_csv
 from lib_data_io_mat import wrap_registry_mat, wrap_datasets_mat
@@ -92,6 +91,10 @@ class DriverData:
         if self.time_frequency_tag in list(self.datasets_dict.keys()):
             self.time_frequency = self.datasets_dict[self.time_frequency_tag]
 
+        # to use in realtime run
+        if self.time_end is None:
+            self.time_end = self.time_reference.strftime(time_format_algorithm)
+
         self.file_path_datasets = os.path.join(folder_name_datasets, file_name_datasets)
 
         # ancillary object(s)
@@ -138,10 +141,21 @@ class DriverData:
             log_stream.error(' ===> File format "' + self.format_datasets + '" is not supported')
             raise NotImplemented('Case not implemented yet')
 
+        # method to range data point
+        time_frequency_expected, time_start_expected, time_end_expected = range_data_point(
+            fields_dframe_obj, time_run_reference=self.time_reference,
+            time_start_reference=self.time_start, time_end_reference=self.time_end)
+
+        # method to combine data point to the expected time range
+        fields_dframe_obj = combine_data_point_by_time(
+            fields_dframe_obj, registry_fields,
+            time_start_expected=time_start_expected, time_end_expected=time_end_expected,
+            time_frequency_expected=time_frequency_expected, time_reverse=True)
+
         # info end method
         log_stream.info(' -----> Read file datasets ... DONE')
 
-        return fields_dframe_obj, fields_time_start, fields_time_end
+        return fields_dframe_obj, time_start_expected, time_end_expected
     # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------

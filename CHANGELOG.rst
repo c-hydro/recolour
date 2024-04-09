@@ -2,9 +2,49 @@
 Changelog
 =========
 
+Version 1.4.0 [2024-04-09]
+**************************
+- PROJECT: operational framework
+	- APPS -- MAP: convert_cell2grid_ascat
+		- first release (product h16 and h103)
+	- APPS -- MAP: convert_cell2grid_metrics
+		- first release (product ascat and ecmwf)
+
+- PROJECT: validation framework
+	- APPS -- CELL: app_img2cell_cci
+		- update codes
+	- APPS -- CELL: app_img2cell_gldas
+		- update codes
+	
+	- TOOLS -- VALIDATION HSAF: app_validation_main
+		- update codes and fix bugs 
+	- TOOLS -- VALIDATION SM: app_validation_main
+		- update codes and fix bugs 
+	
+Version 1.3.0 [2024-02-28]
+**************************
+- PROJECT: operational framework
+	- APPS -- MAP: convert_swath2cell
+		- fix bugs
+		- update code to product h16, h103, h104 and h105
+		- update code to manage tmp file (to check the long analysis)
+	
+	- APPS -- TS: join_ts, sync_ts, analyze_ts, view_ts
+		- first relaase and fix bugs
+	
+	- TOOLS: transfer, validation, assimilation and xml
+		- first release and fix bugs
+	
+- PROJECT: viewer framework
+	- NOTEBOOK: notebook_recolour_sm_ts
+
+- PROJECT: validation framework	
+	- TOOLS -- VALIDATION SM: app_validation_main
+		- first release and fix bugs
+
 Version 1.2.0 [2023-12-19]
 **************************
-- PROJECT: operational release
+- PROJECT: operational framework
 	- APPS: create_grid_tc
 		- add temporal periods to match available products (reference, k1 and k2)
 		- add resampling procedure to remap products k1 and k2 to the reference grid
@@ -13,7 +53,7 @@ Version 1.2.0 [2023-12-19]
 
 Version 1.1.0 [2023-11-28]
 **************************
-- PROJECT: operational release
+- PROJECT: operational framework
 	- APPS: cell, maps and time-series
 	- TOOLS: converter, downloader, plot_validation, plot_timeseries, validation, xml
 	- NOTEBOOKS: time-series datasets and products
@@ -24,7 +64,7 @@ Version 1.1.0 [2023-11-28]
 
 Version 1.0.0 [2023-11-14]
 **************************
-- PROJECT: beta release
+- PROJECT: beta framework
 	- APPS: maps and time-series
 	- TOOLS: validation, grid2ts, swath2ts, plotting, downloader, xml
 	- NOTEBOOKS: time-series

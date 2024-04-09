@@ -167,14 +167,13 @@ def process_smap_l2(file_data, file_geo_x, file_geo_y, file_col, file_row, grid_
     file_obj = pyresample.geometry.SwathDefinition(lons=lons_finite, lats=lats_finite)
 
     # if there are no finite values, use raw data (will be empy band)
-    if len(values_finite)<1:
+    if len(values_finite) < 1:
         return np.full_like(grid_sm_2d, -9999.)
 
     # join point index to grid index
     values_finite_resampled = \
         pyresample.kd_tree.resample_nearest(
         source_geo_def=file_obj, data=values_finite, target_geo_def=grid_obj, radius_of_influence=9000, fill_value=np.nan)
-
 
     return values_finite_resampled
 

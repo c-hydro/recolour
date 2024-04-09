@@ -15,6 +15,8 @@ import pandas as pd
 
 from copy import deepcopy
 
+from lib_data_io_generic import combine_data_point_by_time
+
 from lib_utils_system import fill_tags2string
 from lib_utils_obj import map_vars_dframe, sanitize_string, fill_tags_time
 from lib_utils_time import replace_time_part
@@ -32,7 +34,8 @@ def wrap_datasets_ascii(file_path_template,
                         time_reference, time_start, time_end,
                         time_rounding='H', time_frequency='Y', time_format='%Y%m%d%H%M',
                         template_time_tags=None, template_datasets_tags=None,
-                        file_sep=' ', file_decimal='.'):
+                        file_sep=' ', file_decimal='.',
+                        ascending_index=False, sort_index=True):
 
     # check time frequency
     if time_frequency == 'Y':
@@ -133,6 +136,13 @@ def wrap_datasets_ascii(file_path_template,
             section_time_end = fields_data_collections.index[-1]
         else:
             assert section_time_end == fields_data_collections.index[-1], 'time end are not equal'
+
+        # sort index
+        if sort_index:
+            if ascending_index:
+                fields_data_collections = fields_data_collections.sort_index(ascending=True)
+            else:
+                fields_data_collections = fields_data_collections.sort_index(ascending=False)
 
         # store section data to common workspace
         section_data_collections[registry_tag] = fields_data_collections

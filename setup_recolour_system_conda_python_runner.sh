@@ -185,6 +185,14 @@ else
 	pip install gldas
 	pip install pygeogrids
 	pip install pytesmo==0.13.4
+	pip install astropy
+	pip install ascat 
+	pip install cadati 
+	pip install pybufr_ecmwf 
+	pip install pytesmo 
+	pip install EASE_grid
+	pip install progressbar 
+	pip install memon
 	echo " ======> [2/2] PYTHON-PIP INSTALLATION ... DONE"
 
 

@@ -10,7 +10,7 @@ Version:       '1.0.0'
 # ----------------------------------------------------------------------------------------------------------------------
 # libraries
 import logging
-import os
+import numpy as np
 import pandas as pd
 
 from lib_utils_obj import map_vars_dframe, sanitize_string
@@ -53,14 +53,23 @@ def wrap_registry_csv(file_name, file_fields, file_sep=',', file_decimal='.'):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Method to read file csv
+# method to write file csv
 def write_file_csv(file_name, file_dframe,
                    dframe_sep=',', dframe_decimal='.', dframe_float_format='%.2f',
-                   dframe_index=False, dframe_header=True):
+                   dframe_index=False, dframe_header=True,
+                   dframe_index_label='time', dframe_index_format='%Y-%m-%d %H:%M',
+                   dframe_no_data=-9999):
+
+    if np.isfinite(dframe_no_data):
+        file_dframe.fillna(dframe_no_data, inplace=True)
+
+    if dframe_index_format is not None:
+        file_dframe.index = file_dframe.index.strftime(dframe_index_format)
 
     file_dframe.to_csv(
         file_name, mode='w',
         index=dframe_index, sep=dframe_sep, decimal=dframe_decimal,
+        index_label=dframe_index_label,
         header=dframe_header, float_format=dframe_float_format,  quotechar='"')
 
 # ----------------------------------------------------------------------------------------------------------------------

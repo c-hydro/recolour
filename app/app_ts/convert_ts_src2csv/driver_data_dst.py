@@ -245,7 +245,7 @@ class DriverData:
                     # merge dframe datasets
                     file_dframe_merged = merge_points_to_table(file_dframe_raw, file_var_in)
                     # select dframe datasets
-                    file_dframe_selected = select_table_by_times(file_dframe_merged, file_time)
+                    file_dframe_selected = select_table_by_times(file_dframe_merged, file_time, time_reverse=False)
 
                     # create datasets folder
                     folder_name, file_name = os.path.split(file_path_defined)
@@ -254,7 +254,8 @@ class DriverData:
                     # dump datasets dframe
                     write_file_csv(
                         file_path_defined, file_dframe_selected,
-                        dframe_sep=',', dframe_decimal='.', dframe_float_format='%.1f',
+                        dframe_index_label='time', dframe_index_format='%Y-%m-%d %H:%M',
+                        dframe_sep=';', dframe_decimal='.', dframe_float_format='%.1f',
                         dframe_index=True, dframe_header=True)
 
                     # info type start
@@ -368,7 +369,8 @@ class DriverData:
                 # dump registry dframe
                 write_file_csv(
                     file_path_defined, file_dframe_map,
-                    dframe_sep=',', dframe_decimal='.', dframe_float_format='%.3f',
+                    dframe_index_format=None, dframe_index_label=False,
+                    dframe_sep=';', dframe_decimal='.', dframe_float_format='%.3f',
                     dframe_index=False, dframe_header=True)
 
                 # info end method
