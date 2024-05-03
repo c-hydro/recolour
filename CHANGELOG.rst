@@ -2,7 +2,6 @@
 Changelog
 =========
 
-
 Version 1.6.0 [2024-05-02]
 **************************
 - PROJECT: validation framework 
