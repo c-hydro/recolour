@@ -15,6 +15,11 @@ import netCDF4
 import time
 import pandas as pd
 import numpy as np
+
+import pygeogrids.grids as grids
+
+# set default values
+committed_area_default, land_data_default = 1, 1
 # -----------------------------------------------------------------------------
 
 
@@ -38,18 +43,17 @@ def read_grid_file(file_name):
         gpi_data = grid_obj['gpi']
 
         # check if committed_area and land_flag are present in the grid
-        # otherwise mask completely/put equal to global data
-        # committed_area: 0 = not_committed, 1 = committed
-        # land_flag: 0 = no_land, 1 = land
         for f in ['committed_area', 'land_flag']:
-            try:
+            if f in file_handle.variables:
                 grid_obj[f] = file_handle.variables[f][:]
-            except KeyError as e:
-                print(f'KeyError: {e}',
-                      f'\nGrid does not contain {e} information: {e} is taken equal to global area')
+            else:
+                logging.warning(' ===> Variable "' + f + '" is not available in the grid file, Use default value')
                 grid_obj[f] = np.zeros(shape=[gpi_data.shape[0]])
+                if f == 'committed_area':
+                    grid_obj[f][:] = committed_area_default
+                if f == 'land_flag':
+                    grid_obj[f][:] = land_data_default
 
-        grid_obj['land_flag'][:] = 1
         grid_obj['mask'] = (grid_obj['committed_area'] == 0) & (grid_obj['land_flag'] == 1)
 
     # check masked array in the grid obj
@@ -114,6 +118,12 @@ def get_grid_cells(cell_start=0, cell_end=2566, cells_list=None,
             file_handle = netCDF4.Dataset(os.path.join(path_grid, file_grid), mode='r')
             cell = file_handle['cell'][:]
             gpi = file_handle['gpi'][:]
+            lons = file_handle['lon'][:]
+            lats = file_handle['lat'][:]
+
+            land_gp = np.where(file_handle.variables['land_flag'][:] == 1)[0]
+            grid = grids.CellGrid(lons[land_gp], lats[land_gp], cell[land_gp],
+                                  gpi[land_gp])
 
             land = None
             if 'land_flag' in list(file_handle.variables):
@@ -131,13 +141,13 @@ def get_grid_cells(cell_start=0, cell_end=2566, cells_list=None,
                 idx_start = np.where(cells == cell_start)[0][0]
             except BaseException as base_exp:
                 logging.warning(' ===> Idx start is not available in the cells obj. Start is set to 0.')
-                logging.warning(' Warning "' + str(base_exp) + '" found')
+                logging.warning(' ===> Warning "' + str(base_exp) + '" found')
                 idx_start = 0
             try:
                 idx_end = np.where(cells == cell_end)[0][0] + 1
             except BaseException as base_exp:
                 logging.warning(' ===> Idx end is not available in the cells obj. End is set to cell maximum length.')
-                logging.warning(' Warning "' + str(base_exp) + '" found')
+                logging.warning(' ===> Warning "' + str(base_exp) + '" found')
                 idx_end = cells.shape[0]
 
             # select cells
@@ -159,7 +169,7 @@ def get_grid_cells(cell_start=0, cell_end=2566, cells_list=None,
 
             # grid file is not defined
             cells_array = range(cell_start, cell_end)
-            gpis = None
+            gpis, grid = None, None
 
         # transform array to list
         cells_list = cells_array.tolist()
@@ -170,12 +180,13 @@ def get_grid_cells(cell_start=0, cell_end=2566, cells_list=None,
         if not isinstance(cells_list, list):
             cells_list = [cells_list]
         gpis = None
+        grid = None
         logging.info(' ----> Use information defined in the settings file ... DONE')
 
     # info end
     logging.info(' ---> Compute cells list ... DONE')
 
-    return cells_list, gpis
+    return cells_list, gpis, grid
 
 # ----------------------------------------------------------------------------------------------------------------------
 

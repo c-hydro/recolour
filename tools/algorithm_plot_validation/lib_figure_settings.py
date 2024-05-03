@@ -77,7 +77,15 @@ def get_figure_cmap(cmap_type='vik_r', cmap_n=None):
         cmap_colors_comm = cmap([4, 2, 1, 0, 16])
         cmap_colors_global = cmap([13, 11, 10, 9, 16])
 
+        # test
+        # cmap = ListedColormap(cmap([0, 1, 2, 4, 9, 10, 11, 13, 16]), N=9)
+        # comm_colors = cmap([3, 2, 1, 0, 8])
+        # global_colors = cmap([7, 6, 5, 4, 8])
+
         cmap_colors = [cmap_colors_comm, cmap_colors_global]
+    elif cmap_type is None:
+        logging.warning(' ===> CMap type is not defined and CMap colors will be set to NoneType')
+        cmap_colors = None
     else:
         logging.error(' ===> CMap type "' + cmap_type + '" is not expected by the algorithm')
         raise NotImplemented('Case not implemented yet')
@@ -114,13 +122,17 @@ def organize_figure_settings(
         figure_settings, figure_type='data',
         figure_filename_tmpl='pearson_r_reference_vs_y.png',
         figure_parameter='xy_pr', figure_committed_area=False,
-        figure_title_label='title',
+        figure_parameter_data='data', figure_parameter_p_r='p_r', figure_parameter_r='r',
+        figure_title_label='title', figure_x_label='x_label', figure_y_label='y_label',
         figure_colorbar_label='colorbar', figure_colorbar_show=True,
         figure_colorbar_extent=None, figure_colorbar_ticks=None,
         figure_cmap_type='vik_r', figure_cmap_n=32,
         figure_vmin=0, figure_vmax=1, figure_data_extent=None,
         figure_title_fontsize=14, figure_title_fontweight=None,
-        figure_cbar_fontsize=6, figure_cbar_fontweight=None):
+        figure_cbar_fontsize=6, figure_cbar_fontweight=None,
+        figure_lim_min=-10, figure_lim_max=10,
+        figure_lim_thr=0, figure_lim_target=3, figure_lim_optimal=6,
+        figure_palette_type='Set2'):
 
     # set figure size ptn
     figure_size_pt = 252.0
@@ -175,9 +187,12 @@ def organize_figure_settings(
     if figure_type == 'data':
         figure_file_obj = deepcopy(figure_file_list)
         figure_committed_area_obj = deepcopy(figure_committed_area)
-    elif figure_type == 'stats_pearson' or figure_type == 'stats_snr':
+    elif figure_type == 'stats_pearson_pie' or figure_type == 'stats_snr_pie':
         figure_file_obj = figure_file_list[0]
         figure_committed_area_obj = figure_committed_area[0]
+    elif figure_type == 'stats_pearson_box' or figure_type == 'stats_snr_box':
+        figure_file_obj = figure_file_list[0]
+        figure_committed_area_obj = deepcopy(figure_committed_area)
     elif figure_type == 'committed_area':
         figure_file_obj = deepcopy(figure_file_list)[0]
         figure_committed_area_obj = True
@@ -195,18 +210,25 @@ def organize_figure_settings(
         'fig_filename': figure_file_obj, 'fig_committed_area': figure_committed_area_obj,
         'fig_size': figure_size, 'fig_dpi': figure_dpi,
         'title': figure_title_label,
+        'x_label': figure_x_label, 'y_label': figure_y_label,
         'title_fontsize': figure_title_fontsize, 'title_fontweight': figure_title_fontweight,
         'cb_pos': figure_cb_pos,
         'cb_label': figure_colorbar_label, 'show_cb': figure_colorbar_show,
         'cb_extend': figure_colorbar_extent, 'cb_ticks': figure_colorbar_ticks,
         'cb_fontsize': figure_cbar_fontsize, 'cb_fontweight': figure_cbar_fontweight,
-        'parameter': figure_parameter, 'committed_area': figure_committed_area,
+        'parameter': figure_parameter,
+        'parameter_data': figure_parameter_data,
+        'parameter_p_r': figure_parameter_p_r, 'parameter_r': figure_parameter_r,
+        'committed_area': figure_committed_area,
         'map_pos': figure_map_pos,
         'data_extent': figure_data_extent,
         'grid_sampling': figure_grid_sampling, 'max_dist': figure_max_distance,
         'cmap': figure_cmap_obj,
         "vmin": figure_vmin, "vmax": figure_vmax,
-        "clip": figure_clip}
+        "clip": figure_clip,
+        'lim_min': figure_lim_min, 'lim_max': figure_lim_max,
+        'lim_thr': figure_lim_thr, 'lim_target': figure_lim_target, 'lim_optimal': figure_lim_optimal,
+        'palette_type': figure_palette_type}
 
     return figure_file_obj, figure_committed_area_obj, settings_kwargs
 # ----------------------------------------------------------------------------------------------------------------------

@@ -25,10 +25,13 @@ import sys
 import shutil
 import logging
 import argparse
+import numpy as np
+import pandas as pd
 from datetime import datetime
+from copy import deepcopy
 from pygeogrids import BasicGrid
 
-from copy import deepcopy
+from lib_utils_ecmwf import read_obj, write_obj
 
 from lib_img2cell_ecmwf import Img2Ts
 from lib_grid_ecmwf import cell_grid, subgrid4bbox
@@ -49,17 +52,29 @@ def reset_folder(folder_name):
 # method to find file type based on extension
 def get_filetype(grid_path):
 
+    # get folder structure
     one_down = os.path.join(grid_path, os.listdir(grid_path)[0])
-    # check if one down is enough by checking if file or directory
-    two_down = os.path.join(one_down, os.listdir(one_down)[0]) if os.path.isdir(one_down) else os.path.dirname(one_down)
+    if os.path.isdir(one_down):
+        two_down = os.path.join(one_down, os.listdir(one_down)[0])
+    elif os.path.isfile(one_down):
+        two_down, _ = os.path.split(one_down)
+    else:
+        logging.error(' ===> Object path "one_down" is not supported')
+        raise NotImplementedError('Case not supported yet')
 
-    extension = None
-    for path, dirs, files in os.walk(two_down):
-        if extension is not None:
-            break
-        for name in files:
-            filename, extension = os.path.splitext(name)
-            break
+    if os.path.isdir(two_down):
+        extension = None
+        for path, dirs, files in os.walk(two_down):
+            if extension is not None:
+                break
+            for name in files:
+                filename, extension = os.path.splitext(name)
+                break
+    elif os.path.isfile(two_down):
+        _, extension = os.path.splitext(two_down)
+    else:
+        logging.error(' ===> Object path "two_down" is not supported')
+        raise NotImplementedError('Case not supported yet')
 
     if extension == '.nc' or extension == '.nc4':
         return 'netcdf'
@@ -157,7 +172,7 @@ def reshuffle(product,
               start_date, end_date, run_date,
               grid_path,
               parameters,
-              file_name_tmpl_grid="SoilMoistureItaly_{datetime}.tif",
+              file_name_tmpl_grid="h26_{datetime}.nc",
               datetime_format_grid="%Y%m%d%H0000",
               data_sub_path_grid=None,
               file_name_tmpl_ts=None,
@@ -167,6 +182,10 @@ def reshuffle(product,
               reset_ts=True,
               input_grid=None, target_grid=None, bbox=None,
               img_buffer=100,
+              dataset_stack_root=None,
+              stack_flag=True,
+              stack_file_name_tmpl='{cell_n}.stack',
+              stack_reset=True
               ):
 
     # -------------------------------------------------------------------------------------
@@ -185,6 +204,9 @@ def reshuffle(product,
     if isinstance(data_sub_path_ts, str):
         data_sub_path_ts = convert_sub_path(data_sub_path_ts)
 
+    if dataset_stack_root is None:
+        dataset_stack_root = deepcopy(dataset_ts_root)
+
     # set ts
     dataset_ts_root = compose_sub_path(dataset_ts_root, run_date, data_sub_path_ts)
     file_name_tmpl_ts = compose_file_name(
@@ -192,6 +214,8 @@ def reshuffle(product,
     os.makedirs(dataset_ts_root, exist_ok=True)
     if reset_ts:
         reset_folder(dataset_ts_root)
+    # set stack
+    dataset_stack_root = compose_sub_path(dataset_stack_root, run_date, data_sub_path_ts)
     # set start and end hour
     start_step, end_step = start_date.hour, end_date.hour
     # -------------------------------------------------------------------------------------
@@ -202,6 +226,7 @@ def reshuffle(product,
 
     if get_filetype(dataset_grid_root) == "netcdf":
         if input_grid is not None:
+            logging.info(" ------> Land Grid is fit to ECMWF grid netCDF data")
             dataset_grid_driver = ecmwf_ds(
                 product=product,
                 data_path=dataset_grid_root,
@@ -267,12 +292,23 @@ def reshuffle(product,
 
     # select grid based on boundary box
     if bbox is not None:
-        target_grid = subgrid4bbox(input_grid, *bbox)
+        min_lon, min_lat, max_lon, max_lat = bbox[0], bbox[1], bbox[2], bbox[3]
+        target_grid = subgrid4bbox(input_grid, min_lon=min_lon, min_lat=min_lat, max_lon=max_lon, max_lat=max_lat)
     else:
-        target_grid = input_grid.copy()
+        target_grid = deepcopy(input_grid)
 
     logging.info(' -----> 2) Define datasets metadata ... DONE')
     # -------------------------------------------------------------------------------------
+
+    '''
+    lats = target_grid.activearrlat
+    lons = target_grid.activearrlon
+
+    import matplotlib.pylab as plt
+    plt.figure()
+    plt.plot(lons, lats, '.')
+    plt.show()
+    '''
 
     # -------------------------------------------------------------------------------------
     # Section 3 - datasets conversion from grid to time-series
@@ -289,18 +325,81 @@ def reshuffle(product,
         imgbuffer=img_buffer,
         cellsize_lat=5.0,
         cellsize_lon=5.0,
-        r_radius=50000,
-        r_neigh=4,
+        r_methods='nn', r_weightf=None, r_min_n=1, r_radius=18000, r_neigh=8,
         global_attr=global_attr,
         zlib=True,
         unlim_chunksize=1000,
         filename_templ=file_name_tmpl_ts,
         cell_templ=cell_format_ts,
         gridname='grid.nc',
-        ts_attributes=ts_attributes
+        ts_attributes=ts_attributes,
+        stack_history=stack_flag,
+        filestack_templ='stack_{:}_{:}.workspace',
+        stack_id_templ='%04d',
+        stackpath=dataset_stack_root
     )
     # convert grid to ts format
-    drv_reshuffle.calc()
+    stack_obj = drv_reshuffle.calc()
+
+    # stack datasets
+    logging.info(' ------> Organize stack datasets ... ')
+    if stack_obj is not None:
+
+        # iterate over cell object(s)
+        for stack_cell, stack_file_list in stack_obj.items():
+
+            # cell string
+            string_cell = cell_format_ts % stack_cell
+            # info cell start
+            logging.info(' -------> Dump cell "' + string_cell + '" ... ')
+
+            # join stacks (over chunks)
+            stack_file_collections = None
+            for stack_file_path in stack_file_list:
+                stack_file_data = read_obj(stack_file_path)
+                if stack_file_collections is None:
+                    if stack_file_data is not None:
+                        stack_file_collections = deepcopy(stack_file_data)
+                    else:
+                        logging.warning(' ===> Stack file "' + stack_file_path + '" is defined by NoneType')
+                else:
+                    stack_file_collections = pd.merge(stack_file_collections, stack_file_data,
+                                                      left_index=True, right_index=True)
+                # reset stacks tmp file(s)
+                if stack_reset:
+                    if os.path.exists(stack_file_path):
+                        os.remove(stack_file_path)
+
+            # save stacks evaluating all the chunks selected by the time steps
+            if stack_file_collections is not None:
+                stack_index = stack_file_collections.index.values
+                stack_values = stack_file_collections.values
+                stack_idx_finite_any = np.where(np.any(np.isfinite(stack_values), axis=1))[0]
+                stack_idx_nan_all = np.where(np.all(np.isnan(stack_values), axis=1))[0]
+
+                stack_summary_arr = np.zeros(shape=(stack_index.shape[0]))
+                stack_summary_arr[:] = np.nan
+                stack_summary_arr[stack_idx_finite_any] = 1
+                stack_summary_arr[stack_idx_nan_all] = 0
+
+                stack_summary_df = pd.DataFrame(data={'stack': stack_summary_arr}, index=stack_index)
+
+                stack_file_name_summary = stack_file_name_tmpl.format(cell_n=string_cell)
+                stack_file_path_summary = os.path.join(dataset_stack_root, stack_file_name_summary)
+
+                if os.path.exists(stack_file_path_summary):
+                    os.remove(stack_file_path_summary)
+
+                write_obj(stack_file_path_summary, stack_summary_df)
+
+                # info cell end
+                logging.info(' -------> Dump cell "' + string_cell + '" ... DONE')
+            else:
+                logging.info(' -------> Dump cell "' + string_cell + '" ... SKIPPED. All stacks are defined by NoneType')
+
+        logging.info(' ------> Organize stack datasets ... DONE')
+    else:
+        logging.info(' ------> Organize stack datasets ... SKIPPED. Flag is not activated')
 
     logging.info(' -----> 3) Convert datasets from grid to time-series ... DONE')
     # -------------------------------------------------------------------------------------
@@ -343,6 +442,13 @@ def parse_args(args):
     )
 
     parser.add_argument(
+        "image_buffer",
+        type=str,
+        default=4,
+        help="How many images to read at once."
+    )
+
+    parser.add_argument(
         "flags",
         type=str2bool,
         nargs=2,
@@ -357,6 +463,11 @@ def parse_args(args):
     parser.add_argument(
         "dataset_ts_root",
         help="Root of local filesystem where the timeseries should be stored"
+    )
+
+    parser.add_argument(
+        "dataset_stack_root",
+        help="Root of local filesystem where the stacks should be stored"
     )
 
     parser.add_argument(
@@ -404,11 +515,7 @@ def parse_args(args):
         "parameters",
         metavar="parameters",
         nargs="+",
-        help=(
-            "Parameters to reshuffle into time series format. "
-            "e.g. SoilMoi0_10cm_inst SoilMoi10_40cm_inst for "
-            "Volumetric soil water layers 1 to 2."
-        ),
+        help=("Parameters to reshuffle into time series format."),
     )
 
     parser.add_argument(
@@ -501,7 +608,7 @@ def main(args):
         args.grid_path,
         args.parameters,
         input_grid=input_grid,
-        img_buffer=args.imgbuffer,
+        img_buffer=int(args.image_buffer),
         file_name_tmpl_grid=args.templates_src[0],
         datetime_format_grid=args.templates_src[1],
         data_sub_path_grid=args.templates_src[2],
@@ -510,7 +617,10 @@ def main(args):
         data_sub_path_ts=args.templates_dst[2],
         bbox=bbox_list_arr,
         target_grid=None,
-        reset_ts=args.flags[1]
+        reset_ts=args.flags[1],
+        dataset_stack_root=args.dataset_stack_root,
+        stack_flag=True,
+        stack_reset=True
     )
 
     logging.info(' ----> Run reshuffle algorithm to convert grid to time-series ... DONE')

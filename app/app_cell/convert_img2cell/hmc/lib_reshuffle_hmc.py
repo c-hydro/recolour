@@ -31,6 +31,7 @@ from copy import deepcopy
 from pygeogrids import BasicGrid
 
 from lib_utils_hmc import read_obj, write_obj
+
 from lib_img2cell_hmc import Img2Ts
 from lib_interface_hmc import hmc_ds
 from lib_grid_hmc import load_grid, cell_grid, subgrid4bbox
@@ -50,6 +51,7 @@ def reset_folder(folder_name):
 # method to find file type based on extension
 def get_filetype(grid_path):
 
+    # get folder structure
     one_down = os.path.join(grid_path, os.listdir(grid_path)[0])
     if os.path.isdir(one_down):
         two_down = os.path.join(one_down, os.listdir(one_down)[0])
@@ -59,13 +61,19 @@ def get_filetype(grid_path):
         logging.error(' ===> Object path is not supported')
         raise NotImplementedError('Case not supported yet')
 
-    extension = None
-    for path, dirs, files in os.walk(two_down):
-        if extension is not None:
-            break
-        for name in files:
-            filename, extension = os.path.splitext(name)
-            break
+    if os.path.isdir(two_down):
+        extension = None
+        for path, dirs, files in os.walk(two_down):
+            if extension is not None:
+                break
+            for name in files:
+                filename, extension = os.path.splitext(name)
+                break
+    elif os.path.isfile(two_down):
+        _, extension = os.path.splitext(two_down)
+    else:
+        logging.error(' ===> Object path "two_down" is not supported')
+        raise NotImplementedError('Case not supported yet')
 
     if extension == '.nc' or extension == '.nc4':
         return 'netcdf'
@@ -305,6 +313,7 @@ def reshuffle(product,
         imgbuffer=img_buffer,
         cellsize_lat=5.0,
         cellsize_lon=5.0,
+        r_methods='nn', r_weightf=None, r_min_n=1, r_radius=18000, r_neigh=8,
         global_attr=global_attr,
         zlib=True,
         unlim_chunksize=None,

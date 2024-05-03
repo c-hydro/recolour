@@ -17,7 +17,7 @@ import numpy as np
 from copy import deepcopy
 
 from pyresample.geometry import GridDefinition
-from pyresample.kd_tree import resample_nearest, resample_gauss, resample_custom#
+from pyresample.kd_tree import resample_nearest, resample_gauss, resample_custom
 from repurpose.resample import resample_to_grid
 
 from lib_utils_io import create_darray_2d

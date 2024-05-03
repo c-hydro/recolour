@@ -1,16 +1,17 @@
 {
   "product": {
-    "__comment__" : "bbox format:: [6, 35, 18, 47] or null",
+    "__comment__" : "bbox format (example italy) :: [6, 35, 18.5, 47] or null",
     "name": "h26",
-    "bbox": [6, 35, 18, 47]
+    "bbox": [6, 35, 18.5, 47] ,
+    "image_buffer": 5
   },
   "flags": {
-    "reset_static": false,
-    "reset_dynamic": false
+    "reset_static": true,
+    "reset_dynamic": true
   },
   "grid": {
-    "folder_name": "/home/hsaf/share/recolour/ecmwf_static/",
-    "file_name": "ecmwf_grid_h26.nc"
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_static/",
+    "file_name": "ecmwf_grid_h26_italy.nc"
   },
   "template": {
     "dataset": {
@@ -29,16 +30,21 @@
   },
   "variables": ["var40"],
   "data": {
-    "path_grid": "/home/hsaf/share/recolour/ecmwf_grid_nrt/h26/",
-    "path_ts": "/home/hsaf/share/recolour/ecmwf_ts_dr/var40/h141_h142_h26/"
+    "path_grid": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_grid_nrt/h26",
+    "path_ts": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_cell_dr/nc/",
+    "path_stack": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_cell_dr/stack/"
   },
   "time": {
     "_comment": "dr :: 2018-01-01 -- 2023-09-20 ",
     "time_now": null,
-    "time_start": "2022-01-01",
-    "time_end": "2023-09-20",
+    "time_start": "2024-03-02",
+    "time_end": "2024-03-10",
     "time_period": 1,
     "time_frequency": "D",
     "time_rounding" : "D"
+  },
+  "log" : {
+  	"path": "/home/fabio/Desktop/Recolour_Workspace/ws/log/",
+  	"file": "app_img2cell_ecmwf_dr.txt"
   }
 }

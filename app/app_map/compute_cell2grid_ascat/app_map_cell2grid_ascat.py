@@ -3,16 +3,17 @@
 """
 RECOLOUR APPS - CELL2GRID ASCAT - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20240327'
-__version__ = '1.0.0'
+__date__ = '20240423'
+__version__ = '1.1.0'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)'
 __library__ = 'recolour'
 
 General command line:
-python app_map_cell2grid_ascat.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
+python app_cell_swi.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
+20240423 (1.1.0) --> Update codes and fix bugs
 20240327 (1.0.0) --> First development
 """
 
@@ -42,8 +43,8 @@ alg_logger = logging.getLogger(logger_name)
 project_name = 'recolour'
 alg_name = 'Application for resampling cells 2 grid ascat'
 alg_type = 'Package'
-alg_version = '1.0.0'
-alg_release = '2024-03-27'
+alg_version = '1.1.0'
+alg_release = '2024-04-23'
 # -------------------------------------------------------------------------------------
 
 

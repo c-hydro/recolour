@@ -674,9 +674,12 @@ class OrbitResamplerBase(object):
         if self.timefield != 'jd':
             logging.warning(' ===> Time field is not defined by "jd" object. Errors could be raised during the process')
 
-        n_cells = 10; print('debug - write only first 10 cells')
-        s_cells = 0  # usually == 0
+        # debug
+        # n_cells = 10 ; print('debug - write only first 10 cells')
+        # s_cells = 0  # usually == 0
+
         # iterate over cell(s)
+        s_cells = 0
         for i in np.arange(s_cells, n_cells):
 
             ''' start debug cell

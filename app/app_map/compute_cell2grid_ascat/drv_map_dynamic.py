@@ -20,7 +20,8 @@ from lib_data_io_pickle import read_file_obj, write_file_obj
 from lib_data_io_tiff import organize_file_tiff, write_file_tiff
 from lib_data_io_nc import read_file_collection, write_file_collection, organize_file_nc, write_file_nc
 
-from lib_data_analysis import add_data, get_data, filter_data, resample_data_args, resample_data_fx, mask_data
+from lib_data_analysis import (add_data, get_data, filter_data,
+                               resample_data_args, resample_data_fx, interpolate_data, mask_data)
 
 # set logger
 alg_logger = logging.getLogger(logger_name)
@@ -101,17 +102,29 @@ class DrvMap:
         self.grid_reference_product = self.alg_obj_static['grid_reference_product']
         self.grid_reference_domain = self.alg_obj_static['grid_reference_domain']
 
-        self.resampling_max_distance = self.alg_parameters['resampling_max_distance']
-        self.resampling_grid_resolution = self.alg_parameters['resampling_grid_resolution']
-        self.resampling_min_neighbours = self.alg_parameters['resampling_min_neighbours']
-        self.resampling_neighbours = self.alg_parameters['resampling_neighbours']
-        self.resampling_variables = self.alg_parameters['resampling_variable']
+        self.vars_name = self.alg_parameters['variables']['name']
+        self.vars_min_value = self.alg_parameters['variables']['min_value']
+        self.vars_max_value = self.alg_parameters['variables']['max_value']
+        self.vars_scale_factor = self.alg_parameters['variables']['scale_factor']
+        self.vars_no_data = self.alg_parameters['variables']['no_data']
 
-        self.resample_kernel_active = self.alg_parameters['resample_kernel_active']
-        self.resample_kernel_method = self.alg_parameters['resample_kernel_method']
-        self.resample_kernel_mode = self.alg_parameters['resample_kernel_mode']
-        self.resample_kernel_args_width = self.alg_parameters['resample_kernel_args']['width']
-        self.resample_kernel_args_stdev = self.alg_parameters['resample_kernel_args']['st_dev']
+        self.resampling_max_distance = self.alg_parameters['resample']['max_distance']
+        self.resampling_grid_resolution = self.alg_parameters['resample']['grid_resolution']
+        self.resampling_min_neighbours = self.alg_parameters['resample']['min_neighbours']
+        self.resampling_neighbours = self.alg_parameters['resample']['neighbours']
+        self.resampling_variables = self.alg_parameters['resample']['apply_to']
+
+        self.filtering_active = self.alg_parameters['filter']['active']
+        self.filtering_method = self.alg_parameters['filter']['method']
+        self.filtering_mode = self.alg_parameters['filter']['mode']
+        self.filtering_args_width = self.alg_parameters['filter']['args']['width']
+        self.filtering_args_stdev = self.alg_parameters['filter']['args']['st_dev']
+
+        self.interpolating_active = self.alg_parameters['interpolate']['active']
+        self.interpolating_method = self.alg_parameters['interpolate']['method']
+        self.interpolating_max_distance = self.alg_parameters['interpolate']['max_distance']
+        self.interpolating_neighbours = self.alg_parameters['interpolate']['neighbours']
+        self.interpolating_variables = self.alg_parameters['resample']['apply_to']
 
     # method to check datasets (if clean or not)
     @staticmethod
@@ -150,6 +163,19 @@ class DrvMap:
         # get file template
         alg_template_time, alg_template_dset = self.alg_template_time, self.alg_template_dset
 
+        # get file product
+        alg_datasets_name = self.alg_datasets_name
+
+        # get variables info
+        vars_name = self.vars_name
+        vars_min_value = self.vars_min_value
+        vars_max_value = self.vars_max_value
+        vars_scale_factor = self.vars_scale_factor
+        vars_no_data = self.vars_no_data
+        # pad list (using names as list length reference
+        vars_min_value, vars_max_value, vars_scale_factor, vars_no_data = pad_list(
+            vars_name, [vars_min_value, vars_max_value, vars_scale_factor, vars_no_data])
+
         # get file path
         file_path_src_raw = self.file_path_src
         file_path_anc_points_raw, file_path_anc_grid_raw = self.file_path_anc_points, self.file_path_anc_grid
@@ -159,7 +185,7 @@ class DrvMap:
         for grid_cells_name in grid_cells_product:
 
             # info start get datasets cell
-            alg_logger.info(' -----> Get cell datasets "' + str(grid_cells_name) + '" ... ')
+            alg_logger.info(' -----> Get cell "' + str(grid_cells_name) + '" ... ')
 
             # define source file name
             file_path_src_def = fill_path_with_tags(
@@ -183,7 +209,8 @@ class DrvMap:
 
                 # organize cell collections and registry
                 collections_dframe, registry_dframe = organize_datasets_cell(
-                    file_name=file_path_src_def, cell_name=grid_cells_name,
+                    file_name=file_path_src_def,
+                    cell_name=grid_cells_name,
                     list_variable_data_in=variables_in_src['datasets'],
                     list_variable_data_out=variables_out_src['datasets'],
                     list_variable_registry_in=variables_in_src['registry'],
@@ -205,20 +232,20 @@ class DrvMap:
                 write_file_collection(file_path_anc_points_def, points_dframe, file_tag_location='location')
 
                 # info end get datasets cell
-                alg_logger.info(' -----> Get cell datasets "' + str(grid_cells_name) +
+                alg_logger.info(' -----> Get cell "' + str(grid_cells_name) +
                                 '" ... DONE')
 
             else:
 
                 # info end get datasets cell
-                alg_logger.info(' -----> Get cell datasets "' + str(grid_cells_name) +
+                alg_logger.info(' -----> Get cell "' + str(grid_cells_name) +
                                 '" ... SKIPPED. Data previously saved')
 
             # store cell filename(s)
             file_path_anc_points_list.append(file_path_anc_points_def)
 
         # info start merge cell group
-        alg_logger.info(' -----> Merge cell datasets  ... ')
+        alg_logger.info(' -----> Merge cell ... ')
 
         # iterate over cell file(s)
         collections_dframe = None
@@ -232,6 +259,9 @@ class DrvMap:
                     var_dest_list=variables_out_src['datasets'],
                     var_registry_list=variables_out_src['registry'],
                     var_extra_list=['time_start', 'time_end', 'time_reference', 'fx', 'cell'],
+                    variable_type=alg_datasets_name,
+                    variable_min_value=vars_min_value, variable_max_value=vars_max_value,
+                    variable_no_data=vars_no_data, variable_scale_factor=vars_scale_factor,
                     variable_land_filter=True, variable_committed_filter=False)
             else:
                 alg_logger.warning(' ===> File ' + file_path_anc_points_step + ' not found')
@@ -244,7 +274,7 @@ class DrvMap:
                 else:
                     collections_dframe = collections_dframe.append(point_dframe_step)
         # info end merge cell group
-        alg_logger.info(' -----> Merge cell datasets  ... DONE')
+        alg_logger.info(' -----> Merge cell ... DONE')
 
         # info end method
         alg_logger.info(' ----> Organize dynamic datasets ... DONE')
@@ -257,13 +287,14 @@ class DrvMap:
         # info start method
         alg_logger.info(' ----> Analyze dynamic datasets ... ')
 
-        # get resampling variables info
-        res_var_name = self.resampling_variables['name']
-        res_var_min_value = self.resampling_variables['min_value']
-        res_var_max_value = self.resampling_variables['max_value']
-
+        # get variables info
+        vars_name = self.vars_name
+        vars_min_value = self.vars_min_value
+        vars_max_value = self.vars_max_value
+        vars_scale_factor = self.vars_scale_factor
         # pad list (using names as list length reference
-        res_var_min_value, res_var_max_value = pad_list(res_var_name, [res_var_min_value, res_var_max_value])
+        vars_min_value, vars_max_value, vars_scale_factor = pad_list(
+            vars_name, [vars_min_value, vars_max_value, vars_scale_factor])
 
         # get grid reference and cells
         grid_reference_domain = self.grid_reference_domain
@@ -312,13 +343,21 @@ class DrvMap:
 
                 # iterate over variable(s)
                 variable_collections = {}
-                for var_name, var_min_value, var_max_value in zip(res_var_name, res_var_min_value, res_var_max_value):
+                for var_name, var_min_value, var_max_value, var_scale_factor in zip(
+                        vars_name, vars_min_value, vars_max_value, vars_scale_factor):
 
                     # info start variable
                     alg_logger.info(' ------> Variable "' + var_name + '" ... ')
 
                     # debug
                     # var_name = 'sm_values'
+
+                    # check limits and scale factor
+                    if var_scale_factor is not None:
+                        if var_min_value is not None:
+                            var_min_value = var_min_value * var_scale_factor
+                        if var_max_value is not None:
+                            var_max_value = var_max_value * var_scale_factor
 
                     # check variable availability
                     if var_name in collections_dframe.columns:
@@ -337,11 +376,11 @@ class DrvMap:
                             resampling_grid_resolution=self.resampling_grid_resolution,
                             resampling_min_neighbours=self.resampling_min_neighbours,
                             resampling_neighbours=self.resampling_neighbours,
-                            resampling_kernel_active=self.resample_kernel_active,
-                            resampling_kernel_method=self.resample_kernel_method,
-                            resampling_kernel_mode=self.resample_kernel_mode,
-                            resampling_kernel_width=self.resample_kernel_args_width,
-                            resampling_kernel_stddev=self.resample_kernel_args_stdev)
+                            resampling_kernel_active=self.filtering_active,
+                            resampling_kernel_method=self.filtering_method,
+                            resampling_kernel_mode=self.filtering_mode,
+                            resampling_kernel_width=self.filtering_args_width,
+                            resampling_kernel_stddev=self.filtering_args_stdev)
 
                         # method to apply resampling data 1D to data 2D
                         da_variable_resampled = resample_data_fx(
@@ -351,8 +390,19 @@ class DrvMap:
                             coord_name_x='longitude', coord_name_y='latitude',
                             dim_name_x='longitude', dim_name_y='latitude'
                         )
+
+                        # method to apply interpolating data 2d over reference (in case of dims mismatch)
+                        da_variable_interpolated = interpolate_data(
+                            da_variable_resampled, grid_reference_domain, var_name_data=var_name,
+                            interpolating_active=self.interpolating_active,
+                            interpolating_method=self.interpolating_method,
+                            interpolating_max_distance=self.interpolating_max_distance,
+                            interpolating_neighbours=self.interpolating_neighbours
+                        )
+
                         # method to mask data
-                        da_variable_masked = mask_data(da_variable_resampled, grid_reference_domain, var_name_data=var_name)
+                        da_variable_masked = mask_data(
+                            da_variable_interpolated, grid_reference_domain, var_name_data=var_name)
 
                         # save variable in a common collection
                         variable_collections[var_name] = da_variable_masked

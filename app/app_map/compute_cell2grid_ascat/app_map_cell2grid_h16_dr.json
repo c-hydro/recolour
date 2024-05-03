@@ -1,6 +1,6 @@
 {
   "flags": {
-    "reset_ancillary_datasets_points": false,
+    "reset_ancillary_datasets_points": true,
     "reset_ancillary_datasets_grid": true,
     "reset_destination_datasets": true,
     "reset_logs": true
@@ -32,21 +32,33 @@
     "cell_list": [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430, 1431]
   },
   "parameters": {
-    "__comment__": "grid_resolution: 0.05 --> errors because change reference grid",
-    "resampling_max_distance": 20000,
-    "resampling_grid_resolution": null,
-    "resampling_min_neighbours": 1,
-    "resampling_neighbours": 8,
-    "resampling_variable": {
+    "variables": {
       "name": ["sm_values", "sm_noise", "flag_proc", "flag_corr", "time_delta"],
       "min_value": [0, 0, null, null, null],
-      "max_value": [100, 100, null, null, null]
+      "max_value": [100, 100, null, null, null],
+      "scale_factor": [1, 1, null, null, null],
+      "no_data": [-999999, -999999, null, null, null]
     },
-    "resample_kernel_active": true,
-    "resample_kernel_method": "box",
-    "resample_kernel_mode": "center",
-    "resample_kernel_args": {
-      "width": 15, "st_dev": 4
+    "resample": {
+      "__comment__": "grid_resolution: 0.05 --> errors because change reference grid",
+      "max_distance": 20000,
+      "grid_resolution": null,
+      "min_neighbours": 1,
+      "neighbours": 8,
+      "apply_to": ["sm_values", "sm_noise", "flag_proc", "flag_corr", "time_delta"]
+    },
+    "filter" : {
+      "active": true,
+      "method": "box",
+      "mode": "center",
+      "args": {"width": 15, "st_dev": 4}
+    },
+    "interpolate": {
+      "active": false,
+      "method": "nn",
+      "max_distance": 25000,
+      "neighbours": 8,
+      "apply_to": ["sm_values", "sm_noise", "flag_proc", "flag_corr", "time_delta"]
     }
   },
   "datasets": {
@@ -57,7 +69,7 @@
       },
       "grid_reference" : {
         "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/domain/",
-        "file_name": "italy_sm_hmc.tif"
+        "file_name": "italia_cn_500_latlon.tif"
       }
     },
     "dynamic" : {

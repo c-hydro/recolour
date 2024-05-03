@@ -26,6 +26,8 @@ from lib_data_io_pickle import write_file_obj, read_file_obj
 
 # set logger
 alg_logger = logging.getLogger(logger_name)
+# message(s) suppressed in the console
+pd.options.mode.chained_assignment = None
 # -----------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------
@@ -52,10 +54,17 @@ def organize_datasets_cell(
         file_name, cell_name,
         list_variable_data_in=None, list_variable_data_out=None,
         list_variable_registry_in=None, list_variable_registry_out=None,
-        index_name_data='time', index_name_registry='location', index_name_cell='cell'):
+        index_name_data='time', index_name_registry='location', index_name_cell='cell',
+        index_name_row_size='row_size'):
 
     # info datasets start
     alg_logger.info(' ------> Get datasets cell ... ')
+
+    # if row_index is the first variable in the list, move it to the end
+    if index_name_row_size == list_variable_registry_in[0]:
+        row_size_tmp_in, row_size_tmp_out = list_variable_registry_in[0], list_variable_registry_out[0]
+        list_variable_registry_in = list_variable_registry_in[1:] + [row_size_tmp_in]
+        list_variable_registry_out = list_variable_registry_out[1:] + [row_size_tmp_out]
 
     # common list variable in/out
     list_variable_in = list_variable_data_in + list_variable_registry_in
@@ -77,6 +86,9 @@ def organize_datasets_cell(
 
                 if isinstance(var_data_in, np.ma.MaskedArray):
                     var_data_in = var_data_in.data
+
+                if var_name_in == index_name_data:
+                    var_data_in = pd.to_datetime(var_data_in).floor('S')
 
                 if var_name_in == index_name_data:
                     var_data_in = pd.to_datetime(var_data_in).floor('S')
@@ -112,6 +124,9 @@ def organize_datasets_cell(
                     registry_data = {}
                 registry_data[name_variable_registry_out] = cell_datasets_out[name_variable_registry_out]
 
+        if index_name_cell not in list(registry_data.keys()):
+            registry_data[index_name_cell] = [int(cell_name)] * registry_index.shape[0]
+
         # organize in dataframes
         collections_dframe = pd.DataFrame(data=collections_data, index=collections_index)
         collections_dframe.attrs = attrs_datasets_in
@@ -136,16 +151,17 @@ def organize_datasets_cell(
 # method to add datasets grid
 def organize_datasets_points(
         time_obj, collections_obj, registry_obj, data_type='ASCAT', grid_dframe=None,
-        collections_fx='mean'):
+        collections_fx='nearest'):
 
     # info datasets start
-    alg_logger.info(' ------> Convert datasets cell to points ... ')
+    alg_logger.info(' ------> Convert datasets  ... ')
 
     # get registry info
-    registry_index = registry_obj.index
-    registry_latitude = registry_obj['latitude']
-    registry_longitude = registry_obj['longitude']
-    registry_row_size = registry_obj['row_size']
+    registry_index = registry_obj.index.values
+    registry_latitude = registry_obj['latitude'].values
+    registry_longitude = registry_obj['longitude'].values
+    registry_cell = registry_obj['cell'].values
+    registry_row_size = registry_obj['row_size'].values
 
     # organize time start and end
     time_start = time_obj.replace(hour=0, minute=0, second=0)
@@ -157,9 +173,10 @@ def organize_datasets_points(
     attrs_obj = collections_obj.attrs
 
     # iterate over registry
-    alg_logger.info(' -------> Get collections ... ')
+    alg_logger.info(' -------> Get points ... ')
     collections_workspace = None
-    for reg_id, (reg_loc, reg_lon, reg_lat) in enumerate(zip(registry_index, registry_longitude, registry_latitude)):
+    for reg_id, (reg_loc, reg_lon, reg_lat, reg_cell) in enumerate(
+            zip(registry_index, registry_longitude, registry_latitude, registry_cell)):
 
         # set indexes start and end
         row_size_start, row_size_end = row_size_cumulative[reg_id], row_size_cumulative[reg_id + 1]
@@ -184,6 +201,16 @@ def organize_datasets_points(
                     collections_defined = collections_tmp.mean()
                     collections_defined.columns = list(collections_tmp.columns)
                     collections_index = collections_tmp.index.mean()
+                    collections_defined['time'] = collections_index
+                    collections_defined['fx'] = collections_fx
+
+                elif collections_fx == 'nearest':
+
+                    collections_idx = collections_tmp.index.get_loc(time_obj, method='nearest')
+
+                    collections_defined = collections_tmp.iloc[collections_idx]
+                    collections_defined.columns = list(collections_tmp.columns)
+                    collections_index = collections_tmp.index[collections_idx]
                     collections_defined['time'] = collections_index
                     collections_defined['fx'] = collections_fx
 
@@ -231,9 +258,11 @@ def organize_datasets_points(
                 collections_defined['fx'] = 'single'
 
             # add registry info
-            collections_defined['location'] = np.array(reg_loc, dtype=int)
+            collections_defined['gpi'] = int(reg_loc)
+            collections_defined['location'] = int(reg_loc)
             collections_defined['longitude'] = reg_lon
             collections_defined['latitude'] = reg_lat
+            collections_defined['cell'] = int(reg_cell)
             collections_defined['time_start'] = time_start
             collections_defined['time_end'] = time_end
             collections_defined['time_reference'] = time_obj
@@ -241,26 +270,31 @@ def organize_datasets_points(
 
             if collections_workspace is None:
                 collections_interface = collections_defined.to_frame()
+                collections_interface = collections_interface.T
                 collections_interface.reset_index()
                 collections_workspace = collections_interface
             else:
                 collections_interface = collections_defined.to_frame()
+                collections_interface = collections_interface.T
                 collections_interface.reset_index()
-                collections_workspace = pd.concat([collections_workspace, collections_interface], axis=1)
+                collections_workspace = pd.concat([collections_workspace, collections_interface], axis=0)
 
         else:
             alg_logger.warning(' ===> Collections for location "' + str(reg_loc) + '" are not available')
 
-    alg_logger.info(' -------> Get collections ... DONE')
+    alg_logger.info(' -------> Get points ... DONE')
 
     # organize workspace (transpose the dataframe)
-    alg_logger.info(' -------> Order collections ... ')
-    collections_workspace = collections_workspace.T
+    alg_logger.info(' -------> Organize points... ')
+    collections_workspace.reset_index(inplace=True)
+    collections_workspace.drop('index', inplace=True, axis=1)
+    collections_workspace.set_index('gpi', inplace=True)
+    collections_workspace.index.name = 'gpi'
     collections_workspace.attrs = attrs_obj
-    alg_logger.info(' -------> Order collections ... DONE')
+    alg_logger.info(' -------> Organize points ... DONE')
 
     # info datasets end
-    alg_logger.info(' ------> Convert datasets cell to points ... DONE')
+    alg_logger.info(' ------> Convert datasets ... DONE')
 
     return collections_workspace
 # -----------------------------------------------------------------------------

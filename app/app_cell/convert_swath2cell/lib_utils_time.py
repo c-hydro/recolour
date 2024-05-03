@@ -81,22 +81,57 @@ def set_time(time_run_args=None, time_run_file=None, time_format='%Y-%m-%d %H:$M
 
     elif (time_run_file_start is not None) and (time_run_file_end is not None):
 
-        logging.info(' -----> Time info defined by "time_start" and "time_end" arguments ... ')
+        if time_run_file_start == 'CONFIGURE_BY_TIME_NOW' and time_run_file_end == 'CONFIGURE_BY_TIME_NOW':
 
-        time_run = date.today()
-        time_run = time_run.strftime(time_format)
-        time_run = pd.Timestamp(time_run)
+            logging.info(' -----> Time info defined by "time_now" used to define the '
+                         '"time_start" and "time_end" arguments ... ')
 
-        time_period_run = time_run.floor(time_rounding)
+            if time_run_args is not None:
+                time_run = time_run_args
+                logging.info(' ------> Time ' + time_run + ' set by argument')
+            elif (time_run_args is None) and (time_run_file is not None):
+                time_run = time_run_file
+                logging.info(' ------> Time ' + time_run + ' set by user')
+            elif (time_run_args is None) and (time_run_file is None):
+                time_now = date.today()
+                time_run = time_now.strftime(time_format)
+                logging.info(' ------> Time ' + time_run + ' set by system')
+            else:
+                logging.info(' ----> Set time info ... FAILED')
+                logging.error(' ===> Argument "time_run" is not correctly set')
+                raise IOError('Time type or format is wrong')
 
-        time_run_file_start = pd.Timestamp(time_run_file_start)
-        time_period_start = time_run_file_start.floor(time_rounding)
-        time_run_file_end = pd.Timestamp(time_run_file_end)
-        time_period_end = time_run_file_end.floor(time_rounding)
+            time_tmp = pd.Timestamp(time_run)
 
-        time_chunks = {time_period_run: [time_period_start, time_period_end]}
+            time_period_run = time_tmp.floor('H')
+            time_period_end = time_tmp.floor('H')
+            time_period_start = pd.date_range(end=time_period_end, periods=time_period, freq=time_frequency)[0]
+            time_period_start = time_period_start.floor(time_rounding)
 
-        logging.info(' -----> Time info defined by "time_start" and "time_end" arguments ... DONE')
+            time_chunks = {time_period_run: [time_period_start, time_period_end]}
+
+            logging.info(' -----> Time info defined by "time_now" used to define the '
+                         '"time_start" and "time_end" arguments ... DONE')
+
+        else:
+
+            logging.info(' -----> Time info defined by "time_start" and "time_end" arguments ... ')
+
+            # time_now = date.today()
+            # time_run = time_now.strftime(time_format)
+            time_run = deepcopy(time_run_file_end)
+            time_run = pd.Timestamp(time_run)
+
+            time_period_run = time_run.floor(time_rounding)
+
+            time_run_file_start = pd.Timestamp(time_run_file_start)
+            time_period_start = time_run_file_start.floor(time_rounding)
+            time_run_file_end = pd.Timestamp(time_run_file_end)
+            time_period_end = time_run_file_end.floor(time_rounding)
+
+            time_chunks = {time_period_run: [time_period_start, time_period_end]}
+
+            logging.info(' -----> Time info defined by "time_start" and "time_end" arguments ... DONE')
 
     else:
         logging.info(' ----> Set time info ... FAILED')

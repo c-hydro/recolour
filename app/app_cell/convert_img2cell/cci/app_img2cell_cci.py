@@ -3,8 +3,8 @@
 """
 RECOLOUR TOOLS - CCI IMG2CELL - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20240313'
-__version__ = '1.2.0'
+__date__ = '20240502'
+__version__ = '1.3.0'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)'
 __library__ = 'recolour'
@@ -17,6 +17,7 @@ NOTE:
     "variables": ["sm", "flag", "sm_noise"] before cci v04.2
 
 Version(s):
+20240502 (1.3.0) --> Fix bugs related to geo-referencing and grid creation
 20240313 (1.2.0) --> Refactor to recolour package
 20220511 (1.1.0) --> Fix and update code(s)
 20170225 (1.0.0) --> First development
@@ -43,8 +44,8 @@ from lib_reshuffle_cci import main as main_runner
 project_name = 'recolour'
 alg_name = 'img2cell'
 alg_type = 'Application'
-alg_version = '1.2.0'
-alg_release = '2024-03-13'
+alg_version = '1.3.0'
+alg_release = '2024-05-02'
 # -------------------------------------------------------------------------------------
 
 

@@ -25,6 +25,7 @@
         "name": "ASCAT",
         "variable": "sm",
         "type": "data_record",
+        "bulk": true,
         "kwargs": {
           "mask_frozen_prob": 10,
           "mask_snow_prob": 10

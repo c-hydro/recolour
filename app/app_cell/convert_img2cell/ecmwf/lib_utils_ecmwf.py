@@ -1,16 +1,18 @@
 """
 Library Features:
 
-Name:          lib_utils_hmc
+Name:          lib_utils_ecmwf
 Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
 Date:          '20230628'
 Version:       '1.0.0'
 """
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # libraries
 import os
 import logging
 import rasterio
+
+import pickle
 import xarray as xr
 import numpy as np
 import netCDF4 as nc
@@ -19,10 +21,10 @@ logging.getLogger('rasterio').setLevel(logging.WARNING)
 
 # debugging
 import matplotlib.pylab as plt
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # method to create file grid
 def create_file_grid(grid_path, data_path, data_ext='.tif', grid_update=True):
 
@@ -59,6 +61,10 @@ def create_file_grid(grid_path, data_path, data_ext='.tif', grid_update=True):
             logging.error(' ===> File format is not supported')
             raise NotImplemented('Case not implemented yet')
 
+        # flip lats to adapt the datasets to other in triple collection procedure
+        # l.118 in lib_interface_ecmwf "param_data = np.flipud(param_data)" coupled with this
+        file_geo_y_1d = np.flipud(file_geo_y_1d)
+
         # method to save file netcdf
         save_file_nc(grid_path, file_values, file_geo_x_1d, file_geo_y_1d)
 
@@ -67,10 +73,10 @@ def create_file_grid(grid_path, data_path, data_ext='.tif', grid_update=True):
     else:
         logging.info(' ---> Create grid reference for datasets ... PREVIOUSLY DONE')
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # method to read file tiff
 def read_file_tiff(file_name):
 
@@ -98,10 +104,10 @@ def read_file_tiff(file_name):
         file_values = np.flipud(file_values)
 
     return file_values, file_geo_x_1d, file_geo_y_1d
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # method to read file nc
 def read_file_nc(file_name, var_name_data='var40', var_name_geo_x='lon', var_name_geo_y='lat'):
 
@@ -143,10 +149,10 @@ def read_file_nc(file_name, var_name_data='var40', var_name_geo_x='lon', var_nam
     '''
 
     return file_values, file_geo_x_1d, file_geo_y_1d
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # method to create file netcdf
 def save_file_nc(file_name, file_values, file_geo_x_1d, file_geo_y_1d,
                  var_name='soil_moisture', var_geo_x='longitude', var_geo_y='latitude', var_time='time'):
@@ -170,4 +176,24 @@ def save_file_nc(file_name, file_values, file_geo_x_1d, file_geo_y_1d,
     file_var_values[0, :, :] = file_values
 
     file_dset.close()
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to read data obj
+def read_obj(file_name):
+    data = None
+    if os.path.exists(file_name):
+        data = pickle.load(open(file_name, "rb"))
+    return data
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to write data obj
+def write_obj(file_name, data):
+    if os.path.exists(file_name):
+        os.remove(file_name)
+    with open(file_name, 'wb') as handle:
+        pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+# ----------------------------------------------------------------------------------------------------------------------

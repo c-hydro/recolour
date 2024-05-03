@@ -1,6 +1,6 @@
 {
   "product": {
-    "__comment__" : "bbox format:: [6, 35, 18, 47] or null",
+    "__comment__" : "bbox format (example italy) :: [6, 35, 18.5, 47] or null",
     "name": "smap",
     "bbox": null
   },

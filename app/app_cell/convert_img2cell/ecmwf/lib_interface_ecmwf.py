@@ -117,6 +117,9 @@ class BaseImage(ImageBase):
                     raise IOError('bad dimensions definition')
                 np.ma.set_fill_value(param_data, 9999)
 
+                # reverse the data to be in the correct order
+                param_data = np.flipud(param_data)  # to adapt to the other products that used in the metrics procedure
+
                 ''' debug
                 data_tmp = param_data.copy()
                 data_tmp[data_tmp < 0] = np.nan
@@ -153,18 +156,7 @@ class BaseImage(ImageBase):
                 timestamp,
             )
         else:
-            for key in return_img:
-                return_img[key] = np.flipud(
-                    return_img[key].reshape((720, 1440))
-                )
-
-            return Image(
-                np.flipud(self.grid.activearrlon.reshape((720, 1440))),
-                np.flipud(self.grid.activearrlat.reshape((720, 1440))),
-                return_img,
-                return_metadata,
-                timestamp,
-            )
+            raise NotImplementedError('array 2d condition not implemented yet')
 
     def write(self):
         raise NotImplementedError()

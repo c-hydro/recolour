@@ -13,6 +13,7 @@ import logging
 import os
 import tempfile
 
+import numpy as np
 import pandas as pd
 
 from lib_utils_generic import read_obj, write_obj
@@ -93,28 +94,70 @@ class GLDAS_Dataset(GLDASTs):
             if not os.path.exists(file_gpi):
 
                 # read time-series
+                logging.info(' -------> Get data ... ')
                 ts_dframe = super(GLDAS_Dataset, self).read(*args)
 
-                # soil moisture [kg/m^2] converted into [m^3/m^3]
-                d = 0.10  # thickness of soil layer in m
-                ts_dframe['SoilMoi0_10cm_inst'] = ts_dframe['SoilMoi0_10cm_inst'] * 0.001 * 1 / d
-
-                # Filter(s)
-                ts_dframe = ts_dframe[ts_dframe['SWE_inst'] == self.mask_snow]
-
-                if 'SoilTMP0_10cm_inst' in ts_dframe.columns:
-                    ts_dframe = ts_dframe[ts_dframe['SoilTMP0_10cm_inst'] > self.mask_soil_temp]
-                elif 'Tair_f_inst' in ts_dframe.columns:
-                    ts_dframe = ts_dframe[ts_dframe['Tair_f_inst'] > self.mask_soil_temp]
+                # check time-series extracted using gpi
+                if ts_dframe is not None:
+                    ts_dframe[ts_dframe['SoilMoi0_10cm_inst'] < 0] = np.nan
+                    ts_dframe.dropna(inplace=True)
+                    if ts_dframe.empty:
+                        lon, lat = self.grid.gpi2lonlat(gpi)
+                        logging.warning(' ===> ALL DATA ARE DEFINED BY NAN(S) :: POINT :: LON: ' +
+                                        str(lon) + ' -- LAT: ' + str(lat) + ' -- GPI: ' + str(gpi))
+                        logging.warning(' ===> All data for this gpi are defined by no_data time-series')
+                        logging.info(
+                            ' -------> Get data ... FAILED. Time-series will be initialized by empty dataframe')
+                        ts_dframe = pd.DataFrame()
+                    else:
+                        logging.info(' -------> Get data ... DONE')
                 else:
-                    logging.error(' ===> GLDAS temperature variable is not expected.')
-                    raise NotImplemented('Case not implemented yet')
+                    lon, lat = self.grid.gpi2lonlat(gpi)
+                    logging.warning(' ===> ALL DATA ARE DEFINED BY NONETYPE :: POINT :: LON: ' +
+                                    str(lon) + ' -- LAT: ' + str(lat) + ' -- GPI: ' + str(gpi))
+                    logging.warning(' ===> All data for this gpi are defined by NoneType')
+                    logging.info(' -------> Get data ... FAILED. time-series will be initialized by empty dataframe')
+                    ts_dframe = pd.DataFrame()
+
+                # testing for debugging
+                # lon, lat = self.grid.gpi2lonlat(gpi)
+                # ts_dframe_test = super(GLDAS_Dataset, self).read(lon, lat)
+
+                # info apply conversion start
+                logging.info(' -------> Apply conversion ...')
+                # soil moisture [kg/m^2] converted into [m^3/m^3]
+                if not ts_dframe.empty:
+                    d = 0.10  # thickness of soil layer in m
+                    ts_dframe['SoilMoi0_10cm_inst'] = ts_dframe['SoilMoi0_10cm_inst'] * 0.001 * 1 / d
+                    # info apply conversion end
+                    logging.info(' -------> Apply conversion ... DONE')
+                else:
+                    logging.info(' -------> Apply conversion ... SKIPPED. Dataframe is empty')
+
+                # info apply filter(s) start
+                logging.info(' -------> Apply filter(s) ...')
+                # apply filter(s)
+                if not ts_dframe.empty:
+                    ts_dframe = ts_dframe[ts_dframe['SWE_inst'] == self.mask_snow]
+                    if 'SoilTMP0_10cm_inst' in ts_dframe.columns:
+                        ts_dframe = ts_dframe[ts_dframe['SoilTMP0_10cm_inst'] > self.mask_soil_temp]
+                    elif 'Tair_f_inst' in ts_dframe.columns:
+                        ts_dframe = ts_dframe[ts_dframe['Tair_f_inst'] > self.mask_soil_temp]
+                    else:
+                        logging.error(' ===> GLDAS temperature variable is not expected.')
+                        raise NotImplemented('Case not implemented yet')
+                    # info apply filter(s) end
+                    logging.info(' -------> Apply filter(s) ... DONE')
+                else:
+                    logging.info(' -------> Apply filter(s) ... SKIPPED. Dataframe is empty')
 
                 # check data valid
+                logging.info(' -------> Check data ... ')
                 if ts_dframe.size == 0:
                     logging.warning(' ===> No data valid for GLDAS dataset')
                     logging.warning(' ===> GLDAS time-series will be initialized by empty dataframe')
                     ts_dframe = pd.DataFrame()
+                    logging.info(' -------> Check data ... FAILED. No data available')
                 else:
                     valid_value = ts_dframe.shape[0]
                     start_index = ts_dframe.index[0].strftime('%Y-%m-%d %H:%M:%S')
@@ -122,6 +165,7 @@ class GLDAS_Dataset(GLDASTs):
                     logging.info(' -------> Data valid for GLDAS dataset (N: "' + str(valid_value) + '")')
                     logging.info(' -------> Time valid for GLDAS dataset from "' + start_index +
                                  '" to "' + end_index + '"')
+                    logging.info(' -------> Check data ... DONE')
 
                 # save time-series if flag is active
                 if active_tmp:

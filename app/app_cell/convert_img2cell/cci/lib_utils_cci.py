@@ -59,6 +59,10 @@ def create_file_grid(grid_path, data_path, data_ext='.nc', grid_update=True):
             logging.error(' ===> File format is not supported')
             raise NotImplemented('Case not implemented yet')
 
+        # flip lats to adapt the datasets to other in triple collection procedure
+        # l.118 in lib_interface_cci "param_data = np.flipud(param_data)" coupled with this
+        file_geo_y_1d = np.flipud(file_geo_y_1d)
+
         # method to save file netcdf
         save_file_nc(grid_path, file_values, file_geo_x_1d, file_geo_y_1d)
 

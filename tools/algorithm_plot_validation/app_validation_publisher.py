@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 
 """
-RECOLOUR TOOLS - PUBLISHER APP - VALIDATION - tRiplE Collocation sOiL mOistUre pRoduct
+RECOLOUR TOOLS - PUBLISHER APP - VALIDATION - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20230719'
-__version__ = '1.0.0'
+__date__ = '20240410'
+__version__ = '1.1.0'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org),
     'Martina Natali (martina01.natali@edu.unife.it)'
@@ -15,6 +15,7 @@ General command line:
 python app_validation_publisher.py -settings_file configuration.json
 
 Version(s):
+20240410 (1.1.0) --> Add codes for boxplot, update codes and fix bugs
 20230727 (1.0.0) --> First development
 """
 
@@ -46,13 +47,13 @@ from drv_data_publisher import DrvData
 project_name = 'recolour'
 alg_name = 'publisher'
 alg_type = 'Package'
-alg_version = '1.0.0'
-alg_release = '2023-07-27'
+alg_version = '1.1.0'
+alg_release = '2024-04-10'
 # -------------------------------------------------------------------------------------
 
 
 # -------------------------------------------------------------------------------------
-# Script Main
+# script main
 def main():
 
     # -------------------------------------------------------------------------------------
@@ -79,7 +80,7 @@ def main():
 
     # -------------------------------------------------------------------------------------
     # generate reference cells and gpis
-    alg_cells, alg_gpis = get_grid_cells(
+    alg_cell_list, alg_gpis, alg_cell_grid = get_grid_cells(
         cell_start=alg_settings['domain']['cell_start'],
         cell_end=alg_settings['domain']['cell_end'],
         cells_list=alg_settings['domain']['cell_list'],
@@ -89,7 +90,7 @@ def main():
 
     # -------------------------------------------------------------------------------------
     # configure driver
-    drv_driver_publisher = DrvData(alg_cells, alg_settings)
+    drv_driver_publisher = DrvData(alg_cell_list, alg_cell_grid, alg_settings)
     # organize datasets
     dframe_cells = drv_driver_publisher.organize_data()
     # publish datasets

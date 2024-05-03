@@ -6,16 +6,16 @@ Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
 Date:          '20230522'
 Version:       '1.0.0'
 """
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # libraries
 import os
 import json
 import logging
 from copy import deepcopy
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # method to get data by tag
 def get_data_by_tag(data_settings, data_tag='log', data_default=None):
     if data_tag in list(data_settings.keys()):
@@ -23,10 +23,10 @@ def get_data_by_tag(data_settings, data_tag='log', data_default=None):
     else:
         data_values = deepcopy(data_default)
     return data_values
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # method to get data settings
 def get_data_settings(file_name):
     if os.path.exists(file_name):
@@ -36,10 +36,10 @@ def get_data_settings(file_name):
         logging.error(' ===> Error in reading settings file "' + file_name + '"')
         raise IOError('File not found')
     return data_settings
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # method to parse data settings
 def parse_data_settings(data_settings):
 
@@ -63,9 +63,6 @@ def parse_data_settings(data_settings):
         path_stack = deepcopy(path_ts)
 
     grid_path = os.path.join(data_settings['grid']['folder_name'], data_settings['grid']['file_name'])
-
-    #file_name_tmpl = data_settings['template']['file_name_tmpl']
-    #datetime_tmpl = data_settings['template']['datetime_tmpl']
 
     file_name_src = data_settings['template']['file']['file_name_source']
     sub_path_src = data_settings['template']['time']['sub_path_source']
@@ -110,4 +107,4 @@ def parse_data_settings(data_settings):
 
     return app_settings
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------

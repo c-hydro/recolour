@@ -20,6 +20,8 @@ from pygeobase.io_base import GriddedTsBase
 from pynetcf.time_series import GriddedNcTs, OrthoMultiTs
 # -------------------------------------------------------------------------------------
 
+
+# -------------------------------------------------------------------------------------
 class GriddedNcTs(GriddedTsBase):
 
     def __init__(self, *args, **kwargs):
@@ -193,14 +195,17 @@ class GriddedNcTs(GriddedTsBase):
                     ts[offset_column] += self.offsets[offset_column]
 
         return ts
+# -------------------------------------------------------------------------------------
 
 
+# -------------------------------------------------------------------------------------
 # class to customize time series for hmc
 class GriddedNcOrthoMultiTs(GriddedNcTs):
 
     def __init__(self, *args, **kwargs):
         kwargs['ioclass'] = OrthoMultiTs
         super(GriddedNcOrthoMultiTs, self).__init__(*args, **kwargs)
+# -------------------------------------------------------------------------------------
 
 
 # -------------------------------------------------------------------------------------

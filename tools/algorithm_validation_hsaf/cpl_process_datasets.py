@@ -29,13 +29,15 @@ from lib_utils_generic import make_folder
 # datasets types
 datasets_type = {
     'ASCAT': ['data_record', 'nrt'],
-    'GLDAS': ['data_record'], 'HMC': ['data_record'], 'CCI': ['data_record'], 'RZSM': ['data_record', 'nrt'], 'SMAP': ['data_record']
+    'GLDAS': ['data_record'], 'HMC': ['data_record'], 'CCI': ['data_record'],
+    'RZSM': ['data_record', 'nrt'], 'ECMWF': ['data_record', 'nrt'], 'SMAP': ['data_record']
 }
 datasets_variable = {
     'ASCAT': ['sm'],
-    'GLDAS': ['SoilMoi0_10cm_inst'], 'HMC': ['soil_moisture'], 'CCI': ['sm'], 'RZSM': ['var40'], 'SMAP': ['soil_moisture']
+    'GLDAS': ['SoilMoi0_10cm_inst'], 'HMC': ['soil_moisture'], 'CCI': ['sm'],
+    'RZSM': ['var40'], 'ECMWF': ['var40'], 'SMAP': ['soil_moisture']
 }
-datasets_name = ['ASCAT', 'RZSM', 'GLDAS', 'HMC', 'CCI', 'SMAP']
+datasets_name = ['ASCAT', 'RZSM', 'ECMWF', 'GLDAS', 'HMC', 'CCI', 'SMAP']
 # -------------------------------------------------------------------------------------
 
 
@@ -219,18 +221,18 @@ class CplDatasets:
                 dset_reader = ASCAT_Dataset_DR(
                     dr_path=path_ts, grid_path=path_grid,
                     static_layer_path=path_static,
-                    tmp_info=dset_tmp)
+                    tmp_info=dset_tmp, bulk=dset_bulk)
             elif dset_type == 'nrt':
                 dset_reader = ASCAT_Dataset_NRT(
                     dr_path=path_ts, grid_path=path_grid,
                     static_layer_path=path_static,
-                    tmp_info=dset_tmp)
+                    tmp_info=dset_tmp, bulk=dset_bulk)
             else:
                 logging.error(' ===> Dataset type "' + dset_type +
                               '" for the Dataset name "' + dset_name + '" is not expected by the datasets driver')
                 raise NotImplemented('Case not implemented yet')
 
-        elif dset_name == 'RZSM':
+        elif (dset_name == 'RZSM') or (dset_name == 'ECMWF'):
             if dset_type == 'data_record' or dset_type == 'nrt':
                 dset_reader = RZSM_Dataset(
                     dr_path=path_ts, grid_path=path_grid,

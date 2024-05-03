@@ -17,13 +17,11 @@ import pandas as pd
 
 from lib_utils_generic import read_obj, write_obj
 from lib_interface_rzsm import RZSMTs
-
-# import pytesmo.temporal_matching as temp_match
 # ----------------------------------------------------------------------------------------------------------------------
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Class to wrap RZSM time series
+# class to wrap RZSM time series
 class RZSM_Dataset(RZSMTs):
 
     saturation = None
@@ -59,13 +57,7 @@ class RZSM_Dataset(RZSMTs):
             tmp_info = kwargs.pop('tmp_info')
         self.active_tmp, self.file_tmp, self.clean_tmp = self._set_tmp_info(tmp_info)
 
-        super(RZSM_Dataset, self).__init__(
-            ts_path=self.dr_path,
-            grid_path=None,
-            **kwargs
-        )
-
-    # --------------------------------------------------------------------------
+        super(RZSM_Dataset, self).__init__(ts_path=self.dr_path, grid_path=None, **kwargs)
 
     # method to set tmp info
     @staticmethod
@@ -89,7 +81,6 @@ class RZSM_Dataset(RZSMTs):
             os.makedirs(path_tmp, exist_ok=True)
 
         return active_tmp, os.path.join(path_tmp, file_tmp), clean_tmp
-    # --------------------------------------------------------------------------
 
     # Method to read time-series
     def read(self, *args, **kwargs):
@@ -99,7 +90,7 @@ class RZSM_Dataset(RZSMTs):
         gpi = args[0]
 
         # info time-series
-        logging.info(' ------> Read RZSM time-series for GPI "' + str(gpi) + '" ... ')
+        logging.info(' ------> Read ECMWF-RZSM time-series for GPI "' + str(gpi) + '" ... ')
 
         # organize dataframe
         try:
@@ -110,56 +101,117 @@ class RZSM_Dataset(RZSMTs):
 
             if not os.path.exists(file_gpi):
 
-                ts = super(RZSM_Dataset, self).read(*args)
+                # read time-series
+                logging.info(' -------> Get data ... ')
+                ts_dframe = super(RZSM_Dataset, self).read(*args)
 
-                if ts.size == 0:
-                    logging.warning(' ===> No data valid for RZSM dataset')
-                    logging.warning(' ===> RZSM time-series will be initialized by empty dataframe')
-                    ts = pd.DataFrame()
+                # check time-series extracted using gpi
+                if ts_dframe is not None:
+                    ts_dframe[ts_dframe['var40'] < 0] = np.nan
+                    ts_dframe.dropna(inplace=True)
+                    if ts_dframe.empty:
+                        lon, lat = self.grid.gpi2lonlat(gpi)
+                        logging.warning(' ===> ALL DATA ARE DEFINED BY NAN(S) :: POINT :: LON: ' +
+                                        str(lon) + ' -- LAT: ' + str(lat) + ' -- GPI: ' + str(gpi))
+                        logging.warning(' ===> All data for this gpi are defined by no_data time-series')
+                        logging.info(' -------> Get data ... FAILED. Time-series will be initialized by empty dataframe')
+                        ts_dframe = pd.DataFrame()
+                    else:
+                        logging.info(' -------> Get data ... DONE')
+                else:
+                    lon, lat = self.grid.gpi2lonlat(gpi)
+                    logging.warning(' ===> ALL DATA ARE DEFINED BY NONETYPE :: POINT :: LON: ' +
+                                    str(lon) + ' -- LAT: ' + str(lat) + ' -- GPI: ' + str(gpi))
+                    logging.warning(' ===> All data for this gpi are defined by NoneType')
+                    logging.info(' -------> Get data ... FAILED. time-series will be initialized by empty dataframe')
+                    ts_dframe = pd.DataFrame()
 
+                # testing for debugging
+                # lon, lat = self.grid.gpi2lonlat(gpi)
+                # ts_dframe_test = super(GLDAS_Dataset, self).read(lon, lat)
+
+                # check data valid
+                if ts_dframe.size == 0:
+                    logging.warning(' ===> No data valid for ECMWF-RZSM dataset')
+                    logging.warning(' ===> ECMWF-RZSM time-series will be initialized by empty dataframe')
+
+                    ts_dframe = pd.DataFrame()
+                    # info get data end (skipped)
+                    logging.info(' -------> Get data ... SKIPPED. ECMWF-RZSM time-series is not defined.')
+                else:
+
+                    # info get data end
+                    logging.info(' -------> Get data ... DONE')
+
+                # info apply mask start
+                logging.info(' -------> Apply mask ...')
+
+                # RZSM is expressed as soil wetness index, which takes values in [0, 1]
+                mask = (ts_dframe < 0) | (ts_dframe > 1)
+                ts_dframe[mask] = np.nan
+                # drop nan(s)
+                ts_dframe = ts_dframe.dropna()
+
+                # info apply mask end
+                logging.info(' -------> Apply mask ... DONE')
+
+                # check data valid
+                logging.info(' -------> Check data ... ')
+                if ts_dframe.size == 0:
+                    logging.warning(' ===> No data valid for ECMWF-RZSM dataset')
+                    logging.warning(' ===> ECMWF-RZSM time-series will be initialized by empty dataframe')
+                    ts_dframe = pd.DataFrame()
+                    logging.info(' -------> Check data ... FAILED. No data available')
+                else:
+                    valid_value = ts_dframe.shape[0]
+                    start_index = ts_dframe.index[0].strftime('%Y-%m-%d %H:%M:%S')
+                    end_index = ts_dframe.index[-1].strftime('%Y-%m-%d %H:%M:%S')
+                    logging.info(' --------> Data valid for ECMWF-RZSM dataset (N: "' + str(valid_value) + '")')
+                    logging.info(' --------> Time valid for ECMWF-RZSM dataset from "' + start_index +
+                                 '" to "' + end_index + '"')
+                    logging.info(' -------> Check data ... DONE')
 
                 # save time-series if flag is active
                 if active_tmp:
-                    write_obj(file_gpi, ts)
+                    write_obj(file_gpi, ts_dframe)
 
                 # info time-series
-                logging.info(' ------> Read RZSM time-series for GPI "' + str(gpi) + '" ... DONE ')
+                logging.info(' ------> Read ECMWF-RZSM time-series for GPI "' + str(gpi) + '" ... DONE ')
 
             else:
 
                 # read time-series previously saved
-                ts = read_obj(file_gpi)
+                ts_dframe = read_obj(file_gpi)
+
+                # check data valid
+                if ts_dframe.size == 0:
+                    logging.warning(' ===> No data valid for ECMWF-RZSM  dataset')
+                    logging.warning(' ===> ECMWF-RZSM time-series will be initialized by empty dataframe')
+                    ts_dframe = pd.DataFrame()
+                else:
+                    valid_value = ts_dframe.shape[0]
+                    start_index = ts_dframe.index[0].strftime('%Y-%m-%d %H:%M:%S')
+                    end_index = ts_dframe.index[-1].strftime('%Y-%m-%d %H:%M:%S')
+                    logging.info(' -------> Data valid for ECMWF-RZSM dataset (N: "' + str(valid_value) + '")')
+                    logging.info(' -------> Time valid for ECMWF-RZSM dataset from "' + start_index +
+                                 '" to "' + end_index + '"')
+
                 # info time-series
-                logging.info(' ------> Read RZSM time-series for GPI "' + str(gpi) + '" ... PREVIOUSLY SAVED')
+                logging.info(' ------> Read ECMWF-RZSM time-series for GPI "' + str(gpi) + '" ... PREVIOUSLY SAVED')
 
         except BaseException as base_exc:
 
-            logging.warning(' ===> Error in reading RZSM time-series "' + repr(base_exc) + '"')
-            logging.warning(' ===> RZSM time-series will be initialized by empty dataframe')
-            ts = pd.DataFrame()
+            logging.warning(' ===> Error in reading ECMWF-RZSM time-series "' + repr(base_exc) + '"')
+            logging.warning(' ===> ECMWF-RZSM time-series will be initialized by empty dataframe')
+            ts_dframe = pd.DataFrame()
 
             # info time-series
-            logging.info(' ------> Read RZSM time-series for GPI "' + str(gpi) + '" ... FAILED')
+            logging.info(' ------> Read ECMWF-RZSM time-series for GPI "' + str(gpi) + '" ... FAILED')
 
-            # ts must be defined by dataframe
-        if ts is None:
-            logging.warning(' ===> RZSM time-series is defined by NoneType. It will be format using DataFrame')
-            ts = pd.DataFrame()
+        # ts must be defined by dataframe
+        if ts_dframe is None:
+            logging.warning(' ===> ECMWF-RZSM time-series is defined by NoneType. It will be format using DataFrame')
+            ts_dframe = pd.DataFrame()
 
-        # data cleaning
-        # RZSM is expressed as soil wetness index, which takes values in [0, 1]
-        # so all values outside this range need to be put to nan
-        mask = (ts < 0) | (ts > 1)
-        ts[mask] = np.nan
-
-        valid_value = np.sum(~np.isnan(ts.values))
-        logging.info(' ------> Data valid for RZSM dataset (N: "' + str(valid_value) + '")')
-
-        # to speed up validation, if reference dataset has less than 10 valid values
-        # it is substituted with an empty dataframe to make validation skip the whole gpi
-        # which is exactly what would happen in the same case when computing metrics
-        if self.tag == 'reference' and valid_value < 10:
-            ts = pd.DataFrame()
-
-        return ts
+        return ts_dframe
 # ----------------------------------------------------------------------------------------------------------------------

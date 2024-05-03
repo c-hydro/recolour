@@ -161,7 +161,18 @@ def read_file_collection(file_name_data,
                          variable_time='time',
                          variable_idx='location', variable_geo_x='longitude', variable_geo_y='latitude',
                          variable_type='ASCAT',
+                         variable_no_data=-9999.0, variable_min_value=0, variable_max_value=100, variable_scale_factor=1,
                          variable_land_filter=True, variable_committed_filter=True):
+
+    # organize variable(s) settings in list format
+    if not isinstance(variable_no_data, list):
+        variable_no_data = [variable_no_data]
+    if not isinstance(variable_min_value, list):
+        variable_min_value = [variable_min_value]
+    if not isinstance(variable_max_value, list):
+        variable_max_value = [variable_max_value]
+    if not isinstance(variable_scale_factor, list):
+        variable_scale_factor = [variable_scale_factor]
 
     # get reference grid
     if file_obj_grid is None:
@@ -189,7 +200,7 @@ def read_file_collection(file_name_data,
 
         variable_collection, attr_collection = {}, {}
         variable_data_idx, variable_data_geo_x, variable_data_geo_y = None, None, None
-        for variable_name in variable_list:
+        for variable_id, variable_name in enumerate(variable_list):
 
             variable_tmp = file_handle.variables[variable_name]
 
@@ -221,16 +232,33 @@ def read_file_collection(file_name_data,
                 variable_data = pd.DatetimeIndex(variable_tmp)
 
             attrs_data['time_units'] = variable_units
-
             attr_collection[variable_name] = attrs_data
+
+            # apply variable settings
+            if variable_name in var_dest_list:
+
+                no_data, scale_factor = variable_no_data[variable_id], variable_scale_factor[variable_id]
+                min_value, max_value = variable_min_value[variable_id], variable_max_value[variable_id]
+
+                if no_data is not None:
+                    variable_data[variable_data == no_data] = np.nan
+                if min_value is not None:
+                    variable_data[variable_data < min_value] = np.nan
+                if max_value is not None:
+                    variable_data[variable_data > max_value] = np.nan
+                if scale_factor is not None:
+                    variable_data = variable_data * scale_factor
+
+            variable_collection[variable_name] = variable_data
+
             variable_collection[variable_name] = variable_data
 
     collections_dframe = pd.DataFrame(variable_collection, index=variable_data_idx)
-    collections_dframe.replace(-999999, np.nan, inplace=True)
 
     # check variable for the different type(s)
     if variable_type == 'ASCAT':
 
+        # case ascat
         gpi_grid = grid_dframe['gpi'].values
         car_grid = grid_dframe['committed_area'].values
         land_grid = grid_dframe['land_flag'].values
@@ -243,14 +271,13 @@ def read_file_collection(file_name_data,
         land_data = land_grid[idx_variable]
         collections_dframe['land_flag'] = land_data
 
-    elif variable_type == 'ECMWF' or variable_type == 'HMC':
+    else:
+
+        # case default
         collections_dframe['committed_area'] = 1
         collections_dframe['land_flag'] = 1
         collections_dframe['longitude'] = variable_data_geo_x
         collections_dframe['latitude'] = variable_data_geo_y
-    else:
-        logging.error(' ===> Datasets type is not expected ("ASCAT" or "ECMWF") ')
-        raise NotImplemented('Case not implemented yet')
 
     collections_dframe = collections_dframe.rename(
         columns={'longitude': variable_name_geo_x, 'latitude': variable_name_geo_y})
@@ -294,9 +321,12 @@ def write_file_collection(file_name, file_obj, file_tag_location='location'):
         if isinstance(var_values[0], str):
             var_data = np.array(var_values, dtype=object)
             var_handle = file_handle.createVariable(varname=var_name, dimensions=('data',), datatype='str')
-        elif isinstance(var_values[0], (int, float, np.integer, np.floating)):
+        elif isinstance(var_values[0], (float, np.floating)):
             var_data = var_values
             var_handle = file_handle.createVariable(varname=var_name, dimensions=('data',), datatype='f4')
+        elif isinstance(var_values[0], (int, np.integer)):
+            var_data = var_values
+            var_handle = file_handle.createVariable(varname=var_name, dimensions=('data',), datatype='i4')
         elif isinstance(var_values[0], np.datetime64):
             var_tmp = pd.DatetimeIndex(var_values).to_pydatetime()
             var_data = netCDF4.date2num(var_tmp, units=file_time_units, calendar='gregorian')

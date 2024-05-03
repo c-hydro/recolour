@@ -1,9 +1,9 @@
 {
   "product": {
     "__comment_product": "h104, h105, h16, h103",
-    "__comment_bbox" : "bbox format:: [6, 35, 18, 47] or null",
+    "__comment_bbox" : "bbox format (example italy) :: [6, 35, 18.5, 47] or null",
     "name": "h16",
-    "bbox": [6, 35, 18, 47]
+    "bbox": [6, 35, 18.5, 47]
   },
   "parameters": {
     "__comment_writing_mode": "'w' 'a'",

@@ -23,7 +23,7 @@ from pynetcf.time_series import GriddedNcOrthoMultiTs
 
 from datetime import timedelta
 
-from lib_grid_cci import cell_grid
+from lib_grid_cci import cell_grid, cci_cell_grid
 from netCDF4 import Dataset
 from pygeogrids.netcdf import load_grid
 
@@ -62,7 +62,6 @@ class BaseImage(ImageBase):
 
         self.grid_path = grid_path
         self.parameters = parameter
-        #self.fill_values = np.repeat(9999., 0)
         self.fill_values = np.repeat(9999., 1440 * 0)
         self.grid = cell_grid(self.grid_path) if not subgrid else subgrid
         self.array_1D = array_1D
@@ -73,7 +72,7 @@ class BaseImage(ImageBase):
         return_img, return_metadata = {}, {}
         
         try:
-            # dataset = Dataset(self.filename)
+            # tmp = Dataset(self.filename)
             dataset = xr.open_dataset(self.filename) # add to use xarray library
         except IOError as e:
             print(e)
@@ -115,6 +114,9 @@ class BaseImage(ImageBase):
                     raise IOError('bad dimensions definition')
                 np.ma.set_fill_value(param_data, 9999)
 
+                # reverse the data to be in the correct order
+                param_data = np.flipud(param_data)  # to adapt to the other products that used in the metrics procedure
+
                 ''' debug
                 data_tmp = param_data.copy()
                 data_tmp[data_tmp < 0] = np.nan
@@ -129,7 +131,7 @@ class BaseImage(ImageBase):
                 return_img.update({str(parameter): param_data[self.grid.activegpis]})
                 return_metadata.update({str(parameter): param_metadata})
                         
-            # check for corrupt files
+                # check for corrupt files
                 try:
                     return_img[parameter]
                 except KeyError:
@@ -151,18 +153,7 @@ class BaseImage(ImageBase):
                 timestamp,
             )
         else:
-            for key in return_img:
-                return_img[key] = np.flipud(
-                    return_img[key].reshape((720, 1440))
-                )
-
-            return Image(
-                np.flipud(self.grid.activearrlon.reshape((720, 1440))),
-                np.flipud(self.grid.activearrlat.reshape((720, 1440))),
-                return_img,
-                return_metadata,
-                timestamp,
-            )
+            raise NotImplementedError('array 2d condition not implemented yet')
 
     def write(self):
         raise NotImplementedError()

@@ -212,12 +212,6 @@ class HMCTs(GriddedNcOrthoMultiTs):
             grid_path = os.path.join(ts_path, "grid.nc")
 
         grid = load_grid(grid_path)
-        kwargs = {'read_bulk': read_bulk}
+        kwargs = {'read_bulk': read_bulk}  # add options to read_bulk to speed up the reading of the file(s)
         super(HMCTs, self).__init__(ts_path, grid, **kwargs)
 # -------------------------------------------------------------------------------------
-
-
-
-
-
-

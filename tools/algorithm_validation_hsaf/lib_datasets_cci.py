@@ -13,6 +13,7 @@ import logging
 import os
 import tempfile
 
+import numpy as np
 import pandas as pd
 
 from lib_utils_generic import read_obj, write_obj
@@ -108,22 +109,57 @@ class CCI_Dataset(CCITs):
             if not os.path.exists(file_gpi):
 
                 # read time-series
+                logging.info(' -------> Get data ... ')
                 ts_dframe = super(CCI_Dataset, self).read(*args)
+                # check time-series extracted using gpi
+                if ts_dframe is not None:
+                    ts_dframe[ts_dframe['sm'] < 0] = np.nan
+                    ts_dframe.dropna(inplace=True)
+                    if ts_dframe.empty:
+                        lon, lat = self.grid.gpi2lonlat(gpi)
+                        logging.warning(' ===> ALL DATA ARE DEFINED BY NAN(S) :: POINT :: LON: ' +
+                                        str(lon) + ' -- LAT: ' + str(lat) + ' -- GPI: ' + str(gpi))
+                        logging.warning(' ===> All data for this gpi are defined by no_data time-series')
+                        logging.info(' -------> Get data ... FAILED. Time-series will be initialized by empty dataframe')
+                        ts_dframe = pd.DataFrame()
+                    else:
+                        logging.info(' -------> Get data ... DONE')
+                else:
+                    lon, lat = self.grid.gpi2lonlat(gpi)
+                    logging.warning(' ===> ALL DATA ARE DEFINED BY NONETYPE :: POINT :: LON: ' +
+                                    str(lon) + ' -- LAT: ' + str(lat) + ' -- GPI: ' + str(gpi))
+                    logging.warning(' ===> All data for this gpi are defined by NoneType')
+                    logging.info(' -------> Get data ... FAILED. time-series will be initialized by empty dataframe')
+                    ts_dframe = pd.DataFrame()
 
-                # filter datasets
-                if self.only_valid:
-                    self.mask_sm_nan = True
-                    self.mask_invalid_flags = True
-                if self.mask_sm_nan:
-                    ts_dframe = ts_dframe[ts_dframe['sm'] != self.sm_nan]
-                if self.mask_invalid_flags:
-                    ts_dframe = ts_dframe[ts_dframe['flag'] == self.valid_flag]
+                # testing for debugging
+                # lon, lat = self.grid.gpi2lonlat(gpi)
+                # ts_dframe_test = super(CCI_Dataset, self).read(lon, lat)
+
+                # info apply filter(s) start
+                logging.info(' -------> Apply filter(s) ...')
+                if not ts_dframe.empty:
+                    # filter datasets
+                    if self.only_valid:
+                        self.mask_sm_nan = True
+                        self.mask_invalid_flags = True
+                    if self.mask_sm_nan:
+                        ts_dframe = ts_dframe[ts_dframe['sm'] != self.sm_nan]
+                    if self.mask_invalid_flags:
+                        ts_dframe = ts_dframe[ts_dframe['flag'] == self.valid_flag]
+                    # info apply filter(s) end
+                    logging.info(' -------> Apply filter(s) ... DONE')
+                else:
+                    # info apply filter(s) end
+                    logging.info(' -------> Apply filter(s) ... SKIPPED. Dataframe is empty')
 
                 # check data valid
+                logging.info(' -------> Check data ... ')
                 if ts_dframe.size == 0:
                     logging.warning(' ===> No data valid for CCI dataset')
                     logging.warning(' ===> CCI time-series will be initialized by empty dataframe')
                     ts_dframe = pd.DataFrame()
+                    logging.info(' -------> Check data ... FAILED. No data available')
                 else:
                     valid_value = ts_dframe.shape[0]
                     start_index = ts_dframe.index[0].strftime('%Y-%m-%d %H:%M:%S')
@@ -131,6 +167,7 @@ class CCI_Dataset(CCITs):
                     logging.info(' -------> Data valid for CCI dataset (N: "' + str(valid_value) + '")')
                     logging.info(' -------> Time valid for CCI dataset from "' + start_index +
                                  '" to "' + end_index + '"')
+                    logging.info(' -------> Check data ... DONE')
 
                 # save time-series if flag is active
                 if active_tmp:

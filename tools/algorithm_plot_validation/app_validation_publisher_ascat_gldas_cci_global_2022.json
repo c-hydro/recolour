@@ -1,0 +1,174 @@
+{
+  "flags": {
+    "reset_ancillary_datasets": true,
+    "reset_destination_datasets": true,
+    "reset_logs": true
+  },
+  "info": {
+    "datasets": "ASCAT",
+    "product": "h16"
+  },
+  "domain": {
+    "__comment__": "cell_start=0, cell_end=2591",
+    "name": "global",
+    "cell_start": null,
+    "cell_end": null,
+    "cell_list": null
+  },
+  "parameters": {
+    "datasets": {},
+    "figure": {
+      "figure_size": 455.24411,
+      "figure_dpi": 500,
+      "max_distance": 24000,
+      "map_pos": [0.05, 0.16, 0.9, 0.76],
+      "cb_pos": [0.3, 0.14, 0.4, 0.025],
+      "data_extent_default": [-180, 180, -60, 85],
+      "data_extent_over_domain": true,
+      "grid_sampling": 0.05,
+      "title_fontsize": 14, "title_fontweight": "bold",
+      "cb_fontsize": 6, "cb_fontweight": "bold"
+    }
+  },
+  "grid": {
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_static/",
+    "file_name": "TUW_WARP5_grid_info_2_3.nc"
+  },
+  "datasets": {
+    "source": {
+      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/results/2022_ascat_gldas_cci_global/",
+      "file_name": "{cell}.nc",
+      "variables": [
+        "gpi", "lon", "lat", "ASCAT_ALL_snr", "ALL_n_obs",
+        "ASCAT_GLDAS_ALL_R", "ASCAT_PASSIVE_ALL_R",
+        "ASCAT_GLDAS_ALL_p_R"]
+    },
+    "ancillary": {
+      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/analysis/2022_ascat_gldas_cci_global/",
+      "file_name": "validation_hsaf_results_global.pkl"
+    },
+    "destination": {
+      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/analysis/2022_ascat_gldas_cci_global/",
+      "file_name": "validation_hsaf_results_global.nc",
+      "variables": [
+        "gpi", "lon", "lat","x_snr", "obs",
+        "xy_r", "xz_r",
+        "xy_p_r"]
+    }
+  },
+  "figure": {
+    "committed_area_map": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2022_ascat_gldas_cci_global/",
+        "file_name": "map_committed_area.png",
+        "variables" : ["gpi", "lon", "lat", "obs", "committed_area"],
+        "active": false
+    },
+    "pearson_data_map": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2022_ascat_gldas_cci_global/",
+        "file_name": "map_pr_reference_vs_gldas_{data_type}.png",
+        "variables" : ["gpi", "lon", "lat", "obs", "xy_r"],
+        "active": false
+    },
+    "snr_data_map": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2022_ascat_gldas_cci_global/",
+        "file_name": "map_snr_all_{data_type}.png",
+        "variables" : ["gpi", "lon", "lat", "obs", "x_snr"],
+        "active": true
+    },
+    "snr_stats_pie": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2022_ascat_gldas_cci_global/",
+        "file_name": "pie_chart_snr_all.png",
+        "variables" : ["gpi", "lon", "lat", "obs", "x_snr"],
+        "active": false
+    },
+    "pearson_stats_pie": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2022_ascat_gldas_cci_global/",
+        "file_name": "pie_chart_pr_reference_vs_gldas.png",
+        "variables" : ["gpi", "lon", "lat", "obs", "xy_r"],
+        "active": false
+    },
+    "snr_stats_box": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2022_ascat_gldas_cci_global/",
+        "file_name": "box_chart_snr_all.png",
+        "variables" : ["gpi", "lon", "lat", "obs", "x_snr", "xy_r", "xy_p_r"],
+        "active": false
+    },
+    "pearson_stats_box": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2022_ascat_gldas_cci_global/",
+        "file_name": "box_chart_pr_reference_vs_gldas.png",
+        "variables" : ["gpi", "lon", "lat", "obs", "xy_r", "xy_p_r"],
+        "active": false
+    }
+  },
+  "renderer": {
+    "committed_area_map": {
+      "type": "committed_area", "committed_area": true,
+      "variable_in": "committed_area", "variable_out": null,
+      "title_label": "",
+      "cbar_label": "label", "cbar_extent": false,
+      "cbar_ticks": false, "cbar_show": false,
+      "vmin": 0, "vmax": 1, "clip": null,
+      "cmap_type": "tab20c_committed_area", "cmap_n": 3
+    },
+    "pearson_data_map": {
+      "type": "data", "committed_area": [false, true],
+      "variable_in": "xy_r", "variable_out": null,
+      "title_label": "Pearson Correlation Coefficient (R)",
+      "cbar_label": "Pearson R [-]", "cbar_extent": false,
+      "cbar_ticks": false, "cbar_show": true,
+      "vmin": -1, "vmax": 1, "clip": null,
+      "cmap_type": "vik_r", "cmap_n": 32
+    },
+    "snr_data_map": {
+      "type": "data", "committed_area": [false, true],
+      "variable_in": "x_snr", "variable_out": null,
+      "title_label": "Signal-to-Noise Ratio (SNR)",
+      "cbar_label": "SNR [dB]", "cbar_extent": "both",
+      "cbar_ticks": {"tick_min": -9, "tick_max": 9, "tick_step": 3}, "cbar_show": true,
+      "vmin": -9, "vmax": 9, "clip": [-8.9, 8.9],
+      "cmap_type": "bam", "cmap_n": 24
+    },
+    "pearson_stats_pie": {
+      "type": "stats_pearson_pie", "committed_area": true,
+      "variable_in": "xy_r", "variable_out": "stats_pr",
+      "title_label": "Pearson R",
+      "cbar_label": "Pearson R [-]", "cbar_extent": false,
+      "cbar_ticks": false, "cbar_show": false,
+      "vmin": 0, "vmax": 8, "clip": null,
+      "cmap_type": "tab20c_pie", "cmap_n": 8
+    },
+    "snr_stats_pie": {
+      "type": "stats_snr_pie", "committed_area": true,
+      "variable_in": "x_snr", "variable_out": "stats_snr",
+      "title_label": "Signal-to-Noise Ratio (SNR)",
+      "cbar_label": "SNR [dB]", "cbar_extent": "both",
+      "cbar_ticks": false, "cbar_show": false,
+      "vmin": 0, "vmax": 8, "clip": null,
+      "cmap_type": "tab20c_pie", "cmap_n": 8
+    },
+    "pearson_stats_box": {
+      "type": "stats_pearson_box", "committed_area": [false, true],
+      "variable_in_data": "xy_r", "variable_in_p_r": "xy_p_r", "variable_in_r": "xy_r",
+      "variable_out": "stats_person_box",
+      "y_label": "Pearson R [-]", "x_label": ["Global", "Committed Area"],
+      "title_label": null,
+      "lim_threshold": 0.5, "lim_target": 0.65, "lim_optimal": 0.8,
+      "lim_min": -1, "lim_max": 1,
+      "palette_type": "Set2"
+    },
+    "snr_stats_box": {
+      "type": "stats_snr_box", "committed_area": [false, true],
+      "variable_in_data": "x_snr", "variable_in_p_r": "xy_p_r", "variable_in_r": "xy_r",
+      "variable_out": "stats_snr_box",
+      "y_label": "Signal-to-Noise-Ratio [dB]", "x_label": ["Global", "Committed Area"],
+      "title_label": null,
+      "lim_threshold": 0, "lim_target": 3, "lim_optimal": 6,
+      "lim_min": -10, "lim_max": 20,
+      "palette_type": "Set2"
+    }
+  },
+  "log": {
+    "path_log" : "/home/fabio/Desktop/Recolour_Workspace/ws/log/",
+    "file_log": "validation_hsaf_ascat_gldas_cci_global_2022.txt"
+  }
+}

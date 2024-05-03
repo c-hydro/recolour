@@ -197,7 +197,7 @@ class DrvFxRunner:
 
         elif self.product_name == 'h104':
 
-            product_sub_folder_tmpl = None
+            product_sub_folder_tmpl, product_sub_folder_root = None, None
             product_filename_tmpl = 'ASCA_{product_id}_02_M0{sat_id}_{date}Z_*_*_*_*.nat.gz'
 
             product_id = 'SMR'
@@ -217,7 +217,7 @@ class DrvFxRunner:
 
         elif self.product_name == 'h105':
 
-            product_sub_folder_tmpl = None
+            product_sub_folder_tmpl, product_sub_folder_root = None, None
             product_filename_tmpl = 'ASCA_{product_id}_02_M0{sat_id}_{date}Z_*_*_*_*.nat.gz'
 
             product_id = 'SMO'
@@ -238,6 +238,14 @@ class DrvFxRunner:
         else:
             logging.error(' ===> Product "' + self.product_name + '" is not supported by the algorithm')
             raise NotImplemented('Case not implemented yet')
+
+        # check datasets availability
+        if product_time_intervals is None:
+            logging.warning(' ===> Time intervals are not defined. Datasets are not available for resampling')
+            logging.warning(' :: Info (1) :: Data :: Root folder: "' + product_sub_folder_root + '"')
+            logging.warning(' :: Info (2) :: Data :: Time start: "' +
+                            str(time_start) + '" - Time end: ' + str(time_end) + '"')
+            logging.warning(' ===> Resampling will be skipped in this period. Check your datasets availability')
 
         # info method end
         logging.info(' ---> Organize io class source ... DONE')
@@ -313,17 +321,26 @@ class DrvFxRunner:
         file_path_ts = os.path.join(self.folder_name_ts, self.file_name_ts)
         os.makedirs(self.folder_name_ts, exist_ok=True)
 
-        # run resample method
-        fx_class_driver.resample(
-            fx_time_intervals,
-            write_n_resampled=self.write_n_resampled,
-            init_file_ws=init_file_ws, use_file_ws=use_file_ws, name_file_ws=file_path_ws,
-            init_file_chunk=init_file_chunk, use_file_chunk=use_file_chunk, name_file_chunk=file_path_chunk,
-            init_file_cell=init_file_cell, use_file_cell=use_file_cell, name_file_cell=file_path_cell,
-            name_file_ts=file_path_ts)
+        # check time intervals definition
+        if fx_time_intervals is not None:
 
-        # info method end
-        logging.info(' ---> Execute fx resampler ... DONE')
+            # run resample method
+            fx_class_driver.resample(
+                fx_time_intervals,
+                write_n_resampled=self.write_n_resampled,
+                init_file_ws=init_file_ws, use_file_ws=use_file_ws, name_file_ws=file_path_ws,
+                init_file_chunk=init_file_chunk, use_file_chunk=use_file_chunk, name_file_chunk=file_path_chunk,
+                init_file_cell=init_file_cell, use_file_cell=use_file_cell, name_file_cell=file_path_cell,
+                name_file_ts=file_path_ts)
+
+            # info method end
+            logging.info(' ---> Execute fx resampler ... DONE')
+
+        else:
+
+            # info method end
+            logging.warning(' ===> Time intervals are not defined. Datasets are not available for resampling')
+            logging.info(' ===> Execute fx resampler ... SKIPPED')
 
     # -------------------------------------------------------------------------------------
 

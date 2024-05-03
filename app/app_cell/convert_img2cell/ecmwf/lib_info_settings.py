@@ -6,15 +6,16 @@ Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
 Date:          '20230522'
 Version:       '1.0.0'
 """
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # libraries
 import os
 import json
 import logging
-# -------------------------------------------------------------------------------------
+from copy import deepcopy
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # method to get data by tag
 def get_data_by_tag(data_settings, data_tag='log', data_default=None):
     if data_tag in list(data_settings.keys()):
@@ -22,10 +23,10 @@ def get_data_by_tag(data_settings, data_tag='log', data_default=None):
     else:
         data_values = deepcopy(data_default)
     return data_values
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # method to get data settings
 def get_data_settings(file_name):
     if os.path.exists(file_name):
@@ -35,16 +36,20 @@ def get_data_settings(file_name):
         logging.error(' ===> Error in reading settings file "' + file_name + '"')
         raise IOError('File not found')
     return data_settings
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # method to parse data settings
 def parse_data_settings(data_settings):
 
     # get product
     product_name = data_settings['product']['name']
     product_bbox = data_settings['product']['bbox']
+    if 'image_buffer' in list(data_settings['product'].keys()):
+        product_image_buffer = str(data_settings['product']['image_buffer'])
+    else:
+        product_image_buffer = str(4)
     # get flags
     reset_static = data_settings['flags']['reset_static']
     reset_ts = data_settings['flags']['reset_dynamic']
@@ -56,6 +61,10 @@ def parse_data_settings(data_settings):
 
     path_grid = data_settings['data']['path_grid']
     path_ts = data_settings['data']['path_ts']
+    if 'path_stack' in list(data_settings['data'].keys()):
+        path_stack = data_settings['data']['path_stack']
+    else:
+        path_stack = deepcopy(path_ts)
 
     grid_path = os.path.join(data_settings['grid']['folder_name'], data_settings['grid']['file_name'])
 
@@ -66,7 +75,6 @@ def parse_data_settings(data_settings):
     file_name_dst = data_settings['template']['file']['file_name_destination']
     sub_path_dst = data_settings['template']['time']['sub_path_destination']
     datetime_dst = data_settings['template']['time']['datetime_destination']
-
 
     if product_bbox is not None:
         geo_bbox = ''
@@ -79,13 +87,13 @@ def parse_data_settings(data_settings):
         geo_bbox = ''
 
     # organize info
-    product_args, geo_args, path_args, time_args, tmpl_args_src, tmpl_args_dst = (
-        [product_name], [geo_bbox],
-        [path_grid, path_ts], [time_start, time_end, time_run],
+    product_args, geo_args, im_buffer_args, path_args, time_args, tmpl_args_src, tmpl_args_dst = (
+        [product_name], [geo_bbox], [product_image_buffer],
+        [path_grid, path_ts, path_stack], [time_start, time_end, time_run],
         [file_name_src, datetime_src, sub_path_src],
         [file_name_dst, datetime_dst, sub_path_dst],
     )
-    flags_args = [reset_static, reset_ts]
+    flags_args = [str(reset_static), str(reset_ts)]
     grid_args = [grid_path]
     variables_args = data_settings['variables']
 
@@ -93,6 +101,7 @@ def parse_data_settings(data_settings):
     app_settings = []
     app_settings.extend(product_args)
     app_settings.extend(geo_args)
+    app_settings.extend(im_buffer_args)
     app_settings.extend(flags_args)
     app_settings.extend(path_args)
     app_settings.extend(time_args)
@@ -102,3 +111,5 @@ def parse_data_settings(data_settings):
     app_settings.extend(variables_args)
 
     return app_settings
+
+# ----------------------------------------------------------------------------------------------------------------------

@@ -70,6 +70,7 @@ def get_variable_name_OLD(variable_list_in, variable_list_out, variable_name='gp
 def read_file_collection(file_name_data, file_name_grid,
                          variable_list=None,
                          variable_idx='gpi', variable_geo_x='lon', variable_geo_y='lat',
+                         variable_cell='cell',
                          variable_type='ASCAT', variable_land_filter=True):
 
     # get reference grid
@@ -81,6 +82,8 @@ def read_file_collection(file_name_data, file_name_grid,
 
     if variable_list is None:
         variable_list = ['gpi', 'lon', 'lat', 'xyz_x_snr', 'obs', 'xy_pr', 'xz_pr', 'yz_pr']
+    # add extra variable(s)
+    variable_list = variable_list + ['cell']
 
     with netCDF4.Dataset(file_name_data) as file_handle:
 
@@ -105,8 +108,19 @@ def read_file_collection(file_name_data, file_name_grid,
 
             variable_collection[variable_name] = variable_data
 
+        # add extra variable(s)
+        if variable_cell in list(file_handle.variables):
+            variable_tmp = np.array(file_handle.variables[variable_cell][:], dtype=int)
+            variable_collection[variable_cell] = variable_tmp
+
     variable_dframe = pd.DataFrame(variable_collection, index=variable_data_idx)
     variable_dframe.replace(-999999, np.nan, inplace=True)
+
+    # check variable name (in case of redefinition)
+    if variable_type == 'RZSM':
+        logging.warning(' ===> Variable type "RZSM" redefined by "ECMWF" tag. '
+                        'Please, check the variable type in the configuration file!')
+        variable_type = 'ECMWF'
 
     # check variable for the different type(s)
     if variable_type == 'ASCAT':
@@ -123,7 +137,7 @@ def read_file_collection(file_name_data, file_name_grid,
         land_data = land_grid[idx_variable]
         variable_dframe['land_flag'] = land_data
 
-    elif variable_type == 'RZSM' or variable_type == 'HMC':
+    elif variable_type == 'ECMWF' or variable_type == 'HMC':
 
         gpi_grid = grid_dframe['gpi'].values
         car_grid = grid_dframe['committed_area'].values
@@ -132,16 +146,16 @@ def read_file_collection(file_name_data, file_name_grid,
 
         idx_variable = find_grid_idx_to_data(gpi_grid, gpi_variable)
 
-        car_data = car_grid[idx_variable]
-        variable_dframe['committed_area'] = car_data
-        land_data = land_grid[idx_variable]
-        variable_dframe['land_flag'] = land_data
-
-        # ----------------------------------------------
-        # the above debugging lines substitute the following two (OLD)
-        # variable_dframe['committed_area'] = 1
-        # variable_dframe['land_flag'] = 1
-        # ----------------------------------------------
+        try:
+            car_data = car_grid[idx_variable]
+            variable_dframe['committed_area'] = car_data
+            land_data = land_grid[idx_variable]
+            variable_dframe['land_flag'] = land_data
+        except BaseException as base_error:
+            logging.warning(' ===> Variable "committed_area" and "land_flag" not found in grid file. '
+                            'The variable(s) will be set to 1')
+            variable_dframe['committed_area'] = 1
+            variable_dframe['land_flag'] = 1
 
         variable_dframe['lon'] = variable_data_geo_x
         variable_dframe['lat'] = variable_data_geo_y

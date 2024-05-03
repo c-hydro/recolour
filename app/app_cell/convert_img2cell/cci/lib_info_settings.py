@@ -46,6 +46,10 @@ def parse_data_settings(data_settings):
     # get product
     product_name = data_settings['product']['name']
     product_bbox = data_settings['product']['bbox']
+    if 'image_buffer' in list(data_settings['product'].keys()):
+        product_image_buffer = str(data_settings['product']['image_buffer'])
+    else:
+        product_image_buffer = str(4)
     # get flags
     reset_static = data_settings['flags']['reset_static']
     reset_ts = data_settings['flags']['reset_dynamic']
@@ -63,9 +67,6 @@ def parse_data_settings(data_settings):
         path_stack = deepcopy(path_ts)
 
     grid_path = os.path.join(data_settings['grid']['folder_name'], data_settings['grid']['file_name'])
-
-    #file_name_tmpl = data_settings['template']['file_name_tmpl']
-    #datetime_tmpl = data_settings['template']['datetime_tmpl']
 
     file_name_src = data_settings['template']['file']['file_name_source']
     sub_path_src = data_settings['template']['time']['sub_path_source']
@@ -86,8 +87,8 @@ def parse_data_settings(data_settings):
         geo_bbox = ''
 
     # organize info
-    product_args, geo_args, path_args, time_args, tmpl_args_src, tmpl_args_dst = (
-        [product_name], [geo_bbox],
+    product_args, geo_args, im_buffer_args, path_args, time_args, tmpl_args_src, tmpl_args_dst = (
+        [product_name], [geo_bbox], [product_image_buffer],
         [path_grid, path_ts, path_stack], [time_start, time_end, time_run],
         [file_name_src, datetime_src, sub_path_src],
         [file_name_dst, datetime_dst, sub_path_dst]
@@ -99,8 +100,9 @@ def parse_data_settings(data_settings):
     # app settings
     app_settings = []
     app_settings.extend(product_args)
-    app_settings.extend(flags_args)
     app_settings.extend(geo_args)
+    app_settings.extend(im_buffer_args)
+    app_settings.extend(flags_args)
     app_settings.extend(path_args)
     app_settings.extend(time_args)
     app_settings.extend(grid_args)

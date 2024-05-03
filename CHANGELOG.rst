@@ -2,7 +2,42 @@
 Changelog
 =========
 
-Version 1.4.0 [2024-04-09]
+
+Version 1.6.0 [2024-05-02]
+**************************
+- PROJECT: validation framework 
+	- APPS -- CELL: app_cell_swi
+		- first release to convert the ssm to swi time-series
+	- APPS -- CELL: app_img2cell_gldas
+		- fix bugs in geographical orientation
+	- APPS -- CELL: app_img2cell_ecmwf
+		- fix bugs in geographical orientation
+	- APPS -- CELL: app_img2cell_cci
+		- fix bugs in geographical orientation
+	- TOOLS -- VALIDATION HSAF: app_validation_main
+		- add bulk option in the reference dataset
+	- TOOLS -- VALIDATION HSAF: app_validation_publisher
+		- fix bugs related to the old datasets
+
+Version 1.5.0 [2024-04-15]
+**************************
+- PROJECT: validation framework 
+	- APPS -- CELL: app_img2cell_gldas
+		- update codes
+	- APPS -- CELL: app_img2cell_ecmwf
+		- update codes and add image_buffer option in the settings file (to manage nrt and dr applications)
+	- TOOLS -- VALIDATION HSAF: app_validation_main
+		- add options and logging features avaialable in the previous versions outside the recolour package
+	- TOOLS -- VALIDATION HSAF: app_validation_publisher
+		- update codes based on the previous versions (2017-2022) and adapt the scripts to different configurations
+
+Version 1.4.1 [2024-04-09]
+**************************
+- PROJECT: validation framework 
+	- APPS -- CELL: app_img2cell_gldas
+		- fix bug related to the georeference information in the reshuffle tool
+
+Version 1.4.0 [2024-03-29]
 **************************
 - PROJECT: operational framework
 	- APPS -- MAP: convert_cell2grid_ascat
@@ -10,7 +45,7 @@ Version 1.4.0 [2024-04-09]
 	- APPS -- MAP: convert_cell2grid_metrics
 		- first release (product ascat and ecmwf)
 
-- PROJECT: validation framework
+- PROJECT: validation framework 
 	- APPS -- CELL: app_img2cell_cci
 		- update codes
 	- APPS -- CELL: app_img2cell_gldas

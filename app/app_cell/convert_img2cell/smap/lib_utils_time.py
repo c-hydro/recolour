@@ -122,10 +122,11 @@ def set_time_info(time_run_args=None, time_run_file=None, time_format='%Y-%m-%d 
         time_run_file_end = pd.Timestamp(time_run_file_end)
         time_run_file_end = time_run_file_end.floor(time_rounding)
 
-        time_now = date.today()
-        time_run = time_now.strftime(time_format)
-        time_run = pd.Timestamp(time_run)
+        # time_now = date.today()
+        # time_run = time_now.strftime(time_format)
+        time_run = deepcopy(time_run_file_end)
         time_run = time_run.floor(time_rounding)
+        time_now = deepcopy(time_run)
         time_range_arr = pd.date_range(start=time_run_file_start, end=time_run_file_end, freq=time_frequency)
 
         time_range_start, time_range_end = time_range_arr[0], time_range_arr[-1]

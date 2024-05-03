@@ -20,11 +20,29 @@ from lib_data_io_nc import read_file_collection, write_file_collection
 
 from lib_utils_io import filter_dframe_by_vars
 
-from lib_data_statistics import compute_stats_pearson, compute_stats_snr
+from lib_data_statistics_pie import compute_stats_pearson as compute_stats_pearson_pie
+from lib_data_statistics_pie import compute_stats_snr as compute_stats_snr_pie
+from lib_data_statistics_box import compute_stats_pearson as compute_stats_pearson_box
+from lib_data_statistics_box import compute_stats_snr as compute_stats_snr_box
 
 from lib_figure_settings import organize_figure_settings, organize_figure_extent
-from lib_figure_fx_generic import plot_committed_area
-from lib_figure_fx_results import plot_results_data, plot_results_pie
+from lib_figure_fx_results_generic import plot_committed_area
+from lib_figure_fx_results_data import plot_results_data
+from lib_figure_fx_results_pie import plot_results_pie_pearson, plot_results_pie_snr
+from lib_figure_fx_results_box import plot_results_box_pearson, plot_results_box_snr
+
+# figure expected parameters
+default_params_figure = {
+    "type": None, "committed_area": None,
+    "variable_in_data": None, "variable_in_p_r": None, "variable_in_r": None,
+    "variable_in": None, "variable_out": None,
+    "y_label": None, "x_label": None, "title_label": None,
+    "lim_threshold": None, "lim_target": None, "lim_optimal": None, "lim_min": None, "lim_max": None,
+    "palette_type": None,
+    "cbar_label": None, "cbar_extent": None, "cbar_ticks": None, "cbar_show": None,
+    "vmin": None, "vmax": None, "clip": None,
+    "cmap_type": None, "cmap_n": None
+}
 # -------------------------------------------------------------------------------------
 
 
@@ -33,7 +51,7 @@ from lib_figure_fx_results import plot_results_data, plot_results_pie
 class DrvData:
 
     # method to initialize class
-    def __init__(self, alg_cells, alg_settings,
+    def __init__(self, alg_cell_list, alg_cell_grid, alg_settings,
                  tag_section_flags='flags', tag_section_info='info',
                  tag_section_domain='domain', tag_section_grid='grid',
                  tag_section_params='parameters',
@@ -41,7 +59,8 @@ class DrvData:
                  tag_section_figure='figure', tag_section_renderer='renderer',
                  tag_section_time='time', tag_section_log='log'):
 
-        self.alg_cells = alg_cells
+        self.alg_cells = alg_cell_list
+        self.alg_cell_grid = alg_cell_grid
 
         self.alg_flags = alg_settings[tag_section_flags]
         self.alg_info = alg_settings[tag_section_info]
@@ -112,6 +131,11 @@ class DrvData:
                     logging.error(' ===> Figure renderer for "' + figure_key + '" does not exist')
                     raise RuntimeError('Publish data needs the renderer obj to plot the datasets')
 
+                # update figure settings with default parameters (if not available)
+                for default_key, default_value in default_params_figure.items():
+                    if default_key not in list(figure_settings.keys()):
+                        figure_settings[default_key] = default_value
+
                 figure_collections[figure_key] = {}
                 figure_collections[figure_key]['figure_mode'] = figure_mode
                 figure_collections[figure_key]['figure_path_file'] = figure_path
@@ -178,7 +202,7 @@ class DrvData:
 
             # join cell object(s)
             cell_obj_dict = organize_datasets_cell(
-                cell_list=alg_cells, cell_digits=4,
+                cell_list=alg_cells, cell_digits=4, cell_grid=self.alg_cell_grid,
                 list_variable_in=variables_src, list_variable_out=variables_dst,
                 folder_name_datasets=self.folder_name_src, file_name_datasets=self.file_name_src,
                 )
@@ -247,6 +271,9 @@ class DrvData:
                 # get figure settings
                 figure_type = figure_settings['type']
                 figure_var_in, figure_var_out = figure_settings['variable_in'], figure_settings['variable_out']
+                figure_var_in_data = figure_settings['variable_in_data']
+                figure_var_in_p_r, figure_var_in_r = figure_settings['variable_in_p_r'], figure_settings['variable_in_r']
+
                 figure_title_label, figure_cbar_label = figure_settings['title_label'], figure_settings['cbar_label']
                 figure_cbar_extent, figure_cbar_ticks = figure_settings['cbar_extent'], figure_settings['cbar_ticks']
                 figure_vmin, figure_vmax = figure_settings['vmin'], figure_settings['vmax']
@@ -259,11 +286,27 @@ class DrvData:
                 figure_cbar_fontweight = figure_settings['cb_fontweight']
                 figure_cbar_show = figure_settings['cbar_show']
                 figure_committed_area = figure_settings['committed_area']
+                figure_lim_thr, figure_lim_target = figure_settings['lim_threshold'], figure_settings['lim_target']
+                figure_lim_optimal = figure_settings['lim_optimal']
+                figure_lim_min, figure_lim_max = figure_settings['lim_min'], figure_settings['lim_max']
+                figure_x_label, figure_y_label = figure_settings['x_label'], figure_settings['y_label']
+                figure_palette_type = figure_settings['palette_type']
 
                 # filter dataframe using expected variable(s)
-                figure_dframe = filter_dframe_by_vars(
-                    variables_dframe, dframe_parameter=figure_var_in,
-                    dframe_variables_data=figure_variables, dframe_variables_grid=['land_flag', 'committed_area'])
+                if figure_type == 'stats_pearson_box':
+                    figure_dframe = filter_dframe_by_vars(
+                        variables_dframe,
+                        dframe_parameter=[figure_var_in_p_r, figure_var_in_r],
+                        dframe_variables_data=figure_variables, dframe_variables_grid=['land_flag', 'committed_area'])
+                elif figure_type == 'stats_snr_box':
+                    figure_dframe = filter_dframe_by_vars(
+                        variables_dframe, dframe_parameter=[figure_var_in_data, figure_var_in_p_r, figure_var_in_r],
+                        dframe_variables_data=figure_variables, dframe_variables_grid=['land_flag', 'committed_area'])
+                else:
+                    figure_dframe = filter_dframe_by_vars(
+                        variables_dframe, dframe_parameter=figure_var_in,
+                        dframe_variables_data=figure_variables, dframe_variables_grid=['land_flag', 'committed_area'])
+
                 # organize figure extent
                 figure_data_extent_def = organize_figure_extent(
                     figure_dframe, figure_data_extent_default, fig_ext_domain=figure_data_extent_over_domain)
@@ -271,7 +314,9 @@ class DrvData:
                 # select figure parameter
                 if figure_type == 'data':
                     figure_parameter = figure_var_in
-                elif figure_type == 'stats_pearson' or figure_type == 'stats_snr':
+                elif figure_type == 'stats_pearson_pie' or figure_type == 'stats_snr_pie':
+                    figure_parameter = figure_var_out
+                elif figure_type == 'stats_pearson_box' or figure_type == 'stats_snr_box':
                     figure_parameter = figure_var_out
                 elif figure_type == 'committed_area':
                     figure_parameter = figure_var_in
@@ -284,13 +329,21 @@ class DrvData:
                     figure_settings, figure_type=figure_type, figure_committed_area=figure_committed_area,
                     figure_filename_tmpl=figure_path_file,
                     figure_parameter=figure_parameter,
-                    figure_title_label=figure_title_label, figure_data_extent=figure_data_extent_def,
+                    figure_parameter_data=figure_var_in_data, figure_parameter_p_r=figure_var_in_p_r,
+                    figure_parameter_r=figure_var_in_r,
+                    figure_title_label=figure_title_label,
+                    figure_x_label=figure_x_label, figure_y_label=figure_y_label,
+                    figure_data_extent=figure_data_extent_def,
                     figure_colorbar_label=figure_cbar_label, figure_colorbar_show=figure_cbar_show,
                     figure_colorbar_extent=figure_cbar_extent, figure_colorbar_ticks=figure_cbar_ticks,
                     figure_vmin=figure_vmin, figure_vmax=figure_vmax,
                     figure_cmap_type=figure_cmap_type, figure_cmap_n=figure_cmap_n,
                     figure_title_fontsize=figure_title_fontsize, figure_title_fontweight=figure_title_fontweight,
                     figure_cbar_fontsize=figure_cbar_fontsize, figure_cbar_fontweight=figure_cbar_fontweight,
+                    figure_lim_min=figure_lim_min, figure_lim_max=figure_lim_max,
+                    figure_lim_thr=figure_lim_thr,
+                    figure_lim_target=figure_lim_target, figure_lim_optimal=figure_lim_optimal,
+                    figure_palette_type=figure_palette_type
                     )
 
                 # select plotting fx according to expected data
@@ -300,21 +353,41 @@ class DrvData:
                     for figure_file_name, figure_carea_flag in zip(figure_file_obj, figure_flag_carea_obj):
                         plot_results_data(figure_file_name, figure_dframe, figure_kwargs, figure_carea_flag)
 
-                elif figure_type == 'stats_snr':
+                elif figure_type == 'stats_snr_pie':
 
                     # compute statistics snr
-                    figure_dframe, figure_perc_comm, figure_perc_global = compute_stats_snr(
+                    figure_dframe, figure_perc_comm, figure_perc_global = compute_stats_snr_pie(
                         figure_dframe, variable_data=figure_var_in, variable_stats=figure_var_out)
                     # plot figure stats/pie
-                    plot_results_pie(figure_file_obj, figure_perc_comm, figure_perc_global, figure_kwargs)
+                    plot_results_pie_snr(figure_file_obj, figure_perc_comm, figure_perc_global, figure_kwargs)
 
-                elif figure_type == 'stats_pearson':
+                elif figure_type == 'stats_pearson_pie':
 
                     # compute statistics pearson
-                    figure_dframe, figure_perc_comm, figure_perc_global = compute_stats_pearson(
+                    figure_dframe, figure_perc_comm, figure_perc_global = compute_stats_pearson_pie(
                         figure_dframe, variable_data=figure_var_in, variable_stats=figure_var_out)
                     # plot figure stats/pie
-                    plot_results_pie(figure_file_obj, figure_perc_comm, figure_perc_global, figure_kwargs)
+                    plot_results_pie_pearson(figure_file_obj, figure_perc_comm, figure_perc_global, figure_kwargs)
+
+                elif figure_type == 'stats_snr_box':
+
+                    # compute statistics snr
+                    figure_df_obj, figure_perc_obj = compute_stats_snr_box(
+                        figure_dframe,
+                        variable_data=figure_var_in_data, variable_r=figure_var_in_r, variable_p_r=figure_var_in_p_r,
+                        variable_stats=figure_var_out)
+                    # plot figure stats/box
+                    plot_results_box_snr(figure_file_obj, figure_df_obj, figure_perc_obj, figure_kwargs)
+
+                elif figure_type == 'stats_pearson_box':
+
+                    # compute statistics pearson
+                    figure_df_obj, figure_perc_obj = compute_stats_pearson_box(
+                        figure_dframe,
+                        variable_data=figure_var_in_data, variable_r=figure_var_in_r, variable_p_r=figure_var_in_p_r,
+                        variable_stats=figure_var_out)
+                    # plot figure stats/box
+                    plot_results_box_pearson(figure_file_obj, figure_df_obj, figure_perc_obj, figure_kwargs)
 
                 elif figure_type == 'committed_area':
 

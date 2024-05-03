@@ -1,0 +1,50 @@
+{
+  "product": {
+    "__comment__" : "bbox format:: [6, 35, 18, 47] or null",
+    "name": "cci_v8.1",
+    "bbox": [6, 35, 18.5, 47],
+    "image_buffer": 4
+  },
+  "flags": {
+    "reset_static": true,
+    "reset_dynamic": true
+  },
+  "grid": {
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/cci_static/",
+    "file_name": "cci_grid_italy.nc"
+  },
+  "template": {
+    "dataset": {
+      "cell_n": "%04d"
+    },
+    "time": {
+      "datetime_source": "%Y%m%d000000",
+      "sub_path_source": "%Y",
+      "datetime_destination": "%Y%m%d",
+      "sub_path_destination": "%Y/%m/%d"
+    },
+    "file": {
+      "__comment__": "ESACCI-SOILMOISTURE-L3S-SSMV-PASSIVE-20221110000000-fv08.1.nc",
+      "file_name_source": "ESACCI-SOILMOISTURE-L3S-SSMV-PASSIVE-{datetime_source}-fv08.1.nc",
+      "file_name_destination": "{cell_n}.nc"
+    }
+  },
+  "variables": ["sm", "flag", "sm_uncertainty"],
+  "data": {
+    "path_grid": "/home/fabio/Desktop/Recolour_Workspace/ws/cci_grid/v8.1/",
+    "path_ts": "/home/fabio/Desktop/Recolour_Workspace/ws/cci_cell_dr/v8.1/nc/",
+    "path_stack": "/home/fabio/Desktop/Recolour_Workspace/ws/cci_cell_dr/v8.1/stack/"
+  },
+  "time": {
+    "time_now": null,
+    "time_start": "2022-12-21",
+    "time_end": "2022-12-31",
+    "time_period": 1,
+    "time_frequency": "D",
+    "time_rounding" : "D"
+  },
+  "log" : {
+  	"path": "/home/fabio/Desktop/Recolour_Workspace/ws/",
+  	"file": "app_img2cell_cci.txt"
+  }
+}

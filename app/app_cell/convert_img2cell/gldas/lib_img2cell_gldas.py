@@ -39,16 +39,14 @@ import pynetcf.time_series as nc
 import pygeogrids.grids as grids
 import repurpose.resample as resamp
 
+import os
+import logging
 import pandas as pd
 import numpy as np
-import os
-import time
-from copy import deepcopy
 from datetime import datetime
-import logging
-import pygeogrids
+from copy import deepcopy
+
 import pygeogrids.netcdf as grid2nc
-import netCDF4 as netcdf
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -258,7 +256,7 @@ class Img2Ts(object):
             for cell in self.target_grid.get_cells():
 
                 # debug
-                # cell = 1394
+                #cell = 31
 
                 # info cell start
                 logging.info(' -------> Dump cell "' + str(cell) + '" ... ')
@@ -354,7 +352,6 @@ class Img2Ts(object):
                                 filestack_list = stack_obj[cell]
                                 filestack_list.append(filestack_path)
                                 stack_obj[cell] = filestack_list
-
 
                     if self.orthogonal:
 

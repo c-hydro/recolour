@@ -222,6 +222,11 @@ class ASCAT_Dataset_DR(AscatCdr):
             tmp_info = kwargs.pop('tmp_info')
         self.active_tmp, self.file_tmp, self.clean_tmp = self._set_tmp_info(tmp_info)
 
+        # set read bulk
+        self.read_bulk = False
+        if "bulk" in kwargs:
+            self.read_bulk = kwargs.pop('bulk')
+
         # get porosity information
         self._por_path = os.path.join(self.static_layer_path, self._por_file)
         self._read_porosity()
@@ -230,6 +235,7 @@ class ASCAT_Dataset_DR(AscatCdr):
             cdr_path=self.dr_path,
             grid_path=self.grid_path, grid_filename='TUW_WARP5_grid_info_2_2.nc',
             static_layer_path=self.static_layer_path,
+            read_bulk=self.read_bulk,
             **kwargs)
 
     # method to set tmp info

@@ -128,6 +128,10 @@ def get_grid_cells(cell_start=0, cell_end=2566, cells_list=None,
             logging.info(' ----> Use information defined in the grid files ... FAILED')
             logging.info(' ----> Use information defined by "cell_start" and "cell_end"')
 
+            if (cell_start is None) or (cell_end is None):
+                logging.error(' ===> Variable(s) "cell_start" and "cell_end" must be defined by integer')
+                raise RuntimeError('Cells are defined by NoneType')
+
             # grid file is not defined
             cells_array = range(cell_start, cell_end)
             gpis = None

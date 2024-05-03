@@ -8,6 +8,7 @@ __date__ = '20230627'
 __version__ = '1.0.0'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)'
+
 __library__ = 'recolour'
 
 General command line:
@@ -31,9 +32,10 @@ from copy import deepcopy
 from pygeogrids import BasicGrid
 
 from lib_utils_cci import read_obj, write_obj
+
 from lib_img2cell_cci import Img2Ts
-from lib_interface_cci import cci_ds
 from lib_grid_cci import load_grid, cell_grid, subgrid4bbox
+from lib_interface_cci import cci_ds
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -50,22 +52,29 @@ def reset_folder(folder_name):
 # method to find file type based on extension
 def get_filetype(grid_path):
 
-    # get folder level(s)
+    # get folder structure
     one_down = os.path.join(grid_path, os.listdir(grid_path)[0])
     if os.path.isdir(one_down):
-        level_down = deepcopy(one_down)
+        two_down = os.path.join(one_down, os.listdir(one_down)[0])
+    elif os.path.isfile(one_down):
+        two_down, _ = os.path.split(one_down)
     else:
-        # check if one down is enough by checking if file or directory
-        level_down = os.path.join(one_down, os.listdir(one_down)[0]) \
-            if os.path.isdir(one_down) else os.path.dirname(one_down)
+        logging.error(' ===> Object path "one_down" is not supported')
+        raise NotImplementedError('Case not supported yet')
 
-    extension = None
-    for path, dirs, files in os.walk(level_down):
-        if extension is not None:
-            break
-        for name in files:
-            filename, extension = os.path.splitext(name)
-            break
+    if os.path.isdir(two_down):
+        extension = None
+        for path, dirs, files in os.walk(two_down):
+            if extension is not None:
+                break
+            for name in files:
+                filename, extension = os.path.splitext(name)
+                break
+    elif os.path.isfile(two_down):
+        _, extension = os.path.splitext(two_down)
+    else:
+        logging.error(' ===> Object path "two_down" is not supported')
+        raise NotImplementedError('Case not supported yet')
 
     if extension == '.nc' or extension == '.nc4':
         return 'netcdf'
@@ -76,7 +85,6 @@ def get_filetype(grid_path):
     else:
         logging.error(' ===> File format for grid datasets "' + str(extension) + '" is not supported')
         raise NotImplemented('Case not implemented yet')
-
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -173,11 +181,12 @@ def reshuffle(product,
               data_sub_path_ts=None,
               reset_ts=True,
               input_grid=None, target_grid=None, bbox=None,
-              img_buffer=50,
+              img_buffer=100,
               dataset_stack_root=None,
               stack_flag=True,
               stack_file_name_tmpl='{cell_n}.stack',
-              stack_reset=True):
+              stack_reset=True
+              ):
 
     # ------------------------------------------------------------------------------------------------------------------
     # Section 0 - variable(s) initialization (if needed)
@@ -232,7 +241,6 @@ def reshuffle(product,
             logging.info(' -----> 1) Define file type and format ... FAILED')
             logging.error(' ===> Grid is not defined')
             raise RuntimeError('Grid must be defined to correctly run the algorithm')
-
     else:
         logging.info(' -----> 1) Define file type and format ... FAILED')
         logging.error(' ===> File type is not supported by the procedure')
@@ -292,11 +300,20 @@ def reshuffle(product,
     logging.info(' -----> 2) Define datasets metadata ... DONE')
     # ------------------------------------------------------------------------------------------------------------------
 
+    '''
+    lats = target_grid.activearrlat
+    lons = target_grid.activearrlon
+
+    import matplotlib.pylab as plt
+    plt.figure()
+    plt.plot(lons, lats, '.')
+    plt.show()
+    '''
+
     # ------------------------------------------------------------------------------------------------------------------
     # Section 3 - datasets conversion from grid to time-series
     logging.info(' -----> 3) Convert datasets from grid to time-series ... ')
 
-    #'''
     # method to initialize reshuffle to convert grid to time-series
     drv_reshuffle = Img2Ts(
         input_dataset=dataset_grid_driver,
@@ -308,6 +325,7 @@ def reshuffle(product,
         imgbuffer=img_buffer,
         cellsize_lat=5.0,
         cellsize_lon=5.0,
+        r_methods='nn', r_weightf=None, r_min_n=1, r_radius=18000, r_neigh=8,
         global_attr=global_attr,
         zlib=True,
         unlim_chunksize=None,
@@ -417,17 +435,24 @@ def parse_args(args):
     )
 
     parser.add_argument(
-        "flags",
-        nargs=2,
-        type=str2bool,
-        help="Flags for reset static grid and output ts."
-    )
-
-    parser.add_argument(
         "bbox",
         type=str,
         default='',
-        help="Boundary box 'lon_min, lat_min, lon_max, lat_max]' "
+        help="Boundary box '[lon_min, lat_min, lon_max, lat_max]' "
+    )
+
+    parser.add_argument(
+        "image_buffer",
+        type=str,
+        default=4,
+        help="How many images to read at once."
+    )
+
+    parser.add_argument(
+        "flags",
+        type=str2bool,
+        nargs=2,
+        help="Flags for reset static grid and output ts."
     )
 
     parser.add_argument(
@@ -557,11 +582,7 @@ def main(args):
 
     # method to load grid
     logging.info(' ----> Get reference grid ... ')
-    input_grid = load_grid(
-        land_points=args.land_points, grid_path=args.grid_path,
-        bbox=None
-        # bbox=tuple(args.bbox) if args.bbox is not None else None,
-    )
+    input_grid = load_grid(land_points=args.land_points, grid_path=args.grid_path)
     logging.info(' ----> Get reference grid ... DONE')
 
     # method to get bbox
@@ -587,7 +608,7 @@ def main(args):
         args.grid_path,
         args.parameters,
         input_grid=input_grid,
-        img_buffer=args.imgbuffer,
+        img_buffer=int(args.image_buffer),
         file_name_tmpl_grid=args.templates_src[0],
         datetime_format_grid=args.templates_src[1],
         data_sub_path_grid=args.templates_src[2],

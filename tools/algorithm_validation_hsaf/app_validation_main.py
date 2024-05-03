@@ -15,6 +15,8 @@ General command line:
 python app_validation_main.py -settings_file configuration.json
 
 Version(s):
+20240411 (1.2.0) --> Update to HSAF validation (ecmwf products)
+20240229 (1.1.0) --> Update to HSAF validation (ascat products)
 20230726 (1.0.1) --> Update to read SMAP data
 20230719 (1.0.0) --> First development
 
@@ -50,8 +52,8 @@ from lib_utils_generic import get_grid_reference, get_grid_cells
 project_name = 'recolour'
 alg_name = 'validation'
 alg_type = 'Package'
-alg_version = '1.0.1'
-alg_release = '2023-07-19'
+alg_version = '1.2.0'
+alg_release = '2024-04-11'
 # -------------------------------------------------------------------------------------
 
 

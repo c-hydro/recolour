@@ -17,6 +17,27 @@ import os
 
 
 # -------------------------------------------------------------------------------------
+# method to create cci cell grid
+def cci_cell_grid():
+    """
+    Class for the CCI Version 0.42 0.25deg cell grid.
+    """
+
+    resolution = 0.25
+
+    #lon, lat = np.meshgrid(
+    #    np.arange(-180 + resolution/2, 180 + resolution/2, resolution),
+    #    np.arange(-90 + resolution/2, 90 + resolution/2, resolution))
+
+    lon, lat = np.meshgrid(
+        np.arange(-180, 180, resolution),
+        np.arange(-90, 90, resolution))
+
+    return BasicGrid(lon.flatten(), lat.flatten()).to_cell_grid(cellsize=5.)
+# -------------------------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------------------------
 # method to create subgrid using a bbox
 def subgrid4bbox(grid, min_lon, min_lat, max_lon, max_lat):
     """
@@ -97,7 +118,7 @@ def grids(only_land=False, grid_path=None):
         ds = Dataset(
             os.path.join(
                 os.path.abspath(os.path.dirname(__file__)),
-                "hmc_grid.nc",
+                "grid.nc",
             )
         )
         land_lats_1d = ds.variables["latitude_mask"][:]

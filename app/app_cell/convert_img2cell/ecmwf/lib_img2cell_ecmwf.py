@@ -36,22 +36,23 @@ Version:        '1.0.0'
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-import os
-import time
-import logging
-import numpy as np
-from datetime import datetime
-import pygeogrids.grids as grids
 import pynetcf.time_series as nc
+import pygeogrids.grids as grids
 import repurpose.resample as resamp
 
-import pygeogrids.netcdf as grid2nc
+import os
+import logging
+import pandas as pd
+import numpy as np
+from datetime import datetime
+from copy import deepcopy
 
-import matplotlib.pylab as plt
+import pygeogrids.netcdf as grid2nc
 
 import warnings
 warnings.filterwarnings("ignore")
 
+from lib_utils_ecmwf import write_obj
 
 class Img2TsError(Exception):
     pass
@@ -154,11 +155,13 @@ class Img2Ts(object):
 
     def __init__(self, input_dataset, outputpath, startdate, enddate,
                  input_kwargs={}, input_grid=None, target_grid=None, imgbuffer=100, variable_rename=None,
-                 unlim_chunksize=100, cellsize_lat=180.0, cellsize_lon=360.0,
+                 unlim_chunksize=100, cellsize_lat=5.0, cellsize_lon=5.0,
                  r_methods='nn', r_weightf=None, r_min_n=1, r_radius=18000,
                  r_neigh=8, r_fill_values=None, filename_templ='{cell_n}.nc', cell_templ='%04d',
                  gridname='grid.nc', global_attr=None, ts_attributes=None,
-                 ts_dtypes=None, time_units="days since 1858-11-17 00:00:00", zlib=True):
+                 ts_dtypes=None, time_units="days since 1858-11-17 00:00:00", zlib=True,
+                 stack_history=True, filestack_templ='stack_{:}_{:}.workspace', stack_id_templ='%04d',
+                 stackpath=None):
 
         self.imgin = input_dataset
         self.zlib = zlib
@@ -207,6 +210,16 @@ class Img2Ts(object):
         # according to the CF conventions
         self.orthogonal = None
 
+        # history stack to track the gpis availability
+        if stackpath is None:
+            self.stackpath = outputpath
+        else:
+            self.stackpath = stackpath
+
+        self.stack_history = stack_history
+        self.filestack_templ = filestack_templ
+        self.stack_id_templ = stack_id_templ
+
         self.filename_templ = filename_templ
         self.cell_tmpl = cell_templ
         self.global_attr = global_attr
@@ -230,8 +243,8 @@ class Img2Ts(object):
             os.path.join(self.outputpath, self.gridname), self.target_grid)
 
         # iterate over image(s)
-        for img_stack_dict, start, end, dates, jd_stack in self.img_bulk():
-
+        stack_obj, stack_check = None, None
+        for id_stack, (img_stack_dict, start, end, dates, jd_stack) in enumerate(self.img_bulk()):
             # iterate over cell(s) in target grid
             for cell in self.target_grid.get_cells():
 
@@ -248,8 +261,10 @@ class Img2Ts(object):
                     raise Img2TsError('cell not found in grid subset')
 
                 data = {}
-
+                variable_check = []
+                stack_array, stack_df = None, None
                 for key in img_stack_dict:
+
                     # rename variable in output dataset
                     if self.variable_rename is None:
                         var_new_name = str(key)
@@ -267,111 +282,177 @@ class Img2Ts(object):
                             output_dtype = self.ts_dtypes
                         output_array = output_array.astype(output_dtype)
 
-                    data[var_new_name] = output_array
+                    tmp_array = deepcopy(output_array)
+                    tmp_array[tmp_array < 0] = np.nan
+                    tmp_min, tmp_max = np.nanmin(tmp_array), np.nanmax(tmp_array)
 
-                if self.orthogonal:
+                    if np.isfinite(tmp_min) and np.isfinite(tmp_max):
 
-                    cell_string = self.cell_tmpl % cell
-                    filename_cell = self.filename_templ.format(cell_n=cell_string)
+                        stack_array = np.zeros(shape=(tmp_array.shape[0]))
+                        stack_array[:] = np.nan
 
-                    with nc.OrthoMultiTs(
-                        os.path.join(self.outputpath, filename_cell),
-                            n_loc=cell_gpis.size, mode='a',
-                            zlib=self.zlib,
-                            unlim_chunksize=self.unlim_chunksize,
-                            time_units=self.time_units) as dataout:
+                        idx_rows_nans_all = np.where(np.all(np.isnan(tmp_array), axis=1))[0]
+                        idx_rows_finite_any = np.where(np.any(np.isfinite(tmp_array), axis=1))[0]
 
-                        # add global attributes to file
-                        if self.global_attr is not None:
-                            for attr in self.global_attr:
-                                dataout.add_global_attr(
-                                    attr, self.global_attr[attr])
+                        stack_array[idx_rows_nans_all] = np.nan
+                        stack_array[idx_rows_finite_any] = 1
 
-                        dataout.add_global_attr(
-                            'geospatial_lat_min', np.min(cell_lats))
-                        dataout.add_global_attr(
-                            'geospatial_lat_max', np.max(cell_lats))
-                        dataout.add_global_attr(
-                            'geospatial_lon_min', np.min(cell_lons))
-                        dataout.add_global_attr(
-                            'geospatial_lon_max', np.max(cell_lons))
+                        stack_data = {'stack_{:}'.format(id_stack): stack_array}
+                        stack_df = pd.DataFrame(data=stack_data, index=cell_index)
 
-                        dataout.write_ts_all_loc(
-                            cell_gpis, data, dates,
-                            lons=cell_lons, lats=cell_lats,
-                            attributes=self.ts_attributes)
+                        nans_check = np.argwhere(np.isnan(stack_array))
 
-                elif not self.orthogonal:
+                        data[var_new_name] = output_array
 
-                    cell_string = self.cell_tmpl % cell
-                    filename_cell = self.filename_templ.format(cell_n=cell_string)
+                        variable_check.append(True)
 
-                    with nc.IndexedRaggedTs(os.path.join(self.outputpath, filename_cell),
-                                            n_loc=cell_gpis.size, mode='a',
-                                            zlib=self.zlib,
-                                            unlim_chunksize=self.unlim_chunksize,
-                                            time_units=self.non_ortho_time_units) as dataout:
+                        logging.info(' --------> Organize variable "' + key + '" ... DONE.')
 
-                        # add global attributes to file
-                        if self.global_attr is not None:
-                            for attr in self.global_attr:
-                                dataout.add_global_attr(
-                                    attr, self.global_attr[attr])
+                    else:
+                        variable_check.append(False)
+                        logging.warning(' ====> All values are undefined for variable "' + key + '"')
 
-                        dataout.add_global_attr(
-                            'geospatial_lat_min', np.min(cell_lats))
-                        dataout.add_global_attr(
-                            'geospatial_lat_max', np.max(cell_lats))
-                        dataout.add_global_attr(
-                            'geospatial_lon_min', np.min(cell_lons))
-                        dataout.add_global_attr(
-                            'geospatial_lon_max', np.max(cell_lons))
+                        logging.info(' --------> Organize variable "' + key + '" ... DONE.')
 
-                        # for this dataset we have to loop through the gpis since each time series
-                        # can be different in length
-                        for i, (gpi, gpi_lon, gpi_lat) in enumerate(zip(cell_gpis, cell_lons, cell_lats)):
-                            gpi_data = {}
-                            # convert to modified julian date
-                            gpi_jd = jd_stack[:, cell_index[i]] - 2400000.5
-                            # remove measurements that were filled with the fill value
-                            # during resampling
-                            # doing this on the basis of the time variable should
-                            # be enough since without time -> no valid
-                            # observations
-                            if self.resample:
-                                if self.r_fill_values is not None:
-                                    if type(self.r_fill_values) == dict:
-                                        time_fill_value = self.r_fill_values[
-                                            self.time_var]
-                                    else:
-                                        time_fill_value = self.r_fill_values
+                # check if all variables are available
+                if np.all(np.array(variable_check)):
 
-                                    valid_mask = gpi_jd != time_fill_value
-                                else:
-                                    valid_mask = np.invert(gpi_jd.mask)
-                                gpi_jd = gpi_jd[valid_mask]
+                    # stack save
+                    if self.stack_history:
+
+                        cell_string = self.cell_tmpl % cell
+                        stack_id_string = self.stack_id_templ % id_stack
+
+                        filestack_name = self.filestack_templ.format(cell_string, stack_id_string)
+                        filestack_path = os.path.join(self.stackpath, filestack_name)
+                        os.makedirs(self.stackpath, exist_ok=True)
+
+                        if stack_array is not None:
+                            write_obj(filestack_path, stack_df)
+
+                            if stack_obj is None:
+                                stack_obj = {}
+
+                            if cell not in list(stack_obj.keys()):
+                                stack_obj[cell] = [filestack_path]
                             else:
-                                # all are valid if no resampling took place
-                                valid_mask = slice(None, None, None)
-                            for key in data:
-                                gpi_data[key] = data[key][i, valid_mask]
+                                filestack_list = stack_obj[cell]
+                                filestack_list.append(filestack_path)
+                                stack_obj[cell] = filestack_list
 
-                            if gpi_jd.data.size > 0:
-                                dataout.write_ts(gpi, gpi_data, gpi_jd,
-                                                 lon=gpi_lon, lat=gpi_lat,
-                                                 attributes=self.ts_attributes,
-                                                 dates_direct=True)
+                    if self.orthogonal:
 
-                # info cell end
-                logging.info(' -------> Dump cell "' + str(cell) + '" ... DONE')
+                        cell_string = self.cell_tmpl % cell
+                        filename_cell = self.filename_templ.format(cell_n=cell_string)
+
+                        with nc.OrthoMultiTs(
+                            os.path.join(self.outputpath, filename_cell),
+                                n_loc=cell_gpis.size, mode='a',
+                                zlib=self.zlib,
+                                unlim_chunksize=self.unlim_chunksize,
+                                time_units=self.time_units) as dataout:
+
+                            # add global attributes to file
+                            if self.global_attr is not None:
+                                for attr in self.global_attr:
+                                    dataout.add_global_attr(
+                                        attr, self.global_attr[attr])
+
+                            dataout.add_global_attr(
+                                'geospatial_lat_min', np.min(cell_lats))
+                            dataout.add_global_attr(
+                                'geospatial_lat_max', np.max(cell_lats))
+                            dataout.add_global_attr(
+                                'geospatial_lon_min', np.min(cell_lons))
+                            dataout.add_global_attr(
+                                'geospatial_lon_max', np.max(cell_lons))
+
+                            dataout.write_ts_all_loc(
+                                cell_gpis, data, dates,
+                                lons=cell_lons, lats=cell_lats,
+                                attributes=self.ts_attributes)
+
+                    elif not self.orthogonal:
+
+                        cell_string = self.cell_tmpl % cell
+                        filename_cell = self.filename_templ.format(cell_n=cell_string)
+
+                        with nc.IndexedRaggedTs(os.path.join(self.outputpath, filename_cell),
+                                                n_loc=cell_gpis.size, mode='a',
+                                                zlib=self.zlib,
+                                                unlim_chunksize=self.unlim_chunksize,
+                                                time_units=self.non_ortho_time_units) as dataout:
+
+                            # add global attributes to file
+                            if self.global_attr is not None:
+                                for attr in self.global_attr:
+                                    dataout.add_global_attr(
+                                        attr, self.global_attr[attr])
+
+                            dataout.add_global_attr(
+                                'geospatial_lat_min', np.min(cell_lats))
+                            dataout.add_global_attr(
+                                'geospatial_lat_max', np.max(cell_lats))
+                            dataout.add_global_attr(
+                                'geospatial_lon_min', np.min(cell_lons))
+                            dataout.add_global_attr(
+                                'geospatial_lon_max', np.max(cell_lons))
+
+                            # for this dataset we have to loop through the gpis since each time series
+                            # can be different in length
+                            for i, (gpi, gpi_lon, gpi_lat) in enumerate(zip(cell_gpis, cell_lons, cell_lats)):
+                                gpi_data = {}
+                                # convert to modified julian date
+                                gpi_jd = jd_stack[:, cell_index[i]] - 2400000.5
+                                # remove measurements that were filled with the fill value
+                                # during resampling
+                                # doing this on the basis of the time variable should
+                                # be enough since without time -> no valid
+                                # observations
+                                if self.resample:
+                                    if self.r_fill_values is not None:
+                                        if type(self.r_fill_values) == dict:
+                                            time_fill_value = self.r_fill_values[
+                                                self.time_var]
+                                        else:
+                                            time_fill_value = self.r_fill_values
+
+                                        valid_mask = gpi_jd != time_fill_value
+                                    else:
+                                        valid_mask = np.invert(gpi_jd.mask)
+                                    gpi_jd = gpi_jd[valid_mask]
+                                else:
+                                    # all are valid if no resampling took place
+                                    valid_mask = slice(None, None, None)
+                                for key in data:
+                                    gpi_data[key] = data[key][i, valid_mask]
+
+                                if gpi_jd.data.size > 0:
+                                    dataout.write_ts(gpi, gpi_data, gpi_jd,
+                                                     lon=gpi_lon, lat=gpi_lat,
+                                                     attributes=self.ts_attributes,
+                                                     dates_direct=True)
+
+                    # info cell end
+                    logging.info(' -------> Dump cell "' + str(cell) + '" ... DONE')
+
+                else:
+                    # info cell end
+                    logging.info(' -------> Dump cell "' + str(cell) + '" ... SKIPPED. All datasets are not available')
 
             # nullify element(s)
             data = {}
             output_array = None
 
+        # check stack control (if data are or not selected)
+        if stack_check is None:
+            logging.warning(' ===> Datasets are not available for the selected period')
+
         # info algorithm end
         elapsed_time = datetime.now() - start_time
         logging.info(' ------> Organize time-series datasets ... DONE (Elapsed_Time: ' + str(elapsed_time) + ')')
+
+        return stack_obj
 
     def img_bulk(self):
         """
@@ -451,6 +532,7 @@ class Img2Ts(object):
                                                     search_rad=self.r_radius,
                                                     neighbours=self.r_neigh,
                                                     fill_values=self.r_fill_values)
+
                 if 'jd' in list(input_img.keys()):
                     time_arr = input_img.pop('jd')
             if time_arr is None:

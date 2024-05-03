@@ -1,0 +1,95 @@
+{
+  "product": {
+    "__comment_product": "h104, h105, h16, h103",
+    "__comment_bbox" : "bbox format (example italy) :: [6, 35, 18.5, 47] or null",
+    "name": "h16",
+    "bbox": [6, 35, 18.5, 47]
+  },
+  "parameters": {
+    "__comment_writing_mode": "'w' 'a'",
+    "writing_mode": "w",
+    "write_n_resampled": 2000,
+    "spatial_resolution": 25000,
+    "weight_function": "hamming"
+  },
+  "flags": {
+    "reset_ancillary_cell": false,
+    "reset_ancillary_chunk": false,
+    "reset_ancillary_workspace": false,
+    "reset_datasets_ts": false,
+    "reset_logs": true
+  },
+  "template": {
+    "__comment__": "swath template(s) are not changeable",
+    "datetime_swath": "%Y%m%d_%H%M00",
+    "sub_path_swath": "%Y/%m/%d/%H/",
+    "datetime_cell": "%Y%m%d_%H%M00",
+    "sub_path_cell": "%Y/%m/%d/",
+    "datetime_chunk_start": "%Y%m%d_%H%M00",
+    "datetime_chunk_end": "%Y%m%d_%H%M00",
+    "sub_path_chunk": "%Y/%m/%d/",
+    "datetime_workspace_start": "%Y%m%d_%H%M00",
+    "datetime_workspace_end": "%Y%m%d_%H%M00",
+    "sub_path_workspace": "%Y/%m/%d/",
+    "datetime_ts": "%Y%m%d_%H%M00",
+    "sub_path_ts": "%Y/%m/%d/"
+  },
+  "datasets": {
+    "static": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_static/",
+        "file_name": "TUW_WARP5_grid_info_2_3.nc"
+    },
+    "dynamic": {
+      "swath": {
+      	"__comment__" : "tags: {sub_path_swath}, {datetime_swath}, time_range in days",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_swath/h16/{sub_path_swath}/",
+        "file_name": "h16_{datetime_swath}_METOPB_*_EUM.buf"
+      },
+      "ancillary": {
+        "cell": {
+          "__comment__": "tags: cell_n",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_ancillary/h16/cell/",
+          "file_name": "h16_{cell_n}.cell",
+          "active": false,
+          "initialize": false
+        },
+        "chunk": {
+          "__comment__": "tags: datetime_chunk_start, datetime_chunk_end",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_ancillary/h16/chunk/{sub_path_chunk}/",
+          "file_name": "h16_{datetime_chunk_start}_{datetime_chunk_end}.chunk",
+          "active": true,
+          "initialize": false
+        },
+        "workspace": {
+          "__comment__": "tags: datetime_workspace_start, datetime_workspace_end",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_ancillary/h16/workspace/{sub_path_workspace}/",
+          "file_name": "h16_{datetime_workspace_start}_{datetime_workspace_end}.workspace",
+          "active": true,
+          "initialize": false
+        }
+      },
+      "ts": {
+        "__comment__": "tags: cell_n",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_nrt/h16/{sub_path_ts}",
+        "file_name": "h16_{cell_n}.nc"
+      }
+    }
+  },
+  "time": {
+    "_comment_": "2023-05-22 00:00 2023-05-26 16:00",
+    "time_now": null,
+    "time_start": "CONFIGURE_BY_TIME_NOW",
+    "time_end": "CONFIGURE_BY_TIME_NOW",
+    "time_period": 3,
+    "time_frequency": "D",
+    "time_rounding" : "D"
+  },
+  "log": {
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/log/",
+    "file_name": "recolour_ascat_swath2cell.txt"
+  },
+  "tmp": {
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/tmp/",
+    "file_name": null
+  }
+}

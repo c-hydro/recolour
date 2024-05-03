@@ -1,6 +1,6 @@
 {
   "product": {
-    "__comment__" : "bbox format:: [6, 35, 18, 47] or null",
+    "__comment__" : "bbox format (example italy) :: [6, 35, 18.5, 47] or null",
     "name": "gldas_v2.1",
     "bbox": null
   },
@@ -9,7 +9,7 @@
     "reset_dynamic": true
   },
   "grid": {
-    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/gldas_static/",
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/gldas_static/",
     "file_name": "gldas_grid.nc"
   },
   "template": {
@@ -30,19 +30,19 @@
   },
   "variables": ["SoilMoi0_10cm_inst", "SoilTMP0_10cm_inst", "SWE_inst"],
   "data": {
-    "path_grid": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/gldas_grid/",
-    "path_ts": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/gldas_ts_dr/"
+    "path_grid": "/home/fabio/Desktop/Recolour_Workspace/ws/gldas_grid/",
+    "path_ts": "/home/fabio/Desktop/Recolour_Workspace/ws/gldas_cell/"
   },
   "time": {
     "time_now": null,
-    "time_start": "2022-12-28",
-    "time_end": "2022-12-31",
+    "time_start": "2021-12-29",
+    "time_end": "2021-12-31",
     "time_period": 1,
     "time_frequency": "D",
     "time_rounding" : "D"
   },
   "log" : {
-  	"path": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/log/",
+  	"path": "/home/fabio/Desktop/Recolour_Workspace/ws/log/",
   	"file": "app_img2cell_gldas.txt"
   }
 }

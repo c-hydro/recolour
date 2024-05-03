@@ -73,9 +73,21 @@ def cell_grid(grid_path, file_grid='grid.nc'):
         raise RuntimeError('Grid file is needed by the procedure')
 
     data_grid = Dataset(grid_path)
+    if 'lon' in list(data_grid.variables):
+        domain_lon_1d = data_grid['lon'][:]
+    elif 'longitude' in list(data_grid.variables):
+        domain_lon_1d = data_grid['longitude'][:]
+    else:
+        logging.error(' ===> Longitude variable in grid file is not defined by expected tags (lon, longitude)')
+        raise RuntimeError('Check the grid file to define the tag of longitude variable')
 
-    domain_lon_1d = data_grid['lon'][:]
-    domain_lat_1d = data_grid['lat'][:]
+    if 'lat' in list(data_grid.variables):
+        domain_lat_1d = data_grid['lat'][:]
+    elif 'latitude' in list(data_grid.variables):
+        domain_lat_1d = data_grid['latitude'][:]
+    else:
+        logging.error(' ===> Latitude variable in grid file is not defined by expected tags (lat, latitude)')
+        raise RuntimeError('Check the grid file to define the tag of latitude variable')
 
     domain_lon_max = np.nanmax(domain_lon_1d)
     if domain_lon_max > 180:

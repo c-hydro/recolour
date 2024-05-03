@@ -184,6 +184,7 @@ else
 	pip install cmcrameri
 	pip install pygeogrids
 	pip install pytesmo==0.13.4
+	pip install seaborn
 	echo " ======> [2/2] PYTHON-PIP INSTALLATION ... DONE"
 
 	echo " =====> CONDA INSTALLATION ... DONE"
