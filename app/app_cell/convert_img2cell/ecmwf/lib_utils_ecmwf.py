@@ -26,7 +26,8 @@ import matplotlib.pylab as plt
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to create file grid
-def create_file_grid(grid_path, data_path, data_ext='.tif', grid_update=True):
+def create_file_grid(grid_path, data_path,
+                     data_ext='.tif', grid_update=True, grid_orientation='north-south-west-east'):
 
     logging.info(' ---> Create grid reference for datasets ... ')
 
@@ -63,7 +64,17 @@ def create_file_grid(grid_path, data_path, data_ext='.tif', grid_update=True):
 
         # flip lats to adapt the datasets to other in triple collection procedure
         # l.118 in lib_interface_ecmwf "param_data = np.flipud(param_data)" coupled with this
-        file_geo_y_1d = np.flipud(file_geo_y_1d)
+        logging.info(' ----> Grid orientation "' + grid_orientation + '" ... ')
+        if grid_orientation == 'north-south-west-east':
+            # configuration for validation tc and tc maps
+            pass
+        elif grid_orientation == 'south-north-west-east':
+            # configuration for validation hsaf
+            file_geo_y_1d = np.flipud(file_geo_y_1d)
+        else:
+            logging.error(' ===> Orientation argument "' + grid_orientation + '" is not expected')
+            raise RuntimeError('Orientation argument must be "north-south-west-east" or "south-north-west-east"')
+        logging.info(' ----> Grid orientation "' + grid_orientation + '" ... DONE')
 
         # method to save file netcdf
         save_file_nc(grid_path, file_values, file_geo_x_1d, file_geo_y_1d)

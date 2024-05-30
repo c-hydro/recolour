@@ -1,0 +1,154 @@
+{
+  "flags": {
+    "reset_destination_cell": true,
+    "reset_logs": true
+  },
+  "template": {
+    "datasets": {
+      "cell_n": "string_cell_n"
+    },
+    "time": {
+      "datetime_source_cell": "%Y%m%d%H",
+      "sub_path_source_cell": "%Y/%m/%d/",
+      "datetime_ref_cell": "%Y%m%d%H",
+      "sub_path_ref_cell": "%Y/%m/%d/",
+      "datetime_destination_cell": "%Y%m%d%H",
+      "sub_path_destination_cell": "%Y/%m/%d/"
+    }
+  },
+  "info": {
+    "datasets": "ASCAT",
+    "product": "H16"
+  },
+  "cells": {
+    "__comment__": "cell_start=0, cell_end=2591",
+    "name": "italy",
+    "cell_start": null,
+    "cell_end": null,
+    "cell_list": [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430, 1431]
+  },
+  "parameters": {
+    "variables": {
+      "name": ["layer_1_data", "layer_2_data", "layer_3_data", "layer_4_data", "time"],
+      "min_value": [0, 0, 0, 0, null],
+      "max_value": [100, 100, 100, 100, null],
+      "scale_factor": [1, 1, 1, 1, null],
+      "no_data": [-9999, -9999, -9999, -9999, null]
+    },
+    "fx": {
+      "active": true,
+      "variables": {
+        "source": {
+          "layer_1": ["layer_1_data", "layer_1_ref"],
+          "layer_2": ["layer_2_data", "layer_2_ref"],
+          "layer_3": ["layer_3_data", "layer_3_ref"],
+          "layer_4": ["layer_4_data", "layer_4_ref"],
+          "time": null
+        },
+        "destination" : {
+          "layer_1": "layer_1_scaled",
+          "layer_2": "layer_2_scaled",
+          "layer_3": "layer_3_scaled",
+          "layer_4": "layer_4_scaled",
+          "time": null
+        }
+      },
+      "methods": {
+        "__comment__": "methods: mean_std, cdf_match, linreg, lin_cdf_match, cdf_beta_match, lin_cdf_match, min_max",
+        "layer_1": {"type": "min_max", "args": {"src":  "layer_1_src", "ref": "layer_1_ref"}},
+        "layer_2": {"type": "min_max", "args": {"src":  "layer_2_src", "ref": "layer_2_ref"}},
+        "layer_3": {"type": "min_max", "args": {"src":  "layer_3_src", "ref": "layer_3_ref"}},
+        "layer_4": {"type": "min_max", "args": {"src":  "layer_4_src", "ref": "layer_4_ref"}},
+        "time": null
+      }
+    }
+  },
+  "datasets": {
+    "static": {
+      "cell_datasets_data": {
+      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_static/",
+      "file_name": "TUW_WARP5_grid_info_2_3.nc"
+      },
+      "cell_datasets_ref": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_static/",
+        "file_name": "TUW_WARP5_grid_info_2_3.nc"
+      }
+    },
+    "dynamic" : {
+      "source": {
+        "cell_datasets_data": {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_nrt/swi/{sub_path_source_cell}",
+          "file_name": "swi_{cell_n}.nc",
+          "variables_in": {
+            "datasets": ["sm", "swi_values_t06", "swi_values_t12", "swi_values_t32", "time"],
+            "registry": ["row_size", "lon", "lat", "location_id"]
+          },
+          "variables_out": {
+            "datasets": ["layer_1_data", "layer_2_data", "layer_3_data", "layer_4_data", "time_data"],
+            "registry": ["row_size_data","lon_data", "lat_data", "location_id_data"]
+          }
+        },
+       "cell_datasets_ref": {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_dr/h120/",
+          "file_name": "H120_{cell_n}.nc",
+          "variables_in": {
+            "datasets": ["sm", "sm", "sm", "sm", "time"],
+            "registry": ["row_size", "lon", "lat", "location_id"]
+          },
+          "variables_out": {
+            "datasets": ["layer_1_ref", "layer_2_ref", "layer_3_ref", "layer_4_ref", "time_ref"],
+            "registry": ["row_size_ref","lon_ref", "lat_ref", "location_id_ref"]
+          }
+        }
+      },
+      "destination": {
+        "cell_datasets": {
+          "active": true,
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_nrt/swi/{sub_path_destination_cell}",
+          "file_name": "swi_{cell_n}_scaled.nc",
+          "variables_in": {
+            "datasets": [
+              "time_data",
+              "layer_1_data",
+              "layer_2_data",
+              "layer_3_data",
+              "layer_4_data",
+              "layer_1_scaled",
+              "layer_2_scaled",
+              "layer_3_scaled",
+              "layer_4_scaled"
+            ],
+            "registry": ["row_size_data","lon_data", "lat_data", "location_id_data"]
+          },
+          "variables_out": {
+            "datasets": [
+              "time",
+              "sm",
+              "swi_values_t06",
+              "swi_values_t12",
+              "swi_values_t32",
+              "sm_scaled",
+              "swi_values_t06_scaled",
+              "swi_values_t12_scaled",
+              "swi_values_t32_scaled"
+            ],
+            "registry": ["row_size", "lon", "lat", "location_id"]
+          }
+        }
+      }
+    }
+  },
+  "time": {
+    "_comment_": "2022-11-29 00:00 2022-12-02 03:00",
+    "time_now": null,
+    "time_start": null,
+    "time_end": null,
+    "time_period": 1,
+    "time_frequency": "H",
+    "time_rounding" : "H"
+  },
+  "log": {
+    "path_log" : "/home/fabio/Desktop/Recolour_Workspace/ws/log/scaling/",
+    "file_log": "app_cell_scaling_ecmwf.txt"
+  }
+}

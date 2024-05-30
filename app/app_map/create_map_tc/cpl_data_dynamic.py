@@ -18,7 +18,7 @@ import pandas as pd
 
 from copy import deepcopy
 
-from lib_info_args import logger_name
+from lib_info_args import logger_name, time_format_algorithm
 from lib_data_io_cell import create_grid_cell
 from lib_data_io_nc import read_file_nc, organize_file_nc
 
@@ -152,13 +152,30 @@ class CouplerDataset:
             time_sort_start = pd.to_datetime(dset_src_sort['time'].values)[0]
             time_sort_end = pd.to_datetime(dset_src_sort['time'].values)[-1]
 
+            # info datasets time period
+            alg_logger.info('  (1) Datasets time period :: time_start "' +
+                            time_sort_start.strftime(time_format_algorithm) + '" - time_end "' +
+                            time_sort_end.strftime(time_format_algorithm) + '"')
+
             # check time reference
             time_reference_start = pd.date_range(
-                end=time_reference_group, periods=time_tolerance_period, freq=time_tolerance_frequency)[0]
+                end=time_reference_group, periods=time_tolerance_period + 1, freq=time_tolerance_frequency)[0]
             time_reference_end = pd.date_range(
-                start=time_reference_group, periods=time_tolerance_period, freq=time_tolerance_frequency)[-1]
+                start=time_reference_group, periods=time_tolerance_period + 1, freq=time_tolerance_frequency)[-1]
             time_reference_range = pd.date_range(start=time_reference_start, end=time_reference_end,
                                                  freq=time_tolerance_frequency)
+
+            # info search time period
+            alg_logger.info('  (2) Search time period :: time_start "' +
+                            time_reference_start.strftime(time_format_algorithm) + '" - time_end "' +
+                            time_reference_end.strftime(time_format_algorithm) + '"')
+
+            # define time difference between time reference and time start/end
+            time_difference_start = time_reference_group - time_reference_start
+            time_difference_end = time_reference_group - time_reference_end
+
+            hours_difference_start = int(time_difference_start.days * 24) + int(time_difference_start.seconds / 3600)
+            hours_difference_end = int(time_difference_end.days * 24) + int(time_difference_end.seconds / 3600)
 
             # select sliced times
             if time_sort_start in time_reference_range:
@@ -176,6 +193,7 @@ class CouplerDataset:
                 # dataset selection
                 dset_src_select = dset_src_sort.sel(time=slice(time_start, time_end))
 
+                # check time selection
                 if dset_src_select['time'].shape[0] >= 1:
 
                     # dataset last
@@ -184,16 +202,24 @@ class CouplerDataset:
                     time_last = pd.to_datetime(dset_src_last['time'].values)[0]
 
                     # compute time tolerance
-                    time_range_tolerance_sx = pd.date_range(end=time_reference_dset,
-                                                            periods=time_tolerance_period, freq=time_tolerance_frequency)
-                    time_range_tolerance_dx = pd.date_range(start=time_reference_dset,
-                                                            periods=time_tolerance_period, freq=time_tolerance_frequency)
+                    time_range_tolerance_sx = pd.date_range(
+                        end=time_reference_dset, periods=time_tolerance_period + 1, freq=time_tolerance_frequency)
+                    time_range_tolerance_dx = pd.date_range(
+                        start=time_reference_dset, periods=time_tolerance_period + 1, freq=time_tolerance_frequency)
                     time_range_tolerance = time_range_tolerance_sx.append(time_range_tolerance_dx)
 
                     # check time last in time tolerance
                     if time_last in time_range_tolerance:
+
+                        # select data and time according with time tolerance
                         dset_src_out = deepcopy(dset_src_last)
                         dset_time = deepcopy(time_last)
+
+                        # info select time reference and time selection
+                        alg_logger.info('  (3) Select time data :: time_reference "' +
+                                        time_reference_group.strftime(time_format_algorithm) + '" - time_select "' +
+                                        dset_time.strftime(time_format_algorithm) + '"')
+
                     else:
                         alg_logger.warning(' ===> Time datasets steps are not included in the time period tolerance')
                         dset_src_out, dset_time = None, None
@@ -450,31 +476,38 @@ def remap_dataset_2_ref(dset_ref, dset_other, var_other='soil_moisture_k1',
     other_values_source = np.squeeze(dset_other[var_other].values)
     other_geo_x, other_geo_y = np.squeeze(dset_other['longitude'].values), np.squeeze(dset_other['latitude'].values)
 
-    if other_values_source.ndim > 1:
-        other_values_source = other_values_source[:,0]
+    # check if values are not nan(s)
+    if not all(np.isnan(other_values_source)):
 
-    obj_resample = resample_to_grid(
-        {'tmp': other_values_source},
-        other_geo_x, other_geo_y, ref_geo_x_2d, ref_geo_y_2d,
-        search_rad=search_rad,
-        min_neighbours=min_neigh, neighbours=neigh)
+        if other_values_source.ndim > 1:
+            other_values_source = other_values_source[:,0]
 
-    other_values_resampled = obj_resample['tmp']
-    other_values_resampled[other_values_resampled < min_value] = np.nan
-    other_values_resampled[other_values_resampled > max_value] = np.nan
+        obj_resample = resample_to_grid(
+            {'tmp': other_values_source},
+            other_geo_x, other_geo_y, ref_geo_x_2d, ref_geo_y_2d,
+            search_rad=search_rad,
+            min_neighbours=min_neigh, neighbours=neigh)
 
-    obj_kernel = Gaussian2DKernel(x_stddev=filter_st_dev, mode=filter_mode)
-    other_values_filtered = convolve(other_values_resampled, obj_kernel)
+        other_values_resampled = obj_resample['tmp']
+        other_values_resampled[other_values_resampled < min_value] = np.nan
+        other_values_resampled[other_values_resampled > max_value] = np.nan
 
-    ''' debug
-    plt.figure()
-    plt.imshow(other_values_resampled)
-    plt.colorbar(); plt.clim(0, 1)
-    plt.figure()
-    plt.imshow(other_values_filtered)
-    plt.colorbar(); plt.clim(0, 1)
-    plt.show()
-    '''
+        obj_kernel = Gaussian2DKernel(x_stddev=filter_st_dev, mode=filter_mode)
+        other_values_filtered = convolve(other_values_resampled, obj_kernel)
+
+        ''' debug
+        plt.figure()
+        plt.imshow(other_values_resampled)
+        plt.colorbar(); plt.clim(0, 1)
+        plt.figure()
+        plt.imshow(other_values_filtered)
+        plt.colorbar(); plt.clim(0, 1)
+        plt.show()
+        '''
+
+    else:
+        # maps other values to reference (nans values)
+        other_values_filtered = np.full_like(ref_geo_x_2d, np.nan)
 
     obj_data = {var_other: other_values_filtered.ravel(),
                 'longitude': ref_geo_x_2d.ravel(), 'latitude': ref_geo_y_2d.ravel()}
@@ -491,6 +524,11 @@ def join_dataset_obj(dset_collections_in, time_collections_in, ancillary_collect
                      remap_k1_2_ref=True, remap_k2_2_ref=False,
                      bnd_value_min=0.0, bnd_value_max=1):
 
+    # info start method
+    alg_logger.info(' -------> Join data ... ')
+
+    # info start organize data
+    alg_logger.info(' --------> Organize data ... ')
     # define datasets
     dset_ref, time_ref = dset_collections_in[tag_name_ref], time_collections_in[tag_name_ref]
     dset_k1, time_k1 = dset_collections_in[tag_name_k1], time_collections_in[tag_name_k1]
@@ -498,14 +536,20 @@ def join_dataset_obj(dset_collections_in, time_collections_in, ancillary_collect
 
     # debug
     if dset_k1 is None:
+        alg_logger.warning(' ===> Data "k1" defined by NoneType. Remap based on data "ref" initialize with nans')
         time_k1 = time_ref
-        dset_k1 = None_dataset(dset_ref, 'soil_moisture_ref', 'soil_moisture_k1', np.nan)
+        dset_k1 = create_dataset_null(dset_ref, 'soil_moisture_ref', 'soil_moisture_k1', np.nan)
     if dset_k2 is None:
+        alg_logger.warning(' ===> Data "k2" defined by NoneType. Remap based on data "ref" initialize with nans')
         time_k2 = time_ref
-        dset_k2 = None_dataset(dset_ref, 'soil_moisture_ref', 'soil_moisture_k2', np.nan)
+        dset_k2 = create_dataset_null(dset_ref, 'soil_moisture_ref', 'soil_moisture_k2', np.nan)
 
     dset_anc = deepcopy(ancillary_collections_in)
 
+    # info start organize data
+    alg_logger.info(' --------> Organize data ... DONE')
+
+    # remap datasets k1 to reference
     if remap_k1_2_ref:
         if (dset_ref is not None) and (dset_k1 is not None):
             dset_k1_remap = remap_dataset_2_ref(dset_ref, dset_k1,
@@ -515,6 +559,10 @@ def join_dataset_obj(dset_collections_in, time_collections_in, ancillary_collect
     else:
         dset_k1_remap = dset_k1
 
+    # info start remap data
+    alg_logger.info(' --------> Remap data ... ')
+
+    # remap datasets k2 to reference
     if remap_k2_2_ref:
         if (dset_ref is not None) and (dset_k2 is not None):
             dset_k2_remap = remap_dataset_2_ref(dset_ref, dset_k2,
@@ -523,6 +571,12 @@ def join_dataset_obj(dset_collections_in, time_collections_in, ancillary_collect
             dset_k2_remap = None
     else:
         dset_k2_remap = dset_k2
+
+    # info end remap data
+    alg_logger.info(' --------> Remap data ... DONE')
+
+    # info start combine data
+    alg_logger.info(' --------> Combine data ... ')
 
     # check ancillary datasets (not defined by NoneType)
     if dset_anc is not None:
@@ -541,6 +595,19 @@ def join_dataset_obj(dset_collections_in, time_collections_in, ancillary_collect
             idxs_ref_k1 = get_datasets_lut(grid_ref, grid_k1, max_dist=max_dist_k1)
             idxs_ref_k2 = get_datasets_lut(grid_ref, grid_k2, max_dist=max_dist_k2)
 
+            # filter indexes (select only the ones with all the datasets available)
+            index_id = np.arange(0, idxs_ref_anc.__len__(), 1)
+            index_data = {'ref_k1': idxs_ref_k1, 'ref_k2': idxs_ref_k2, 'ref_anc': idxs_ref_anc}
+            index_dframe = pd.DataFrame(data=index_data, index=index_id)
+            index_dframe[index_dframe <= 0] = np.nan
+            index_dframe.dropna(axis=0, how='any', inplace=True)
+            # define filtered indexes
+            idxs_ref_filter = np.array(index_dframe.index, dtype=int).tolist()
+            idxs_k1_filter = np.array(index_dframe['ref_k1'], dtype=int).tolist()
+            idxs_k2_filter = np.array(index_dframe['ref_k2'], dtype=int).tolist()
+            idxs_anc_filter = np.array(index_dframe['ref_anc'], dtype=int).tolist()
+
+            '''
             # define filtered indexes
             idxs_ref_filter, idxs_k1_filter, idxs_k2_filter, idxs_anc_filter = [], [], [], []
             for ref_idx, (k1_idx, k2_idx, anc_idx) in enumerate(zip(idxs_ref_k1, idxs_ref_k2, idxs_ref_anc)):
@@ -549,6 +616,7 @@ def join_dataset_obj(dset_collections_in, time_collections_in, ancillary_collect
                     idxs_k1_filter.append(k1_idx)
                     idxs_k2_filter.append(k2_idx)
                     idxs_anc_filter.append(anc_idx)
+            '''
 
             # define filtered datasets
             dset_ref_filter = filter_datasets_obj(dset_obj_in=dset_ref, idxs_obj=idxs_ref_filter)
@@ -595,13 +663,27 @@ def join_dataset_obj(dset_collections_in, time_collections_in, ancillary_collect
             if 'locations' in dframe_collections.columns:
                 dframe_collections = dframe_collections.drop(['locations'], axis=1)
 
+            # info end combine data
+            alg_logger.info(' --------> Combine data ... DONE')
+
         else:
+            # case k1 and k2 are not available
             dframe_collections = None
             alg_logger.warning(' ===> Dynamic dataset is/are defined by NoneType. Data collections are not available')
-
+            # info end combine data
+            alg_logger.info(' --------> Combine data ... FAILED. Datasets k1 and/or k2 are/is not available')
     else:
+        # info end combine data
+        alg_logger.info(' --------> Combine data ... FAILED. Datasets metrics are not available')
         dframe_collections = None
-        alg_logger.warning(' ===> Ancillary dataset is defined by NoneType. Data collections are not available')
+
+        # case metrics are not available but datasets are available
+        if (dset_k1_remap is not None) and (dset_k2_remap is not None):
+            alg_logger.error(' ===> Ancillary dataset is defined by NoneType. Data collections are not available')
+            raise RuntimeError('Ancillary dataset must be defined to properly run the algorithm')
+
+    # info end method
+    alg_logger.info(' -------> Join data ... DONE')
 
     return dframe_collections
 
@@ -664,32 +746,35 @@ def create_composite_dset(dset_ref, dset_k1, dset_k2):
     return dset_composite
 # ----------------------------------------------------------------------------------------------------------------------
 
-def None_dataset(dset_ref:xr.Dataset, dset_ref_var:str, var:str, FillValue:float):
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to create a dataset of nan (or null) values
+def create_dataset_null(dset_ref: xr.Dataset, dset_ref_var: str, var: str, fill_value: float):
     """Creates a dataset of nan values which is a copy of dset_ref.
 
     Parameters
     ----------
-    dset_ref: reference dataset
+    :param dset_ref: reference dataset
     dset_ref_datarray: slice of the dataset which is the datarray containing dset_ref_var as a key
-    dset_ref_var: key to substitute
-    var: variable name which is substituted to the reference one
-    FillValue: fillvalue for the data, default np.nan
+    :param dset_ref_var: key to substitute
+    :param var: variable name which is substituted to the reference one
+    :param fill_value: fillvalue for the data, default np.nan
 
     Returns
     -------
     xarray dataset
 
     """
-    if FillValue is None:
-        FillValue = np.nan
+    if fill_value is None:
+        fill_value = np.nan
 
     dset_xr = None
     if dset_ref is not None:
         dset_ref_dict = dset_ref.to_dict()
         data_ref_len = len(dset_ref_dict['data_vars'][dset_ref_var]['data'])
-        dset_ref_dict['data_vars'][dset_ref_var]['data'] = [[FillValue]] * data_ref_len
+        dset_ref_dict['data_vars'][dset_ref_var]['data'] = [[fill_value]] * data_ref_len
         dset_ref_dict['data_vars'][var] = dset_ref_dict['data_vars'].pop(dset_ref_var)
         dset_xr = xr.Dataset.from_dict(dset_ref_dict)
 
     return dset_xr
-
+# ----------------------------------------------------------------------------------------------------------------------

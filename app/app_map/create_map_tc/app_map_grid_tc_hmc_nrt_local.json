@@ -1,8 +1,9 @@
 {
   "flags": {
     "reset_datasets_geo": false,
-    "reset_datasets_ancillary_points_raw": false,
-    "reset_datasets_ancillary_points_def": false,
+    "reset_datasets_ancillary_points_src": false,
+    "reset_datasets_ancillary_points_dst_metrics": false,
+    "reset_datasets_ancillary_points_dst_data": true,
     "reset_datasets_ancillary_maps": true,
     "reset_datasets_destination": true,
     "reset_logs": true
@@ -18,8 +19,12 @@
       "sub_path_source_k1": "%Y/%m/%d/",
       "datetime_source_k2": "%Y%m%d%H",
       "sub_path_source_k2": "%Y/%m/%d/",
-      "datetime_ancillary_points": "%Y%m%d%H",
-      "sub_path_ancillary_points": "%Y/%m/",
+      "datetime_ancillary_points_src": "%Y%m%d%H",
+      "sub_path_ancillary_points_src": "%Y/%m/",
+      "datetime_ancillary_points_dst_data": "%Y%m%d%H",
+      "sub_path_ancillary_points_dst_data": "%Y/%m/",
+      "datetime_ancillary_points_dst_metrics": "%Y%m%d%H",
+      "sub_path_ancillary_points_dst_metrics": "%Y/%m/",
       "datetime_ancillary_maps": "%Y%m%d%H",
       "sub_path_ancillary_maps": "%Y/%m/",
       "datetime_destination": "%Y%m%d%H0000",
@@ -91,7 +96,7 @@
       "name": "resample_data",
       "parameters": {
         "min_neighbours": {"var_points": 8, "var_flag": 1},
-        "neighbours": {"var_points": 8, "var_flag": 1},
+        "neighbours": {"var_points": 8, "var_flag": 8},
         "max_distance": {"var_points": 25000, "var_flag": 25000},
         "method": {"var_points": "nn", "var_flag": "nn"},
         "remove_artifacts": {"var_points": false, "var_flag": false},
@@ -112,7 +117,8 @@
       "active": true,
       "name": "filter_data",
       "parameters": {
-        "kernel_type": "gauss",  "kernel_pixels_std": 2,  "kernel_mode": "center"
+        "__comment__": "kernel_type: gauss :: kernel_pixels_std: 2 :: kernel_mode: center",
+        "kernel_type": "gauss",  "kernel_pixels_std": 3,  "kernel_mode": "oversample"
       },
       "variables": {
         "in": {
@@ -169,8 +175,9 @@
     "cell_list": [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430, 1431],
     "bnd_value_min": 0.01,
     "bnd_value_max": 1.0,
-    "max_distance": {"ref": 25000, "k1": 25000, "k2": 25000, "ancillary": 25000},
-    "max_timedelta": {"ref": "24H", "k1": "24H", "k2": "24H"},
+    "max_distance": {"ref": 25000, "k1": 50000, "k2": 50000, "ancillary": 50000},
+    "max_timedelta": {"ref": "24H", "k1": "12H", "k2": "24H"},
+    "time_selection": {"ref": "last", "k1": "last", "k2": "nearest"},
     "remap_datasets_flag": {"ref": false, "k1": true, "k2": true},
     "remap_datasets_name": {"ref": "soil_moisture_ref", "k1": "soil_moisture_k1", "k2": "soil_moisture_k2"}
   },
@@ -179,36 +186,36 @@
       "source" : {
         "cell_grid": {
           "k1": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/ecmwf_auxiliary/grid/",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_auxiliary/grid/",
             "file_name": "grid.nc",
             "name": "ecmwf"
           },
           "ref": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/hmc_auxiliary/grid/",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/hmc_auxiliary/grid/",
             "file_name": "grid.nc",
             "name": "hmc"
           },
           "k2": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/smap_auxiliary/grid/spl2smp_e/",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/smap_auxiliary/grid/spl2smp_e/",
             "file_name": "grid.nc",
             "name": "smap"
           }
         },
         "geo_grid": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/map_tc_auxiliary/domain/",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_tc_auxiliary/domain/",
             "file_name": "grid_reference_1000m.tiff"
         },
         "mask_grid": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/map_tc_auxiliary/mask_area/",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_tc_auxiliary/mask_area/",
             "file_name": "mask_italy_no_carea.tif"
         },
         "removed_area_grid": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/map_tc_auxiliary/mask_area/",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_tc_auxiliary/mask_area/",
             "file_name": "mask_italy_removed_v4.tif"
         }
       },
       "destination":{
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/map_tc_ancillary/static/",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_tc_ancillary/static/",
         "file_name": "geo_info_hmc.workspace"
       }
     },
@@ -216,7 +223,7 @@
       "source": {
         "soil_moisture":{
           "k1" : {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/ecmwf_ts_nrt/{sub_path_source_k1}",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_cell_nrt_var40/nc/{sub_path_source_k1}",
             "file_name": "{cell_n}.nc",
             "name": "ecmwf",
             "variable": {
@@ -228,7 +235,7 @@
             "time_rounding": "D"
           },
           "ref": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/hmc_ts_nrt/{sub_path_source_ref}",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/hmc_cell_nrt/{sub_path_source_ref}",
             "file_name": "{cell_n}.nc",
             "name": "hmc",
             "variable": {
@@ -240,7 +247,7 @@
             "time_rounding": "D"
           },
           "k2": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/smap_ts_nrt/spl2smp_e/{sub_path_source_k2}",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/smap_cell_nrt/spl2smp_e/{sub_path_source_k2}",
             "file_name": "{cell_n}.nc",
             "name": "smap",
             "variable": {
@@ -253,7 +260,7 @@
           }
         },
         "metrics": {
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/validation/results/hmc_ecmwf_smap_ver2/",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_tc/results/hmc_ecmwf_smap_ver2/",
           "file_name": "{cell_n}.nc",
           "variable": {
             "RZSM_HMC_ALL_w": "weights_k1_ref", "RZSM_SMAP_ALL_w": "weights_k1_k2", "HMC_SMAP_ALL_w": "weights_ref_k2",
@@ -266,24 +273,28 @@
         }
       },
       "ancillary": {
-        "points": {
-          "raw": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/map_tc_ancillary/dynamic/points/{sub_path_ancillary_points}",
-            "file_name": "sm_pnt_{datetime_ancillary_points}_{cell_n}.raw.workspace"
+        "points_source": {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_tc_ancillary/dynamic/points_source/{sub_path_ancillary_points_src}",
+          "file_name": "sm_pnt_{datetime_ancillary_points_src}_{cell_n}.raw.workspace"
+        },
+        "points_destination": {
+          "data": {
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_tc_ancillary/dynamic/points_destination/datasets/{sub_path_ancillary_points_dst_data}",
+            "file_name": "sm_pnt_{datetime_ancillary_points_dst_data}.datasets.workspace"
           },
-          "def": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/map_tc_ancillary/dynamic/points/{sub_path_ancillary_points}",
-            "file_name": "sm_pnt_{datetime_ancillary_points}_{cell_n}.def.workspace"
+          "metrics": {
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_tc_ancillary/dynamic/points_destination/metrics/{sub_path_ancillary_points_dst_metrics}",
+            "file_name": "sm_pnt_{datetime_ancillary_points_dst_metrics}.metrics.workspace"
           }
         },
         "maps": {
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/map_tc_ancillary/dynamic/maps/{sub_path_ancillary_maps}",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_tc_ancillary/dynamic/maps/{sub_path_ancillary_maps}",
           "file_name": "sm_maps_{datetime_ancillary_maps}.workspace"
         }
       },
       "destination": {
         "__comment__": "format: [netcdf, tiff]",
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/map_tc_nrt/{sub_path_destination}",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_tc_nrt/{sub_path_destination}",
         "file_name": "sm_{datetime_destination}.tiff",
         "variable": {
               "soil_moisture_resampled": "soil_moisture_masked_resampled",
@@ -307,11 +318,11 @@
     "time_rounding" : "D"
   },
   "log": {
-    "folder_name" : "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/log/map_tc/",
+    "folder_name" : "/home/fabio/Desktop/Recolour_Workspace/ws/log/map_tc/",
     "file_name": "app_map_grid_tc_nrt.txt"
   },
   "tmp": {
-    "folder_name" : "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/tmp/map_tc/",
+    "folder_name" : "/home/fabio/Desktop/Recolour_Workspace/ws/tmp/map_tc/",
     "file_name": null
   }
 }

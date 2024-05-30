@@ -3,8 +3,8 @@ Library Features:
 
 Name:          lib_fx_methods_common
 Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:          '20240311'
-Version:       '1.5.0'
+Date:          '20240507'
+Version:       '1.6.0'
 """
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -18,8 +18,7 @@ from copy import deepcopy
 
 from pyresample.geometry import GridDefinition
 from repurpose.resample import resample_to_grid
-
-from astropy.convolution import convolve, Gaussian2DKernel, interpolate_replace_nans
+from astropy.convolution import convolve, Gaussian2DKernel, Box2DKernel
 
 from lib_info_args import logger_name
 from lib_utils_io import create_darray_2d
@@ -46,7 +45,7 @@ def update_data_by_masked_area(
         coord_name_x='longitude', coord_name_y='latitude', dim_name_x='longitude', dim_name_y='latitude',
         max_distance=25000, min_neighbours=1, neighbours=8,
         gauss_stddev_ref=3, gauss_mode_ref='center',
-        gauss_stddev_k1=4, gauss_mode_k1='center', gauss_stddev_k2=4, gauss_mode_k2='center',
+        gauss_stddev_k1=4, gauss_mode_k1='center', box_width=2, gauss_stddev_k2=4, gauss_mode_k2='center',
         value_min=0.1, value_max=0.95,
         debug=False, **kwargs):
 
@@ -155,6 +154,13 @@ def update_data_by_masked_area(
     tmp_data_step_4[idx_nd_4_nan[:, 0], idx_nd_4_nan[:, 1]] = tmp_data_filtered[idx_nd_4_nan[:, 0], idx_nd_4_nan[:, 1]]
     alg_logger.info(' ------> Fill resampled data out of the variable limits ... DONE')
 
+    # box values and create a filtered grid
+    tmp_data_step_5 = deepcopy(tmp_data_step_4)
+    obj_kernel_box = Box2DKernel(box_width)
+    tmp_data_box = convolve(tmp_data_step_5, obj_kernel_box)
+    tmp_data_box[geo_values < 1] = np.nan
+    tmp_data_box[removed_values > 0] = np.nan
+
     # active debug
     if debug:
         plot_data_2d(removed_values)
@@ -169,12 +175,13 @@ def update_data_by_masked_area(
         plot_data_2d(tmp_data_step_1)
         plot_data_2d(tmp_data_step_2)
         plot_data_2d(tmp_data_step_3)
+        plot_data_2d(tmp_data_step_4)
+        plot_data_2d(tmp_data_box)
         plot_data_2d(tmp_data_filtered)
-        # plot_data_2d(tmp_data_step_4)
 
     # method to create data array resampled
     var_da_out_resampled = create_darray_2d(
-        tmp_data_step_3, geo_x_1d, geo_y_1d, name='soil_moisture_resampled',
+        tmp_data_box, geo_x_1d, geo_y_1d, name='soil_moisture_resampled',
         coord_name_x=coord_name_x, coord_name_y=coord_name_y,
         dim_name_x=dim_name_x, dim_name_y=dim_name_y)
 

@@ -144,7 +144,7 @@ def get_args():
 
 # -------------------------------------------------------------------------------------
 # method to set logging information
-def set_logging(logger_file='./log.txt', logger_format=None):
+def set_logging(logger_file='log.txt', logger_format=None):
     if logger_format is None:
         logger_format = '%(asctime)s %(name)-12s %(levelname)-8s ' \
                         '%(filename)s:[%(lineno)-6s - %(funcName)20s()] %(message)s'

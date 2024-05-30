@@ -10,7 +10,7 @@ __author__ =
 __library__ = 'recolour'
 
 General command line:
-python app_cell_swi.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
+python app_cell_scaling.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
 20240423 (1.1.0) --> Update codes and fix bugs
@@ -171,7 +171,7 @@ def set_logging(logger_name='algorithm_logger', logger_folder=None, logger_file=
     logging.root.setLevel(logging.DEBUG)
 
     # Open logging basic configuration
-    logging.basicConfig(level=logging.DEBUG, format=logger_format, filename=logger_file, filemode='w')
+    logging.basicConfig(level=logging.DEBUG, format=logger_format, filename=logger_path, filemode='w')
 
     # Set logger handle
     logger_handle_1 = logging.FileHandler(logger_path, 'w')

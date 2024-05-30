@@ -14,6 +14,8 @@ import numpy as np
 
 from copy import deepcopy
 
+from lib_utils_plot import plot_data_2d
+from lib_utils_geo import resample_points_to_grid
 from lib_info_args import logger_name
 
 # set logger obj
@@ -26,7 +28,8 @@ import matplotlib.pylab as plt
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to scale data
-def scale_data(obj_data, variables_data=None, parameters_data=None,
+def scale_data(obj_data, obj_metrics,
+               variables_data=None, parameters_data=None,
                var_name_k1='soil_moisture_k1', var_name_k2='soil_moisture_k2',
                var_beta_k1='beta_k1', var_beta_k2='beta_k2',
                var_mean_ref='mean_ref', var_mean_k1='mean_k1', var_mean_k2='mean_k2', **kwargs):
@@ -49,8 +52,8 @@ def scale_data(obj_data, variables_data=None, parameters_data=None,
 
         pars_tmp = {}
         for par_name_fx, par_name_obj in parameters_data.items():
-            if par_name_obj in list(obj_data.columns):
-                pars_tmp[par_name_fx] = obj_data[par_name_obj].values
+            if par_name_obj in list(obj_metrics.columns):
+                pars_tmp[par_name_fx] = obj_metrics[par_name_obj].values
             else:
                 alg_logger.error(' ===> Parameter "' + par_name_obj + '" is not available in the dataframe obj')
                 raise RuntimeError('Parameter is needed by the algorithm to properly work')
@@ -68,8 +71,11 @@ def scale_data(obj_data, variables_data=None, parameters_data=None,
         var_scale_k2 = (pars_tmp['var_beta_k2'] * (vars_tmp_in['var_data_k2'] - pars_tmp['var_mean_k2']) +
                         pars_tmp['var_mean_ref'])
 
-        var_scale_k1[var_scale_k1 > 1] = 1
-        var_scale_k2[var_scale_k2 > 1] = 1
+        # check limits (after scaling)
+        var_scale_k1[var_scale_k1 > 1] = np.nan
+        var_scale_k2[var_scale_k2 > 1] = np.nan
+        var_scale_k1[var_scale_k1 < 0] = np.nan
+        var_scale_k2[var_scale_k2 < 0] = np.nan
 
         vars_tmp_out = {'var_data_k1_scaled': var_scale_k1, 'var_data_k2_scaled': var_scale_k2}
 
@@ -89,7 +95,8 @@ def scale_data(obj_data, variables_data=None, parameters_data=None,
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to weigh data
-def weigh_data(obj_data, variables_data=None, parameters_data=None,
+def weigh_data(obj_data, obj_metrics,
+               variables_data=None, parameters_data=None,
                var_name_ref='soil_moisture_ref', var_name_composite='soil_moisture_composite',
                var_name_k1='soil_moisture_k1_scaled', var_name_k2='soil_moisture_k2_scaled',
                var_flag_composite='flags_composite',
@@ -98,11 +105,17 @@ def weigh_data(obj_data, variables_data=None, parameters_data=None,
                var_weight_k1_ref='weights_k1_ref', var_weight_k2_ref='weights_k2_ref',
                flag_ref_k1_k2=0, flag_ref=1, flag_ref_k1=2, flag_ref_k2=3, flag_k1=4, flag_k2=5,
                active_ref_k1=True, active_ref_k2=False, active_ref=True, active_k1=False, active_k2=False,
-               **kwargs):
+               debug=False, **kwargs):
 
     vars_name_expected = [var_name_ref, var_name_k1, var_name_k2, var_name_composite, var_flag_composite]
     pars_name_expected = [var_weight_ref, var_weight_k1, var_weight_k2,
                           var_weight_ref_k1, var_weight_ref_k2, var_weight_k1_ref, var_weight_k2_ref]
+
+    var_lons_1d, var_lats_1d = None, None
+    if 'longitude' in list(obj_data.columns):
+        var_lons_1d = obj_data['longitude'].values
+    if 'latitude' in list(obj_data.columns):
+        var_lats_1d = obj_data['latitude'].values
 
     # check object data
     if obj_data is not None:
@@ -119,8 +132,8 @@ def weigh_data(obj_data, variables_data=None, parameters_data=None,
         # check parameters data
         pars_tmp = {}
         for par_name_fx, par_name_obj in parameters_data.items():
-            if par_name_obj in list(obj_data.columns):
-                pars_tmp[par_name_fx] = obj_data[par_name_obj].values
+            if par_name_obj in list(obj_metrics.columns):
+                pars_tmp[par_name_fx] = obj_metrics[par_name_obj].values
             else:
                 alg_logger.error(' ===> Parameter "' + par_name_obj + '" is not available in the dataframe obj')
                 raise RuntimeError('Parameter is needed by the algorithm to properly work')
@@ -150,7 +163,7 @@ def weigh_data(obj_data, variables_data=None, parameters_data=None,
         idxs_tmp_fk1_nk2 = np.argwhere(np.isfinite(var_tmp_k1) & np.isnan(var_tmp_k2))[:, 0]
         idxs_tmp_nk1_fk2 = np.argwhere(np.isnan(var_tmp_k1) & np.isfinite(var_tmp_k2))[:, 0]
 
-        # case 1: all products
+        # case 1 - ref found, k1 found and k2 found ( all products )
         var_tmp_ref_fk1_fk2, var_tmp_k1_fk1_fk2, var_tmp_k2_fk1_fk2, var_tmp_flag_fk1_fk2 = apply_idxs(
             var_tmp_ref, var_tmp_k1, var_tmp_k2, idxs_tmp_fk1_fk2, flag_select=flag_ref_k1_k2)
 
@@ -163,13 +176,13 @@ def weigh_data(obj_data, variables_data=None, parameters_data=None,
 
         var_def_weight_fk1_fk2 = var_tmp_weigh_ref_fk1_fk2 + var_tmp_weigh_k1_fk1_fk2 + var_tmp_weigh_k2_fk1_fk2
 
-        # case 2: only ref
+        # case 2 - ref found and k1 and k2 not found (only reference)
         var_tmp_ref_nk1_nk2, var_tmp_k1_nk1_nk2, var_tmp_k2_nk1_nk2, var_tmp_flag_nk1_nk2 = apply_idxs(
             var_tmp_ref, var_tmp_k1, var_tmp_k2, idxs_tmp_nk1_nk2, flag_select=flag_ref)
 
         var_def_weight_nk1_nk2 = deepcopy(var_tmp_ref_nk1_nk2)
 
-        # case 3
+        # case 3 - ref found, k1 found and k2 not found
         var_tmp_ref_fk1_nk2, var_tmp_k1_fk1_nk2, var_tmp_k2_fk1_nk2, var_tmp_flag_fk1_nk2 = apply_idxs(
             var_tmp_ref, var_tmp_k1, var_tmp_k2, idxs_tmp_fk1_nk2, flag_select=flag_ref_k1)
 
@@ -181,17 +194,40 @@ def weigh_data(obj_data, variables_data=None, parameters_data=None,
 
         var_def_weight_fk1_nk2 = var_tmp_weigh_ref_fk1_nk2 + var_tmp_weigh_k1_fk1_nk2
 
-        # case 4
+        # case 4 - ref found, k1 not found and k2 found
         var_tmp_ref_nk1_fk2, var_tmp_k1_nk1_fk2, var_tmp_k2_nk1_fk2, var_tmp_flag_nk1_fk2 = apply_idxs(
             var_tmp_ref, var_tmp_k1, var_tmp_k2, idxs_tmp_nk1_fk2, flag_select=flag_ref_k2)
 
-        par_tmp_ref_k2_fk1_nk2, _, par_tmp_ref_k2_fk1_nk2, _ = apply_idxs(
+        par_tmp_ref_k2_nk1_fk2, _, par_tmp_k2_ref_nk1_fk2, _ = apply_idxs(
             par_tmp_ref_k2, None, par_tmp_k2_ref, idxs_tmp_nk1_fk2, flag_select=flag_ref_k2)
 
-        var_tmp_weigh_ref_nk1_fk2 = var_tmp_ref_nk1_fk2 * par_tmp_ref_k2_fk1_nk2
-        var_tmp_weigh_k2_nk1_fk2 = var_tmp_k2_nk1_fk2 * par_tmp_ref_k2_fk1_nk2
+        var_tmp_weigh_ref_nk1_fk2 = var_tmp_ref_nk1_fk2 * par_tmp_ref_k2_nk1_fk2
+        var_tmp_weigh_k2_nk1_fk2 = var_tmp_k2_nk1_fk2 * par_tmp_k2_ref_nk1_fk2
 
         var_def_weight_nk1_fk2 = var_tmp_weigh_ref_nk1_fk2 + var_tmp_weigh_k2_nk1_fk2
+
+        # debug
+        if debug:
+
+            alg_logger.debug(' ===> Check partial weight variable ... START')
+
+            var_def_weight_fk1_fk2_2d, var_geo_x_2d, var_geo_y_2d = resample_points_to_grid(
+                var_def_weight_fk1_fk2, var_lons_1d, var_lats_1d, var_lons_1d, var_lats_1d, search_rad=50000)
+            plot_data_2d(np.flipud(var_def_weight_fk1_fk2_2d), var_geo_x_2d, var_geo_y_2d)
+
+            var_def_weight_nk1_nk2_2d, var_geo_x_2d, var_geo_y_2d = resample_points_to_grid(
+                var_def_weight_nk1_nk2, var_lons_1d, var_lats_1d, var_lons_1d, var_lats_1d, search_rad=50000)
+            plot_data_2d(np.flipud(var_def_weight_nk1_nk2_2d), var_geo_x_2d, var_geo_y_2d)
+
+            var_def_weight_fk1_nk2_2d, var_geo_x_2d, var_geo_y_2d = resample_points_to_grid(
+                var_def_weight_fk1_nk2, var_lons_1d, var_lats_1d, var_lons_1d, var_lats_1d, search_rad=50000)
+            plot_data_2d(np.flipud(var_def_weight_fk1_nk2_2d), var_geo_x_2d, var_geo_y_2d)
+
+            var_def_weight_nk1_fk2_2d, var_geo_x_2d, var_geo_y_2d = resample_points_to_grid(
+                var_def_weight_nk1_fk2, var_lons_1d, var_lats_1d, var_lons_1d, var_lats_1d, search_rad=50000)
+            plot_data_2d(np.flipud(var_def_weight_nk1_fk2_2d), var_geo_x_2d, var_geo_y_2d)
+
+            alg_logger.debug(' ===> Check partial weight variable ... END')
 
         # define out variable(s)
         var_weight_flag = np.zeros(shape=[var_tmp_ref.shape[0]], dtype=int)
@@ -259,8 +295,30 @@ def weigh_data(obj_data, variables_data=None, parameters_data=None,
                 var_weight_flag[idxs_k2_global] = flag_k2
 
         # check limits (after weights)
-        var_weight_def[var_weight_def > 1] = 1
-        var_weight_def[var_weight_def < 0] = 0
+        var_weight_def[var_weight_def > 1] = np.nan
+        var_weight_def[var_weight_def < 0] = np.nan
+
+        # debug
+        if debug:
+            alg_logger.debug(' ===> Check composite weight variable ... START')
+
+            var_weight_k1_2d, var_geo_x_2d, var_geo_y_2d = resample_points_to_grid(
+                var_weight_k1, var_lons_1d, var_lats_1d, var_lons_1d, var_lats_1d, search_rad=50000)
+            plot_data_2d(np.flipud(var_weight_k1_2d), var_geo_x_2d, var_geo_y_2d)
+
+            var_weight_k2_2d, var_geo_x_2d, var_geo_y_2d = resample_points_to_grid(
+                var_weight_k2, var_lons_1d, var_lats_1d, var_lons_1d, var_lats_1d, search_rad=50000)
+            plot_data_2d(np.flipud(var_weight_k2_2d), var_geo_x_2d, var_geo_y_2d)
+
+            var_weight_def_2d, var_geo_x_2d, var_geo_y_2d = resample_points_to_grid(
+                var_weight_def, var_lons_1d, var_lats_1d, var_lons_1d, var_lats_1d, search_rad=50000)
+            plot_data_2d(np.flipud(var_weight_def_2d), var_geo_x_2d, var_geo_y_2d)
+
+            var_weight_flag_2d, var_geo_x_2d, var_geo_y_2d = resample_points_to_grid(
+                var_weight_flag, var_lons_1d, var_lats_1d, var_lons_1d, var_lats_1d, search_rad=50000)
+            plot_data_2d(np.flipud(var_weight_flag_2d), var_geo_x_2d, var_geo_y_2d)
+
+            alg_logger.debug(' ===> Check composite weight variable ... END')
 
         idxs_nans_def = np.squeeze(np.argwhere(np.isnan(var_weight_def))).tolist()
         if not isinstance(idxs_nans_def, list):

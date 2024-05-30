@@ -3,8 +3,8 @@
 """
 RECOLOUR APP - TC MERGED GRID PRODUCT  - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20240308'
-__version__ = '1.6.0'
+__date__ = '20240517'
+__version__ = '1.8.1'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)'
 __library__ = 'recolour'
@@ -16,6 +16,9 @@ Complete list of cells:
 [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430, 1431]
 
 Version(s):
+20240517 (1.8.1) --> Fix bugs in weight method
+20240514 (1.8.0) --> Update code(s) to filter points metrics and datasets using a common strategy; codes refactoring
+20240507 (1.7.0) --> Update code(s) to filter maps using a box convolution (to smooth data in artefacts areas)
 20240308 (1.6.0) --> Fix bugs and update code(s) with masked and removed areas
 20231218 (1.5.0) --> Operational development
 20230925 (1.0.0) --> First development
@@ -30,8 +33,6 @@ import sys
 
 from copy import deepcopy
 import argparse
-
-from astropy import log as astropy_log
 
 from lib_utils_time import set_time_info
 
@@ -53,8 +54,8 @@ alg_logger = logging.getLogger(logger_name_def)
 project_name = 'recolour'
 alg_name = 'Application for computing grid triple collocation soil moisture product'
 alg_type = 'Package'
-alg_version = '1.6.0'
-alg_release = '2024-03-08'
+alg_version = '1.8.1'
+alg_release = '2024-05-17'
 # -------------------------------------------------------------------------------------
 
 
@@ -111,14 +112,19 @@ def main():
         # configure dynamic driver
         drv_data_dynamic = DrvDataDynamic(
             alg_time_reference, alg_time_datasets, alg_data_static, alg_data_settings)
-        # organize datasets
-        drv_data_dynamic.organize_data()
-        # compute datasets points
-        drv_data_dynamic.analyze_data_points()
-        # compute datasets maps
+
+        # organize datasets points
+        drv_data_dynamic.organize_data_points()
+
+        # analyze datasets points metrics
+        drv_data_dynamic.analyze_data_points_metrics()
+        # analyze datasets points variables
+        drv_data_dynamic.analyze_data_points_variables()
+        # analyze datasets maps
         drv_data_dynamic.analyze_data_maps()
-        # dump datasets
-        drv_data_dynamic.dump_data()
+
+        # dump datasets maps
+        drv_data_dynamic.dump_data_maps()
         # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------
@@ -194,7 +200,7 @@ def set_logging(logger_name='algorithm_logger', logger_folder=None, logger_file=
     logging.root.setLevel(logging.DEBUG)
 
     # Open logging basic configuration
-    logging.basicConfig(level=logging.DEBUG, format=logger_format, filename=logger_file, filemode='w')
+    logging.basicConfig(level=logging.DEBUG, format=logger_format, filename=logger_path, filemode='w')
 
     # Set logger handle
     logger_handle_1 = logging.FileHandler(logger_path, 'w')

@@ -3,8 +3,8 @@
 """
 RECOLOUR APPS - COMPUTE SWI - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20240426'
-__version__ = '1.0.0'
+__date__ = '20240509'
+__version__ = '1.1.0'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)'
 __library__ = 'recolour'
@@ -13,6 +13,7 @@ General command line:
 python app_cell_swi.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
+20240509 (1.1.0) --> Update codes and filter variables using min, max and undefined values
 20240426 (1.0.0) --> First development
 """
 
@@ -40,10 +41,10 @@ alg_logger = logging.getLogger(logger_name)
 # -------------------------------------------------------------------------------------
 # algorithm information
 project_name = 'recolour'
-alg_name = 'Application for computing swi'
+alg_name = 'Application for computing cell swi'
 alg_type = 'Package'
-alg_version = '1.0.0'
-alg_release = '2024-04-26'
+alg_version = '1.1.0'
+alg_release = '2024-05-09'
 # -------------------------------------------------------------------------------------
 
 
@@ -166,7 +167,7 @@ def set_logging(logger_name='algorithm_logger', logger_folder=None, logger_file=
     logging.root.setLevel(logging.DEBUG)
 
     # Open logging basic configuration
-    logging.basicConfig(level=logging.DEBUG, format=logger_format, filename=logger_file, filemode='w')
+    logging.basicConfig(level=logging.DEBUG, format=logger_format, filename=logger_path, filemode='w')
 
     # Set logger handle
     logger_handle_1 = logging.FileHandler(logger_path, 'w')

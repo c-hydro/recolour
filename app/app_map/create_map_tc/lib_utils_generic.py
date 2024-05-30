@@ -99,6 +99,7 @@ def fill_tags2string(string_raw, tags_format=None, tags_filling=None, tags_templ
                             else:
                                 value_filling = value_filling_obj
 
+                            tag_dict_key = '{' + tag_dict_key + ''
                             string_filled_step = string_filled_step.replace(tag_dict_template, tag_dict_key)
 
                             if isinstance(value_filling, datetime):

@@ -2,11 +2,26 @@
 Changelog
 =========
 
-Version 1.6.0 [2024-05-02]
+Version 1.6.0 [2024-05-29]
 **************************
-- PROJECT: validation framework 
+- PROJECT: operational framework tc
+	- APPS -- CELL: app_map_create_tc
+		- update codes to smooth the coasts areas to avoid artefacts
+		- update codes to organize domain datasets and metrics using the same resampling and filtering strategy (testing)
+		- update codes to correct the time selection based on tolerance period
+		. fix bugs in weight method (case: ref found, k1 not found and k2 found)
+
+- PROJECT: operational framework obs/mod
 	- APPS -- CELL: app_cell_swi
 		- first release to convert the ssm to swi time-series
+	- APPS -- CELL: app_cell_rzsm
+		- first release to convert the rszm layers to rzsm profile time-series
+	- APPS -- CELL: app_cell_scaling
+		- first release to scale the nrt time-series using a reference time-series dataset
+	- APPS -- CELL: app_cell_metrics
+		- first release to compute time-series metrics
+
+- PROJECT: validation framework 
 	- APPS -- CELL: app_img2cell_gldas
 		- fix bugs in geographical orientation
 	- APPS -- CELL: app_img2cell_ecmwf
@@ -38,7 +53,7 @@ Version 1.4.1 [2024-04-09]
 
 Version 1.4.0 [2024-03-29]
 **************************
-- PROJECT: operational framework
+- PROJECT: operational framework obs/mod
 	- APPS -- MAP: convert_cell2grid_ascat
 		- first release (product h16 and h103)
 	- APPS -- MAP: convert_cell2grid_metrics
@@ -49,7 +64,6 @@ Version 1.4.0 [2024-03-29]
 		- update codes
 	- APPS -- CELL: app_img2cell_gldas
 		- update codes
-	
 	- TOOLS -- VALIDATION HSAF: app_validation_main
 		- update codes and fix bugs 
 	- TOOLS -- VALIDATION SM: app_validation_main
@@ -57,15 +71,17 @@ Version 1.4.0 [2024-03-29]
 	
 Version 1.3.0 [2024-02-28]
 **************************
-- PROJECT: operational framework
+- PROJECT: operational framework obs/mod
 	- APPS -- MAP: convert_swath2cell
 		- fix bugs
 		- update code to product h16, h103, h104 and h105
 		- update code to manage tmp file (to check the long analysis)
-	
+
+- PROJECT: operational framework time-series	
 	- APPS -- TS: join_ts, sync_ts, analyze_ts, view_ts
 		- first relaase and fix bugs
-	
+
+- PROJECT: utility framework
 	- TOOLS: transfer, validation, assimilation and xml
 		- first release and fix bugs
 	
@@ -78,7 +94,7 @@ Version 1.3.0 [2024-02-28]
 
 Version 1.2.0 [2023-12-19]
 **************************
-- PROJECT: operational framework
+- PROJECT: operational framework tc
 	- APPS: create_grid_tc
 		- add temporal periods to match available products (reference, k1 and k2)
 		- add resampling procedure to remap products k1 and k2 to the reference grid
@@ -87,7 +103,7 @@ Version 1.2.0 [2023-12-19]
 
 Version 1.1.0 [2023-11-28]
 **************************
-- PROJECT: operational framework
+- PROJECT: operational framework tc and time-series
 	- APPS: cell, maps and time-series
 	- TOOLS: converter, downloader, plot_validation, plot_timeseries, validation, xml
 	- NOTEBOOKS: time-series datasets and products

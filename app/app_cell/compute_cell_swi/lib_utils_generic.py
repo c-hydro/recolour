@@ -11,7 +11,19 @@ Version:       '1.0.0'
 import logging
 import os
 import shutil
+
+from operator import is_not
+from functools import partial
 from datetime import datetime
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to remove duplicates from list
+def remove_duplicates_list(list_in):
+    list_tmp = list(set(list_in))
+    list_out = list(filter(partial(is_not, None), list_tmp))
+    return list_out
 # ----------------------------------------------------------------------------------------------------------------------
 
 

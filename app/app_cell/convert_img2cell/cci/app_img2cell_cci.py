@@ -168,7 +168,7 @@ def set_logging(logger_file='log.txt', logger_format=None):
     logging.root.setLevel(logging.DEBUG)
 
     # Open logging basic configuration
-    logging.basicConfig(level=logging.DEBUG, format=logger_format, filename=logger_file, filemode='w')
+    logging.basicConfig(level=logging.DEBUG, format=logger_format, filename=logger_path, filemode='w')
 
     # Set logger handle
     logger_handle_1 = logging.FileHandler(logger_path, 'w')

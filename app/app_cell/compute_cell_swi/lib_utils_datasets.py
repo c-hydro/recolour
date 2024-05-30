@@ -16,9 +16,10 @@ import pandas as pd
 
 from copy import deepcopy
 
-from pytesmo.validation_framework.data_manager import get_result_names
+import lib_data_fx
+
 from lib_data_io_nc import read_file_cell, write_file_cell
-from lib_data_analysis import compute_data_swi
+#from lib_data_analysis import compute_data_swi
 from lib_info_args import logger_name
 
 # set logger
@@ -26,19 +27,6 @@ alg_logger = logging.getLogger(logger_name)
 # message(s) suppressed in the console
 pd.options.mode.chained_assignment = None
 # ----------------------------------------------------------------------------------------------------------------------
-
-
-
-# ----------------------------------------------------------------------------
-# method to get committed datasets cells
-def get_datasets_committed_OLD(df_globals, field='committed_area'):
-
-    comm = df_globals[field] == 1
-    df_committed = df_globals[comm]
-    df_committed['type'] = [field] * len(df_committed)
-
-    return df_committed
-# -----------------------------------------------------------------------------
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -154,25 +142,29 @@ def get_datasets_cell(
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# method to filter datasets cell
-def filter_datasets_cell(
+# method to apply swi to datasets cell
+def apply_swi_datasets_cell(
         time_obj, collections_obj_in, registry_obj_in,
-        var_name_data_in=None, var_name_data_out=None,
-        ctime_data=6):
+        fx_var_name_in=None, fx_var_name_out=None,
+        fx_var_methods=None,
+        data_var_name=None, data_var_mode=None, data_var_min_value=None, data_var_max_value=None,
+        data_var_scale_factor=None, data_var_undef=None
+    ):
 
-    if var_name_data_out is None:
-        var_name_data_out = {'swi_data': ['swi_values_t06']}
-    if var_name_data_in is None:
-        var_name_data_in = {'swi_data': "sm"}
+    if fx_var_name_in is None:
+        fx_var_name_in = {'swi_data_t06': ['sm']}
+    if fx_var_name_out is None:
+        fx_var_name_out = {'swi_data_t06': ["swi_values_t06"]}
 
-    if not isinstance(var_name_data_in, dict):
+    if not isinstance(fx_var_name_in, dict):
         alg_logger.error(' ===> Variable name for source data must be a dictionary')
         raise RuntimeError('Check your filter variable object')
-    if not isinstance(var_name_data_out, dict):
+    if not isinstance(fx_var_name_out, dict):
         alg_logger.error(' ===> Variable name for destination data must be a dictionary')
         raise RuntimeError('Check your filter variable object')
-    if not isinstance(ctime_data, list):
-        ctime_data = [ctime_data]
+    if not isinstance(fx_var_methods, dict):
+        alg_logger.error(' ===> Variable name for metrics data must be a dictionary')
+        raise RuntimeError('Check your filter variable object')
 
     # get registry info
     reg_index_in = registry_obj_in.index.values
@@ -203,43 +195,89 @@ def filter_datasets_cell(
 
         # compute data
         df_data_out, attrs_data_out = pd.DataFrame(), {}
-        for key_var_in, var_name_in in var_name_data_in.items():
+        for key_var_in, list_name_in in fx_var_name_in.items():
+
+            # set variable out as list
+            if not isinstance(list_name_in, list):
+                list_name_in = [list_name_in]
+
+            # filter data using min, max, scale factor and undef
+            for var_name_in in list_name_in:
+                var_mode, var_min_value, var_max_value, var_scale_factor, var_undef = None, None, None, None, None
+                if var_name_in in data_var_name:
+                    var_idx = data_var_name.index(var_name_in)
+                    var_mode = data_var_mode[var_idx]
+                    var_min_value, var_max_value = data_var_min_value[var_idx], data_var_max_value[var_idx]
+                    var_scale_factor, var_undef = data_var_scale_factor[var_idx], data_var_undef[var_idx]
+                if (var_mode is not None) and (var_mode == 'reference'):
+                    if var_min_value is not None:
+                        collections_sorted_in.loc[collections_sorted_in[var_name_in] < var_min_value, :] = np.nan
+                    if var_max_value is not None:
+                        collections_sorted_in.loc[collections_sorted_in[var_name_in] > var_max_value, :] = np.nan
+                    if var_undef is not None:
+                        collections_sorted_in.loc[collections_sorted_in[var_name_in] == var_undef, :] = np.nan
+
+                    # remove nan(s) values to adapt row size
+                    collections_sorted_in.dropna(subset=[var_name_in], inplace=True)
+
+                if var_scale_factor is not None:
+                    collections_sorted_in[var_name_in] = collections_sorted_in[var_name_in] * var_scale_factor
 
             # get data in
-            ts_data_in = collections_sorted_in[var_name_in]
-            attrs_data_in = collections_obj_in[var_name_in].attrs
-
+            ts_data_in = collections_sorted_in[list_name_in]
             # organize attrs
             if collections_obj_attrs is None:
                 collections_obj_attrs = {}
-            if var_name_in not in list(collections_obj_attrs.keys()):
-                collections_obj_attrs[var_name_in] = attrs_data_in
+            for var_name_in in list_name_in:
+                if var_name_in in list(collections_sorted_in.columns):
+                    if var_name_in not in list(collections_obj_attrs.keys()):
+                        collections_obj_attrs[var_name_in] = collections_obj_in[var_name_in].attrs
+                else:
+                    collections_obj_attrs[var_name_in] = {}
 
             # compute data out
-            if key_var_in in list(var_name_data_out.keys()):
+            if key_var_in in list(fx_var_name_out.keys()):
 
+                # get method list
+                methods_obj = fx_var_methods[key_var_in]
                 # get variable out list
-                list_name_out = var_name_data_out[key_var_in]
-                # check variable out list
-                if list_name_out is not None:
+                list_name_out = fx_var_name_out[key_var_in]
 
+                # check variable out and methods list
+                if (list_name_out is not None) and (methods_obj is not None):
+
+                    # set variable out as list
                     if not isinstance(list_name_out, list):
                         list_name_out = [list_name_out]
 
-                    # iterate to compute swi output
-                    for var_name_out, ctime_value in zip(list_name_out, ctime_data):
+                    # workspace collections - iterate over method(s)
+                    for var_name_out, (method_name, method_args) in zip(list_name_out, methods_obj.items()):
 
+                        # copy data source
                         ts_data_tmp = deepcopy(ts_data_in)
-                        ts_data_out = compute_data_swi(ts_data_tmp, ts_var=var_name_out, ts_ctime=ctime_value)
 
+                        # set method obj for computing variable(s)
+                        if hasattr(lib_data_fx, method_name):
+                            compute_obj_fx = getattr(lib_data_fx, method_name)
+                            ts_data_out = compute_obj_fx(
+                                var_data_in=ts_data_tmp, var_name=var_name_out, **method_args)
+                        else:
+                            alg_logger.error(' ===> Method "' + method_name + '" not available in the library')
+                            raise RuntimeError('Check your method object')
+
+                        # save data in the common dataframe
                         df_data_out[var_name_out] = ts_data_out
 
                 else:
                     # save data in the common dataframe
-                    df_data_out[var_name_in] = ts_data_in
+                    for var_name_in in list_name_in:
+                        if var_name_in not in list(df_data_out.columns):
+                            df_data_out[var_name_in] = ts_data_in
             else:
                 # save data in the common dataframe
-                df_data_out[var_name_in] = ts_data_in
+                for var_name_in in list_name_in:
+                    if var_name_in not in list(df_data_out.columns):
+                        df_data_out[var_name_in] = ts_data_in
 
         # get time start, end and reference
         time_start_out, time_end_out, time_reference_out = df_data_out.index[0], df_data_out.index[-1], time_obj
@@ -334,67 +372,5 @@ def dump_datasets_cell(file_path,
     # write datasets
     write_file_cell(file_path,
                     data_obj, registry_obj, data_attrs, registry_attrs, file_tag_location='location_id')
-
-# ----------------------------------------------------------------------------------------------------------------------
-
-
-# -----------------------------------------------------------------------------
-# method to convert datasets obj
-def convert_datasets_obj_OLD(data_dict):
-    data_dframe= pd.DataFrame.from_dict(data_dict)
-    data_dframe['type'] = ['global'] * len(data_dframe)
-    return data_dframe
-# -----------------------------------------------------------------------------
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-# method to get dataset mode(s)
-def get_dataset_modes_OLD(dset_obj, dset_mode='reference'):
-    dset_name = []
-    for dset_key, dset_fields in dset_obj.items():
-        if 'type' in list(dset_fields.keys()):
-            tmp_mode = dset_fields['type']
-            if tmp_mode == dset_mode:
-                dset_name.append(dset_key)
-    if dset_name.__len__() == 1:
-        dset_name = dset_name[0]
-    return dset_name
-# ----------------------------------------------------------------------------------------------------------------------
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-# method to get dataset name(s)
-def get_dataset_names_OLD(ref_key, datasets):
-    """
-    Get dataset names in correct order as used in the validation framework
-        -) reference dataset = ref
-        -) first other dataset = k1
-        -) second other dataset = k2
-    This is important to correctly iterate through the H-SAF metrics and to
-    save each metric with the name of the used datasets
-
-    Parameters
-    ----------
-    ref_key: basestring
-        Name of the reference dataset
-    datasets: dict
-        Dictionary of dictionaries as provided to the validation framework
-        in order to perform the validation process.
-
-    Returns
-    -------
-    dataset_names: list
-        List of the dataset names in correct order
-
-    """
-    ds_dict = {}
-    for ds in datasets.keys():
-        ds_dict[ds] = datasets[ds]['columns']
-    ds_names = get_result_names(ds_dict, ref_key, n=3)
-    dataset_names = []
-    for name in ds_names[0]:
-        dataset_names.append(name[0])
-
-    return dataset_names
 
 # ----------------------------------------------------------------------------------------------------------------------

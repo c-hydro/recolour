@@ -21,8 +21,6 @@ from pytesmo.grid.resample import resample_to_grid
 from pyresample.geometry import GridDefinition
 from pyresample.kd_tree import resample_nearest, resample_gauss, resample_custom
 
-from pytesmo.time_series.filters import exp_filter
-
 from lib_utils_io import create_darray_2d
 
 # debugging
@@ -32,30 +30,6 @@ import matplotlib.pylab as plt
 warnings.simplefilter("ignore", UserWarning)
 # ----------------------------------------------------------------------------------------------------------------------
 
-
-# ----------------------------------------------------------------------------------------------------------------------
-# method to compute data swi
-def compute_data_swi(ts_data, ts_var="swi", ts_method="exp_filter", ts_ctime=6):
-
-    # get julian dates
-    ts_jd = ts_data.index.to_julian_date().values
-    # drop nan values
-    ts_data.dropna(inplace=True)
-    # get values
-    ts_values_raw = ts_data.values.astype(np.float64)
-
-    # iterate over characteristic times
-    if ts_method == "exp_filter":
-        ts_values_filtered = exp_filter(ts_values_raw, ts_jd, ctime=ts_ctime)
-    else:
-        logging.error(" ===> Method '" + ts_method + "' is not supported yet")
-        raise NotImplementedError("Case not implemented yet")
-    # define data output
-    ts_data_out = pd.Series(ts_values_filtered, index=ts_data.index, name=ts_var)
-
-    return ts_data_out
-
-# ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to add data to the dataframe

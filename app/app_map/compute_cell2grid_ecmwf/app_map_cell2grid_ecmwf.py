@@ -3,8 +3,8 @@
 """
 RECOLOUR APPS - CELL2GRID ECMWF - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20240419'
-__version__ = '1.0.0'
+__date__ = '20240522'
+__version__ = '1.1.0'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)'
 __library__ = 'recolour'
@@ -13,6 +13,7 @@ General command line:
 python app_map_cell2grid_ecmwf.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
+20240522 (1.1.0) --> Update codes to use the profile and scaled datasets
 20240419 (1.0.0) --> First development
 """
 
@@ -170,7 +171,7 @@ def set_logging(logger_name='algorithm_logger', logger_folder=None, logger_file=
     logging.root.setLevel(logging.DEBUG)
 
     # Open logging basic configuration
-    logging.basicConfig(level=logging.DEBUG, format=logger_format, filename=logger_file, filemode='w')
+    logging.basicConfig(level=logging.DEBUG, format=logger_format, filename=logger_path, filemode='w')
 
     # Set logger handle
     logger_handle_1 = logging.FileHandler(logger_path, 'w')

@@ -36,7 +36,7 @@
   },
   "datasets": {
     "source": {
-      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/results/2024_ascat_gldas_cci_global/",
+      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/results/2024_ascat_gldas_cci_global_v1/",
       "file_name": "{cell}.nc",
       "variables": [
         "gpi", "lon", "lat", "status", "ref_ALL_snr", "ALL_n_obs",
@@ -44,11 +44,11 @@
         "ref_k1_ALL_p_R"]
     },
     "ancillary": {
-      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/analysis/2024_ascat_gldas_cci_global/",
+      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/analysis/2024_ascat_gldas_cci_global_v1/",
       "file_name": "validation_hsaf_results_global.pkl"
     },
     "destination": {
-      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/analysis/2024_ascat_gldas_cci_global/",
+      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/analysis/2024_ascat_gldas_cci_global_v1/",
       "file_name": "validation_hsaf_results_global.nc",
       "variables": [
         "gpi", "lon", "lat", "status", "x_snr", "obs",
@@ -58,43 +58,43 @@
   },
   "figure": {
     "committed_area_map": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2024_ascat_gldas_cci_global/",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2024_ascat_gldas_cci_global_v1/",
         "file_name": "map_committed_area.png",
         "variables" : ["gpi", "lon", "lat", "obs", "committed_area"],
-        "active": false
+        "active": true
     },
     "pearson_data_map": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2024_ascat_gldas_cci_global/",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2024_ascat_gldas_cci_global_v1/",
         "file_name": "map_reference_vs_gldas_pearson_r_{data_type}.png",
         "variables" : ["gpi", "lon", "lat", "obs", "xy_r"],
-        "active": false
+        "active": true
     },
     "snr_data_map": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2024_ascat_gldas_cci_global/",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2024_ascat_gldas_cci_global_v1/",
         "file_name": "map_reference_snr_{data_type}.png",
         "variables" : ["gpi", "lon", "lat", "obs", "x_snr"],
         "active": true
     },
     "snr_stats_pie": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2024_ascat_gldas_cci_global/",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2024_ascat_gldas_cci_global_v1/",
         "file_name": "pie_reference_snr.png",
         "variables" : ["gpi", "lon", "lat", "obs", "x_snr"],
-        "active": false
+        "active": true
     },
     "pearson_stats_pie": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2024_ascat_gldas_cci_global/",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2024_ascat_gldas_cci_global_v1/",
         "file_name": "pie_reference_vs_gldas_pr.png",
         "variables" : ["gpi", "lon", "lat", "obs", "xy_r"],
-        "active": false
+        "active": true
     },
     "snr_stats_box": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2024_ascat_gldas_cci_global/",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2024_ascat_gldas_cci_global_v1/",
         "file_name": "box_reference_snr.png",
         "variables" : ["gpi", "lon", "lat", "obs", "x_snr", "xy_r", "xy_p_r"],
-        "active": false
+        "active": true
     },
     "pearson_stats_box": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2024_ascat_gldas_cci_global/",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/figure/2024_ascat_gldas_cci_global_v1/",
         "file_name": "box_chart_pr_reference_vs_gldas.png",
         "variables" : ["gpi", "lon", "lat", "obs", "xy_r", "xy_p_r"],
         "active": true
@@ -169,6 +169,6 @@
   },
   "log": {
     "path_log" : "/home/fabio/Desktop/Recolour_Workspace/ws/log/",
-    "file_log": "validation_hsaf_ascat_gldas_cci_global_2024.txt"
+    "file_log": "validation_hsaf_ascat_gldas_cci_global_2024_v1.txt"
   }
 }

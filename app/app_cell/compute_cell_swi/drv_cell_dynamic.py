@@ -15,7 +15,7 @@ import os
 from lib_info_args import logger_name
 from lib_utils_io import fill_path_with_tags
 from lib_utils_generic import reset_folder, pad_list
-from lib_utils_datasets import get_datasets_cell, filter_datasets_cell, dump_datasets_cell
+from lib_utils_datasets import get_datasets_cell, apply_swi_datasets_cell, dump_datasets_cell
 
 # set logger
 alg_logger = logging.getLogger(logger_name)
@@ -83,16 +83,16 @@ class DrvCell:
         self.grid_reference = self.alg_obj_static['grid_reference']
 
         self.vars_name = self.alg_parameters['variables']['name']
+        self.vars_mode = self.alg_parameters['variables']['mode']
         self.vars_min_value = self.alg_parameters['variables']['min_value']
         self.vars_max_value = self.alg_parameters['variables']['max_value']
         self.vars_scale_factor = self.alg_parameters['variables']['scale_factor']
         self.vars_no_data = self.alg_parameters['variables']['no_data']
 
         self.fx_active = self.alg_parameters['fx']['active']
-        self.fx_method = self.alg_parameters['fx']['method']
+        self.fx_method = self.alg_parameters['fx']['methods']
         self.fx_vars_src = self.alg_parameters['fx']['variables']['source']
         self.fx_vars_dst = self.alg_parameters['fx']['variables']['destination']
-        self.fx_args_ctime = self.alg_parameters['fx']['args']['ctime']
 
     # method to check datasets (if clean or not)
     @staticmethod
@@ -134,13 +134,14 @@ class DrvCell:
 
         # get variables info
         vars_name = self.vars_name
+        vars_mode = self.vars_mode
         vars_min_value = self.vars_min_value
         vars_max_value = self.vars_max_value
         vars_scale_factor = self.vars_scale_factor
         vars_no_data = self.vars_no_data
         # pad list (using names as list length reference
-        vars_min_value, vars_max_value, vars_scale_factor, vars_no_data = pad_list(
-            vars_name, [vars_min_value, vars_max_value, vars_scale_factor, vars_no_data])
+        vars_mode, vars_min_value, vars_max_value, vars_scale_factor, vars_no_data = pad_list(
+            vars_name, [vars_mode, vars_min_value, vars_max_value, vars_scale_factor, vars_no_data])
 
         # get file path
         file_path_src_raw, file_path_dst_raw = self.file_path_src, self.file_path_dst
@@ -172,71 +173,83 @@ class DrvCell:
             # check fx active or not
             if self.fx_active:
 
-                # check file point ancillary availability
-                if not os.path.exists(file_path_dst_def):
+                # check file cell source availability
+                if os.path.exists(file_path_src_def):
 
-                    # info start get datasets cell
-                    alg_logger.info(' ------> Get datasets ... ')
+                    # check file point ancillary availability
+                    if not os.path.exists(file_path_dst_def):
 
-                    # get collections and registry objects
-                    collections_dframe_in, registry_dframe_in = get_datasets_cell(
-                        file_name=file_path_src_def,
-                        cell_name=grid_cells_name,
-                        list_variable_data_in=variables_in_src['datasets'],
-                        list_variable_data_out=variables_out_src['datasets'],
-                        list_variable_registry_in=variables_in_src['registry'],
-                        list_variable_registry_out=variables_out_src['registry'],
-                    )
+                        # info start get datasets cell
+                        alg_logger.info(' ------> Get datasets ... ')
 
-                    # info end get datasets cell
-                    alg_logger.info(' ------> Get datasets ... DONE')
+                        # get collections and registry objects
+                        collections_dframe_in, registry_dframe_in = get_datasets_cell(
+                            file_name=file_path_src_def,
+                            cell_name=grid_cells_name,
+                            list_variable_data_in=variables_in_src['datasets'],
+                            list_variable_data_out=variables_out_src['datasets'],
+                            list_variable_registry_in=variables_in_src['registry'],
+                            list_variable_registry_out=variables_out_src['registry'],
+                        )
 
-                    # info start organize datasets cell
-                    alg_logger.info(' ------> Filter datasets ... ')
+                        # info end get datasets cell
+                        alg_logger.info(' ------> Get datasets ... DONE')
 
-                    # filter collections and registry objects
-                    (collections_dframe_out, registry_dframe_out,
-                     collections_attrs_out, registry_attrs_out) = filter_datasets_cell(
-                        file_time, collections_dframe_in, registry_dframe_in,
-                        var_name_data_in=self.fx_vars_src,
-                        var_name_data_out=self.fx_vars_dst,
-                        ctime_data=self.fx_args_ctime)
+                        # info start apply fx to datasets cell
+                        alg_logger.info(' ------> Filter datasets ... ')
 
-                    # info start organize datasets cell
-                    alg_logger.info(' ------> Filter datasets ... DONE')
+                        # filter collections and registry objects
+                        (collections_dframe_out, registry_dframe_out,
+                         collections_attrs_out, registry_attrs_out) = apply_swi_datasets_cell(
+                            file_time, collections_dframe_in, registry_dframe_in,
+                            fx_var_name_in=self.fx_vars_src,
+                            fx_var_name_out=self.fx_vars_dst,
+                            fx_var_methods=self.fx_method,
+                            data_var_name=vars_name, data_var_mode=vars_mode,
+                            data_var_min_value=vars_min_value, data_var_max_value=vars_max_value,
+                            data_var_scale_factor=vars_scale_factor, data_var_undef=vars_no_data)
 
-                    # info start dump datasets cell
-                    alg_logger.info(' ------> Dump datasets ... ')
+                        # info start apply fx to datasets cell
+                        alg_logger.info(' ------> Filter datasets ... DONE')
 
-                    # dump collections and registry objects
-                    dump_datasets_cell(file_path_dst_def,
-                                       collections_dframe_out, registry_dframe_out,
-                                       collections_attrs_out, registry_attrs_out,
-                                       list_variable_data_in=variables_in_data_dst['datasets'],
-                                       list_variable_data_out=variables_out_data_dst['datasets'],
-                                       list_variable_registry_in=variables_in_data_dst['registry'],
-                                       list_variable_registry_out=variables_out_data_dst['registry'])
+                        # info start dump datasets cell
+                        alg_logger.info(' ------> Dump datasets ... ')
 
-                    # info end dump datasets cell
-                    alg_logger.info(' ------> Dump datasets ... DONE')
+                        # dump collections and registry objects
+                        dump_datasets_cell(file_path_dst_def,
+                                           collections_dframe_out, registry_dframe_out,
+                                           collections_attrs_out, registry_attrs_out,
+                                           list_variable_data_in=variables_in_data_dst['datasets'],
+                                           list_variable_data_out=variables_out_data_dst['datasets'],
+                                           list_variable_registry_in=variables_in_data_dst['registry'],
+                                           list_variable_registry_out=variables_out_data_dst['registry'])
 
-                    # info start method
-                    alg_logger.info(' -----> Cell "' + str(grid_cells_name) + '" ... DONE')
+                        # info end dump datasets cell
+                        alg_logger.info(' ------> Dump datasets ... DONE')
+
+                        # info start method
+                        alg_logger.info(' -----> Cell "' + str(grid_cells_name) + '" ... DONE')
+                    else:
+
+                        # info end get datasets cell
+                        alg_logger.info(' -----> Cell "' + str(grid_cells_name) +
+                                        '"  ... SKIPPED. Data previously saved')
+
+                    # store cell filename(s) -- if compute data not active return destination path file
+                    file_path_dst_list.append(file_path_dst_def)
+
                 else:
-
-                    # info end get datasets cell
-                    alg_logger.info(' -----> Cell "' + str(grid_cells_name) + '"  ... SKIPPED. Data previously saved')
-
-                # store cell filename(s) -- if compute data not active return destination path file
-                file_path_dst_list.append(file_path_dst_def)
+                    # message data source not available
+                    alg_logger.warning(' ===> Source data "' + str(file_path_src_def) + '" not available')
+                    alg_logger.info(' -----> Cell "' + str(grid_cells_name) +
+                                    '"  ... SKIPPED. Source data not available')
 
             else:
+                # message fx not active
                 alg_logger.info(' -----> Cell "' + str(grid_cells_name) + '"  ... SKIPPED. Compute data not active')
-
-                # store cell filename(s) -- if compute data not active return source path file
-                file_path_dst_list.append(file_path_src_def)
 
         # info end method
         alg_logger.info(' ----> Compute dynamic datasets ... DONE')
 
         return file_path_dst_list
+# ----------------------------------------------------------------------------------------------------------------------
