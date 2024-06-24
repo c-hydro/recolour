@@ -1,0 +1,119 @@
+{
+  "flags": {
+    "reset_destination": false,
+    "reset_logs": true
+  },
+  "template": {
+    "datasets": {
+      "cell_n": "string_cell_n"
+    },
+    "time": {
+      "datetime_source": "%Y%m%d%H",
+      "sub_path_source": "%Y/%m/%d/",
+      "datetime_destination": "%Y%m%d%H",
+      "sub_path_destination": "%Y/%m/"
+    }
+  },
+  "info": {
+    "datasets": "ASCAT",
+    "product": "H16"
+  },
+  "cells": {
+    "__comment__": "cell_start=0, cell_end=2591",
+    "name": "italy",
+    "cell_start": 1394,
+    "cell_end": 1398,
+    "cell_list": [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430, 1431]
+  },
+  "parameters": {
+    "variables": {
+      "name": ["sm", "sm_noise", "proc_flag", "corr_flag", "time"],
+      "mode": ["reference", "other", "other", "other", "other"],
+      "min_value": [0, 0, null, null, null],
+      "max_value": [100, 100, null, null, null],
+      "scale_factor": [1, 1, null, null, null],
+      "no_data": [-999999, -999999, null, null, null]
+    },
+    "fx": {
+      "active": true,
+      "variables": {
+        "source": {
+          "sm_data":  "sm",
+          "swi_data_t06": "sm",
+          "swi_data_t12": "sm",
+          "swi_data_t32": "sm",
+          "sm_noise": "sm_noise",
+          "sm_flag_proc": "proc_flag",
+          "sm_flag_corr": "corr_flag",
+          "time": "time"
+        },
+        "destination" : {
+          "sm_data": null,
+          "swi_data_t06": "swi_values_t06",
+          "swi_data_t12": "swi_values_t12",
+          "swi_data_t32": "swi_values_t32",
+          "sm_noise": null,
+          "sm_flag_proc": null,
+          "sm_flag_corr": null,
+          "time": null
+        }
+      },
+      "methods": {
+        "sm_data": null,
+        "swi_data_t06": {"compute_swi": {"var_ctime": 3,  "var_no_data": -999999}},
+        "swi_data_t12": {"compute_swi": {"var_ctime": 12, "var_no_data": -999999}},
+        "swi_data_t32": {"compute_swi": {"var_ctime": 32, "var_no_data": -999999}},
+        "sm_noise": null,
+        "sm_flag_proc": null,
+        "sm_flag_corr": null,
+        "time": null
+      }
+    }
+  },
+  "datasets": {
+    "static": {
+      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_static/",
+      "file_name": "TUW_WARP5_grid_info_2_3.nc"
+    },
+    "dynamic" : {
+      "source": {
+        "__comment__": "dr :: /home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_dr/h16/ ::  h16_{cell_n}.nc",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_nrt/h16/{sub_path_source}",
+        "file_name": "{cell_n}.nc",
+        "variables_in": {
+          "datasets": ["sm", "sm_noise", "proc_flag", "corr_flag", "time"],
+          "registry": ["row_size", "lon", "lat", "location_id"]
+        },
+        "variables_out": {
+          "datasets": ["sm", "sm_noise", "proc_flag", "corr_flag", "time"],
+          "registry": ["row_size", "lon", "lat", "location_id"]
+        }
+      },
+      "destination": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_nrt/swi/{sub_path_destination}",
+        "file_name": "H120_{cell_n}_swi.nc",
+        "variables_in": {
+          "datasets": ["sm", "sm_noise", "proc_flag", "corr_flag", "time", "swi_values_t06", "swi_values_t12", "swi_values_t32"],
+          "registry": ["row_size", "lon", "lat", "location_id"]
+        },
+        "variables_out": {
+          "datasets": ["sm", "sm_noise", "proc_flag", "corr_flag", "time", "swi_values_t06", "swi_values_t12", "swi_values_t32"],
+          "registry": ["row_size", "lon", "lat", "location_id"]
+        }
+      }
+    }
+  },
+  "time": {
+    "_comment_": "2022-11-29 00:00 2022-12-02 03:00",
+    "time_now": null,
+    "time_start": null,
+    "time_end": null,
+    "time_period": 1,
+    "time_frequency": "H",
+    "time_rounding" : "H"
+  },
+  "log": {
+    "path_log" : "/home/fabio/Desktop/Recolour_Workspace/ws/log/swi/",
+    "file_log": "app_cell_swi_ascat_nrt.txt"
+  }
+}

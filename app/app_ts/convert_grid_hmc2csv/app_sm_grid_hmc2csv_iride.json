@@ -89,7 +89,7 @@
         "fields": {}
       },
       "destination": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/hmc/csv/",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/hmc/iride/",
         "file_name": "sm_datasets_{destination_datetime_start}_{destination_datetime_end}_{var_name}.csv",
         "fields": {
           "var_data": "soil_moisture"

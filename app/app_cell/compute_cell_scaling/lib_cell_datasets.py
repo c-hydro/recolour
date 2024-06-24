@@ -404,7 +404,7 @@ def apply_scaling_datasets_cell(
                 else:
                     select_coord_attrs_src[cell_var] = {}
 
-            obj_src = pd.DataFrame(data=select_data_value_src, index=select_coord_ref[index_name_time_ref])
+            obj_src = pd.DataFrame(data=select_data_value_src, index=select_coord_value_src[index_name_time_data])
             obj_src = obj_src.sort_index()
 
             attrs_src = {**select_data_attrs_src, **select_coord_attrs_src}

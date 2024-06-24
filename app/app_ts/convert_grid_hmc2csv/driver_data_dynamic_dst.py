@@ -58,7 +58,10 @@ class DriverData:
         self.file_name_tag, self.folder_name_tag = 'file_name', 'folder_name'
         self.fields_tag, self.no_data_tag = 'fields', 'no_data'
 
-        self.format_dst = self.params_dict['format_destination']
+        if 'format_dynamic_destination' in self.params_dict:
+            self.format_dst = self.params_dict['format_dynamic_destination']
+        else:
+            self.format_dst = 'csv'
 
         self.reset_dst = flags_dict['reset_dynamic_destination']
 

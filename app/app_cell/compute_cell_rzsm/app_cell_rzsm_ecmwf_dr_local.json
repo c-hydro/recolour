@@ -1,0 +1,106 @@
+{
+  "flags": {
+    "reset_destination": true,
+    "reset_logs": true
+  },
+  "template": {
+    "datasets": {
+      "cell_n": "string_cell_n"
+    },
+    "time": {
+      "datetime_source": "%Y%m%d%H",
+      "sub_path_source": "",
+      "datetime_destination": "%Y%m%d%H",
+      "sub_path_destination": ""
+    }
+  },
+  "info": {
+    "datasets": "ECMWF",
+    "product": "H26"
+  },
+  "cells": {
+    "__comment__": "cell_start=0, cell_end=2591",
+    "name": "italy",
+    "cell_start": 1394,
+    "cell_end": 1398,
+    "cell_list": [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430, 1431]
+  },
+  "parameters": {
+    "variables": {
+      "name": ["var40", "var41", "var42", "time"],
+      "mode": ["reference", "other", "other", "other"],
+      "min_value": [0, 0, 0, null],
+      "max_value": [1, 1, 1, null],
+      "scale_factor": [1, 1, 1, null],
+      "no_data": [-9999, -9999, -9999, null]
+    },
+    "fx": {
+      "active": true,
+      "variables": {
+        "source": {
+          "layer_1": ["var40"],
+          "layer_2": ["var40", "var41"],
+          "layer_3": ["var40", "var41", "var42"],
+          "time": "time"
+        },
+        "destination" : {
+          "layer_1":  "var_0_7",
+          "layer_2": "var_0_28",
+          "layer_3": "var_0_100",
+          "time": null
+        }
+      },
+      "methods": {
+        "layer_1":  {"compute_rzsm_layer_1":  {"no_data": -9999}},
+        "layer_2": {"compute_rzsm_layer_2":  {"no_data": -9999}},
+        "layer_3": {"compute_rzsm_layer_3":  {"no_data": -9999}},
+        "time": null
+      }
+    }
+  },
+  "datasets": {
+    "static": {
+      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_static_dr/",
+      "file_name": "grid.nc"
+    },
+    "dynamic" : {
+      "source": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_cell_dr/layers/nc/",
+        "file_name": "{cell_n}.nc",
+        "variables_in": {
+          "datasets": ["var40", "var41", "var42", "time"],
+          "registry": ["lon", "lat", "location_id"]
+        },
+        "variables_out": {
+          "datasets": ["var40", "var41", "var42", "time"],
+          "registry": ["lon", "lat", "location_id"]
+        }
+      },
+      "destination": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_cell_dr/profile/",
+        "file_name": "rzsm_{cell_n}.nc",
+        "variables_in": {
+          "datasets": ["var40", "var41", "var42", "var_0_7", "var_0_28", "var_0_100", "time"],
+          "registry": ["row_size", "lon", "lat", "location_id"]
+        },
+        "variables_out": {
+          "datasets": ["var40", "var41", "var42", "var_0_7", "var_0_28", "var_0_100", "time"],
+          "registry": ["row_size", "lon", "lat", "location_id"]
+        }
+      }
+    }
+  },
+  "time": {
+    "_comment_": "2022-11-29 00:00 2022-12-02 03:00",
+    "time_now": null,
+    "time_start": null,
+    "time_end": null,
+    "time_period": 1,
+    "time_frequency": "H",
+    "time_rounding" : "H"
+  },
+  "log": {
+    "path_log" : "/home/fabio/Desktop/Recolour_Workspace/ws/log/rzsm/",
+    "file_log": "app_cell_rzsm_ecmwf_dr.txt"
+  }
+}

@@ -66,10 +66,19 @@ def read_file_raster(file_name, output_format='data_array', output_dtype='float3
 
         if center_bottom > center_top:
             logging.warning(' ===> Coords "center_bottom": ' + str(center_bottom) + ' is greater than "center_top": '
-                               + str(center_top) + '. Try to inverse the bottom and top coords. ')
+                            + str(center_top) + '. Try to inverse the bottom and top coords. ')
             center_tmp = center_top
             center_top = center_bottom
             center_bottom = center_tmp
+
+            values = np.flipud(values)
+
+        ''' debug 
+        plt.figure()
+        plt.imshow(values)
+        plt.colorbar()
+        plt.show()
+        '''
 
         lon = np.arange(center_left, center_right + np.abs(res[0] / 2), np.abs(res[0]), float)
         lat = np.flip(np.arange(center_bottom, center_top + np.abs(res[1] / 2), np.abs(res[1]), float), axis=0)

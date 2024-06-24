@@ -87,11 +87,11 @@
       "ancillary": {
         "points" : {
           "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/smap_ancillary/cells2grid/spl2smp_e/{sub_path_ancillary_points}",
-          "file_name": "gldas_variables_points_{cell_n}_{datetime_ancillary_points}.nc"
+          "file_name": "smap_variables_points_{cell_n}_{datetime_ancillary_points}.nc"
         },
         "grid": {
           "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/smap_ancillary/cells2grid/spl2smp_e/{sub_path_ancillary_grid}",
-          "file_name": "gldas_variables_grid_{datetime_ancillary_grid}.workspace"
+          "file_name": "smap_variables_grid_{datetime_ancillary_grid}.workspace"
         }
       },
       "destination": {

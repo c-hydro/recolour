@@ -53,12 +53,22 @@ class DriverData:
         self.params_dict = params_dict
 
         self.file_name_tag, self.folder_name_tag = 'file_name', 'folder_name'
-        self.fields_tag = 'fields'
+        self.format_tag, self.fields_tag = 'format', 'fields'
 
         self.grid_reference_tag, self.point_reference_tag = 'grid_reference', 'point_reference'
 
         self.reset_static = flags_dict['reset_static']
 
+        if 'format_static_point' in list(params_dict.keys()):
+            self.format_src_point = params_dict['format_static_point']
+        else:
+            self.format_src_point = 'csv'
+        if 'format_static_grid' in list(params_dict.keys()):
+            self.format_src_grid = params_dict['format_static_grid']
+        else:
+            self.format_src_grid = 'tiff'
+        self.format_src_pnt = self.params_dict['format_static_point']
+        self.format_src_grid = self.params_dict['format_static_grid']
         self.geo_method_search = self.params_dict['geo_method_search']
         self.geo_radius_influence = self.params_dict['geo_radius_influence']
         self.geo_neighbours = self.params_dict['geo_neighbours']
@@ -241,9 +251,20 @@ class DriverData:
         if not os.path.exists(file_path_dst):
 
             # get grid object
-            obj_grid_base, obj_grid_attrs = self.get_geo_grid(file_path_src_grid)
+            if self.format_src_grid == 'tiff':
+                obj_grid_base, obj_grid_attrs = self.get_geo_grid(file_path_src_grid)
+            elif self.format_src_grid == 'ascii':
+                obj_grid_base, obj_grid_attrs = self.get_geo_grid(file_path_src_grid)
+            else:
+                log_stream.error(' ===> File grid format "' + self.format_src_grid + '" not expected')
+                raise NotImplementedError('Case not implemented yet')
+
             # get point obj
-            obj_point_base = self.get_geo_point(file_path_src_point)
+            if self.format_src_point == 'csv':
+                obj_point_base = self.get_geo_point(file_path_src_point)
+            else:
+                log_stream.error(' ===> File point format "' + self.format_src_point + '" not expected')
+                raise NotImplementedError('Case not implemented yet')
 
             # join grid and point object(s)
             obj_point_extended = self.join_geo_obj(obj_grid_base, obj_point_base)

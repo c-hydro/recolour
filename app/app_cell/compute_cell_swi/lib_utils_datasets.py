@@ -186,123 +186,135 @@ def apply_swi_datasets_cell(
     for reg_id, (reg_loc, reg_lon, reg_lat, reg_cell) in enumerate(
             zip(reg_index_in, reg_longitude_in, reg_latitude_in, reg_cell_in)):
 
-        # set indexes start and end
-        row_size_start_in, row_size_end_in = row_size_cumulative_in[reg_id], row_size_cumulative_in[reg_id + 1]
-        # select collections by rows
-        collections_selected_in = collections_obj_in.iloc[row_size_start_in:row_size_end_in]
-        # sort collections by time index
-        collections_sorted_in = collections_selected_in.sort_index()
+        ''' debug
+        reg_id = 649 # cell not defined
+        reg_loc, reg_cell = reg_index_in[reg_id], reg_cell_in[reg_id]
+        reg_lon, reg_lat = reg_longitude_in[reg_id], reg_latitude_in[reg_id]
+        '''
 
-        # compute data
-        df_data_out, attrs_data_out = pd.DataFrame(), {}
-        for key_var_in, list_name_in in fx_var_name_in.items():
+        # check if cell is available in the registry
+        if reg_loc >= 0:
 
-            # set variable out as list
-            if not isinstance(list_name_in, list):
-                list_name_in = [list_name_in]
+            # set indexes start and end
+            row_size_start_in, row_size_end_in = row_size_cumulative_in[reg_id], row_size_cumulative_in[reg_id + 1]
+            # select collections by rows
+            collections_selected_in = collections_obj_in.iloc[row_size_start_in:row_size_end_in]
+            # sort collections by time index
+            collections_sorted_in = collections_selected_in.sort_index()
 
-            # filter data using min, max, scale factor and undef
-            for var_name_in in list_name_in:
-                var_mode, var_min_value, var_max_value, var_scale_factor, var_undef = None, None, None, None, None
-                if var_name_in in data_var_name:
-                    var_idx = data_var_name.index(var_name_in)
-                    var_mode = data_var_mode[var_idx]
-                    var_min_value, var_max_value = data_var_min_value[var_idx], data_var_max_value[var_idx]
-                    var_scale_factor, var_undef = data_var_scale_factor[var_idx], data_var_undef[var_idx]
-                if (var_mode is not None) and (var_mode == 'reference'):
-                    if var_min_value is not None:
-                        collections_sorted_in.loc[collections_sorted_in[var_name_in] < var_min_value, :] = np.nan
-                    if var_max_value is not None:
-                        collections_sorted_in.loc[collections_sorted_in[var_name_in] > var_max_value, :] = np.nan
-                    if var_undef is not None:
-                        collections_sorted_in.loc[collections_sorted_in[var_name_in] == var_undef, :] = np.nan
+            # compute data
+            df_data_out, attrs_data_out = pd.DataFrame(), {}
+            for key_var_in, list_name_in in fx_var_name_in.items():
 
-                    # remove nan(s) values to adapt row size
-                    collections_sorted_in.dropna(subset=[var_name_in], inplace=True)
+                # set variable out as list
+                if not isinstance(list_name_in, list):
+                    list_name_in = [list_name_in]
 
-                if var_scale_factor is not None:
-                    collections_sorted_in[var_name_in] = collections_sorted_in[var_name_in] * var_scale_factor
+                # filter data using min, max, scale factor and undef
+                for var_name_in in list_name_in:
+                    var_mode, var_min_value, var_max_value, var_scale_factor, var_undef = None, None, None, None, None
+                    if var_name_in in data_var_name:
+                        var_idx = data_var_name.index(var_name_in)
+                        var_mode = data_var_mode[var_idx]
+                        var_min_value, var_max_value = data_var_min_value[var_idx], data_var_max_value[var_idx]
+                        var_scale_factor, var_undef = data_var_scale_factor[var_idx], data_var_undef[var_idx]
+                    if (var_mode is not None) and (var_mode == 'reference'):
+                        if var_min_value is not None:
+                            collections_sorted_in.loc[collections_sorted_in[var_name_in] < var_min_value, :] = np.nan
+                        if var_max_value is not None:
+                            collections_sorted_in.loc[collections_sorted_in[var_name_in] > var_max_value, :] = np.nan
+                        if var_undef is not None:
+                            collections_sorted_in.loc[collections_sorted_in[var_name_in] == var_undef, :] = np.nan
 
-            # get data in
-            ts_data_in = collections_sorted_in[list_name_in]
-            # organize attrs
-            if collections_obj_attrs is None:
-                collections_obj_attrs = {}
-            for var_name_in in list_name_in:
-                if var_name_in in list(collections_sorted_in.columns):
-                    if var_name_in not in list(collections_obj_attrs.keys()):
-                        collections_obj_attrs[var_name_in] = collections_obj_in[var_name_in].attrs
-                else:
-                    collections_obj_attrs[var_name_in] = {}
+                        # remove nan(s) values to adapt row size
+                        collections_sorted_in.dropna(subset=[var_name_in], inplace=True)
 
-            # compute data out
-            if key_var_in in list(fx_var_name_out.keys()):
+                    if var_scale_factor is not None:
+                        collections_sorted_in[var_name_in] = collections_sorted_in[var_name_in] * var_scale_factor
 
-                # get method list
-                methods_obj = fx_var_methods[key_var_in]
-                # get variable out list
-                list_name_out = fx_var_name_out[key_var_in]
+                # get data in
+                ts_data_in = collections_sorted_in[list_name_in]
+                # organize attrs
+                if collections_obj_attrs is None:
+                    collections_obj_attrs = {}
+                for var_name_in in list_name_in:
+                    if var_name_in in list(collections_sorted_in.columns):
+                        if var_name_in not in list(collections_obj_attrs.keys()):
+                            collections_obj_attrs[var_name_in] = collections_obj_in[var_name_in].attrs
+                    else:
+                        collections_obj_attrs[var_name_in] = {}
 
-                # check variable out and methods list
-                if (list_name_out is not None) and (methods_obj is not None):
+                # compute data out
+                if key_var_in in list(fx_var_name_out.keys()):
 
-                    # set variable out as list
-                    if not isinstance(list_name_out, list):
-                        list_name_out = [list_name_out]
+                    # get method list
+                    methods_obj = fx_var_methods[key_var_in]
+                    # get variable out list
+                    list_name_out = fx_var_name_out[key_var_in]
 
-                    # workspace collections - iterate over method(s)
-                    for var_name_out, (method_name, method_args) in zip(list_name_out, methods_obj.items()):
+                    # check variable out and methods list
+                    if (list_name_out is not None) and (methods_obj is not None):
 
-                        # copy data source
-                        ts_data_tmp = deepcopy(ts_data_in)
+                        # set variable out as list
+                        if not isinstance(list_name_out, list):
+                            list_name_out = [list_name_out]
 
-                        # set method obj for computing variable(s)
-                        if hasattr(lib_data_fx, method_name):
-                            compute_obj_fx = getattr(lib_data_fx, method_name)
-                            ts_data_out = compute_obj_fx(
-                                var_data_in=ts_data_tmp, var_name=var_name_out, **method_args)
-                        else:
-                            alg_logger.error(' ===> Method "' + method_name + '" not available in the library')
-                            raise RuntimeError('Check your method object')
+                        # workspace collections - iterate over method(s)
+                        for var_name_out, (method_name, method_args) in zip(list_name_out, methods_obj.items()):
 
+                            # copy data source
+                            ts_data_tmp = deepcopy(ts_data_in)
+
+                            # set method obj for computing variable(s)
+                            if hasattr(lib_data_fx, method_name):
+                                compute_obj_fx = getattr(lib_data_fx, method_name)
+                                ts_data_out = compute_obj_fx(
+                                    var_data_in=ts_data_tmp, var_name=var_name_out, **method_args)
+                            else:
+                                alg_logger.error(' ===> Method "' + method_name + '" not available in the library')
+                                raise RuntimeError('Check your method object')
+
+                            # save data in the common dataframe
+                            df_data_out[var_name_out] = ts_data_out
+
+                    else:
                         # save data in the common dataframe
-                        df_data_out[var_name_out] = ts_data_out
-
+                        for var_name_in in list_name_in:
+                            if var_name_in not in list(df_data_out.columns):
+                                df_data_out[var_name_in] = ts_data_in
                 else:
                     # save data in the common dataframe
                     for var_name_in in list_name_in:
                         if var_name_in not in list(df_data_out.columns):
                             df_data_out[var_name_in] = ts_data_in
+
+            # get time start, end and reference
+            time_start_out, time_end_out, time_reference_out = df_data_out.index[0], df_data_out.index[-1], time_obj
+
+            # collections workspace out
+            if collections_obj_out is None:
+                collections_interface = df_data_out
+                collections_interface.reset_index()
+                collections_obj_out = collections_interface
             else:
-                # save data in the common dataframe
-                for var_name_in in list_name_in:
-                    if var_name_in not in list(df_data_out.columns):
-                        df_data_out[var_name_in] = ts_data_in
+                collections_interface = df_data_out
+                collections_interface.reset_index()
+                collections_obj_out = pd.concat([collections_obj_out, collections_interface], axis=0)
 
-        # get time start, end and reference
-        time_start_out, time_end_out, time_reference_out = df_data_out.index[0], df_data_out.index[-1], time_obj
+            # workspace registry info out
+            reg_row_size_out.append(int(df_data_out.shape[0]))
+            reg_id_out.append(int(reg_id))
+            reg_loc_out.append(int(reg_loc))
+            reg_lon_out.append(reg_lon)
+            reg_lat_out.append(reg_lat)
+            reg_cell_out.append(int(reg_cell))
+            # workspace time info out
+            reg_time_start_out.append(time_start_out)
+            reg_time_end_out.append(time_end_out)
+            reg_time_reference_out.append(time_reference_out)
 
-        # collections workspace out
-        if collections_obj_out is None:
-            collections_interface = df_data_out
-            collections_interface.reset_index()
-            collections_obj_out = collections_interface
         else:
-            collections_interface = df_data_out
-            collections_interface.reset_index()
-            collections_obj_out = pd.concat([collections_obj_out, collections_interface], axis=0)
-
-        # workspace registry info out
-        reg_row_size_out.append(int(df_data_out.shape[0]))
-        reg_id_out.append(int(reg_id))
-        reg_loc_out.append(int(reg_loc))
-        reg_lon_out.append(reg_lon)
-        reg_lat_out.append(reg_lat)
-        reg_cell_out.append(int(reg_cell))
-        # workspace time info out
-        reg_time_start_out.append(time_start_out)
-        reg_time_end_out.append(time_end_out)
-        reg_time_reference_out.append(time_reference_out)
+            alg_logger.warning(' ===> Cell id "' + str(reg_id) + '" is not available in the registry')
 
     # organize registry dataframe
     registry_obj_out = {'gpi': reg_loc_out, 'location_id': reg_loc_out, 'lon': reg_lon_out, 'lat': reg_lat_out,

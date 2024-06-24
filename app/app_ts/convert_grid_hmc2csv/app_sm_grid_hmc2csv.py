@@ -3,8 +3,8 @@
 """
 RECOLOUR APP - TIME-SERIES GRID HMC 2 CSV  - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20240229'
-__version__ = '1.2.0'
+__date__ = '20240624'
+__version__ = '1.3.0'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)'
 __library__ = 'recolour'
@@ -13,6 +13,7 @@ General command line:
 python app_sm_grid_hmc2csv.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
+20240624 (1.3.0) --> Add different format to read hmc static and dynamic data
 20240229 (1.2.0) --> Update the time and data management
     (1) month periods (previous months or current month time selection)
     (2) in the case of lack of data or fails in opening files
@@ -47,8 +48,8 @@ log_stream = logging.getLogger(logger_name)
 project_name = 'recolour'
 alg_name = 'Application for making time-series grid hmc 2 csv'
 alg_type = 'Package'
-alg_version = '1.2.0'
-alg_release = '2024-02-29'
+alg_version = '1.3.0'
+alg_release = '2024-06-24'
 # -------------------------------------------------------------------------------------
 
 
@@ -109,7 +110,8 @@ def main():
     # -------------------------------------------------------------------------------------
     # source datasets
     driver_data_dynamic_source = DriverData_Dynamic_Source(
-        time_obj=time_range, static_obj=data_static_collection,
+        time_reference=time_reference, time_obj=time_range,
+        static_obj=data_static_collection,
         source_dict=data_settings['data']['dynamic']['source'],
         ancillary_dict=data_settings['data']['dynamic']['ancillary'],
         params_dict=data_settings['algorithm']['parameter'],

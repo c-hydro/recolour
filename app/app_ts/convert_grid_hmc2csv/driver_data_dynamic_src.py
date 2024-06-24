@@ -18,10 +18,12 @@ from lib_data_io_nc import read_file_nc
 from lib_data_io_tiff import read_file_tiff
 from lib_data_io_pickle import read_obj, write_obj
 from lib_data_io_generic import extract_data_grid2point, join_data_point, combine_data_point_by_time
+from lib_data_io_gzip import unzip_filename
 
 from lib_utils_obj import create_dict_from_list, create_dataset, filter_dataset, convert_dataset_to_data_array
 from lib_utils_system import fill_tags2string, make_folder
 from lib_utils_time import define_time_frequency
+from lib_utils_zip import remove_zip_extension
 
 from lib_info_args import logger_name, time_format_algorithm
 
@@ -29,7 +31,7 @@ from lib_info_args import logger_name, time_format_algorithm
 log_stream = logging.getLogger(logger_name)
 
 # debugging
-# import matplotlib.pylab as plt
+import matplotlib.pylab as plt
 # -------------------------------------------------------------------------------------
 
 
@@ -39,9 +41,11 @@ class DriverData:
 
     # -------------------------------------------------------------------------------------
     # initialize class
-    def __init__(self, time_obj, static_obj, source_dict, ancillary_dict,
+    def __init__(self, time_reference, time_obj,
+                 static_obj, source_dict, ancillary_dict,
                  flags_dict=None, template_dict=None, params_dict=None, tmp_dict=None):
 
+        self.time_reference = time_reference
         self.time_obj = time_obj
 
         self.time_start = pd.DatetimeIndex([time_obj[0], time_obj[-1]]).min()
@@ -64,7 +68,15 @@ class DriverData:
 
         self.reset_src = flags_dict['reset_dynamic_source']
 
-        self.format_src = self.params_dict['format_source']
+        if 'format_dynamic_source' in list(params_dict.keys()):
+            self.format_src = params_dict['format_dynamic_source']
+        else:
+            self.format_src = 'hmc_grid_tiff'
+        if 'compression_dynamic_source' in list(params_dict.keys()):
+            self.compression_src = params_dict['compression_dynamic_source']
+        else:
+            self.compression_src = False
+
         self.geo_method_search = self.params_dict['geo_method_search']
         self.geo_radius_influence = self.params_dict['geo_radius_influence']
         self.geo_neighbours = self.params_dict['geo_neighbours']
@@ -164,12 +176,42 @@ class DriverData:
                 # check source file availability
                 if os.path.exists(file_path_src_step):
 
+                    # check compression mode
+                    if self.compression_src:
+                        file_path_tmp_step = remove_zip_extension(file_path_src_step)
+                        unzip_filename(file_path_src_step, file_path_tmp_step)
+                    else:
+                        file_path_tmp_step = deepcopy(file_path_src_step)
+
                     # check source file format
                     if self.format_src == 'hmc_grid_tiff':
 
                         # method to get data
                         grid_data, grid_attrs, grid_geo_x, grid_geo_y, geo_attrs = read_file_tiff(
-                            file_path_src_step, file_band_default='soil_moisture')
+                            file_path_tmp_step, file_band_default='soil_moisture')
+
+                        # check source data availability
+                        if grid_data is not None:
+
+                            # method to create dataset
+                            grid_obj_dset_raw = create_dataset(
+                                grid_data, grid_geo_x, grid_geo_y,
+                                data_time=time_step, data_attrs=grid_attrs, common_attrs=geo_attrs)
+                            # method to select dataset
+                            grid_obj_dset_def = filter_dataset(grid_obj_dset_raw, dset_vars_filter=self.fields_src)
+                            # method to convert dset to darray collection
+                            grid_obj_da_vars = convert_dataset_to_data_array(grid_obj_dset_def)
+
+                        else:
+                            # destination datasets not available
+                            grid_obj_da_vars = None
+
+                    elif self.format_src == 'hmc_grid_nc':
+
+                        # method to get data
+                        grid_data, grid_attrs, grid_geo_x, grid_geo_y, geo_attrs = read_file_nc(
+                            file_path_tmp_step, file_variables_selected=list(self.fields_src.values()),
+                            var_name_geo_x='Longitude', var_name_geo_y='Latitude')
 
                         # check source data availability
                         if grid_data is not None:
@@ -204,6 +246,11 @@ class DriverData:
 
                     # method to join data point(s)
                     point_collections = join_data_point(time_step, point_data, point_collections)
+
+                    # remove temporary file
+                    if self.compression_src:
+                        if os.path.exists(file_path_tmp_step):
+                            os.remove(file_path_tmp_step)
 
                 else:
                     # file not found (warning message)

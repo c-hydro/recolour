@@ -101,6 +101,6 @@
   },
   "log": {
     "path_log" : "/home/fabio/Desktop/Recolour_Workspace/ws/log/rzsm/",
-    "file_log": "app_cell_rzsm_ecmwf.txt"
+    "file_log": "app_cell_rzsm_ecmwf_nrt.txt"
   }
 }

@@ -71,6 +71,15 @@ def read_file_raster(file_name, output_format='data_array', output_dtype='float3
             center_top = center_bottom
             center_bottom = center_tmp
 
+            values = np.flipud(values)
+
+        ''' debug 
+        plt.figure()
+        plt.imshow(values)
+        plt.colorbar()
+        plt.show()
+        '''
+
         lon = np.arange(center_left, center_right + np.abs(res[0] / 2), np.abs(res[0]), float)
         lat = np.flip(np.arange(center_bottom, center_top + np.abs(res[1] / 2), np.abs(res[1]), float), axis=0)
         lons, lats = np.meshgrid(lon, lat)

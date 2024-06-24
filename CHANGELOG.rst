@@ -2,6 +2,15 @@
 Changelog
 =========
 
+Version 1.7.0 [2024-06-24]
+**************************
+
+- PROJECT: operational framework time-series	
+	- APPS -- TS: convert_grid_ecmwf2csv, convert_grid_hmc2csv, convert_grid_ascat2csv, convert_grid_smap2csv, convert_grid_gldas2csv
+		- fix bugs related to the orientation of the reference domain (in tiff format)
+	- APPS -- TS: convert_grid_hmc2csv
+		- add format to read all hmc datasets (static and dynamics)
+
 Version 1.6.0 [2024-05-29]
 **************************
 - PROJECT: operational framework tc
@@ -79,7 +88,7 @@ Version 1.3.0 [2024-02-28]
 
 - PROJECT: operational framework time-series	
 	- APPS -- TS: join_ts, sync_ts, analyze_ts, view_ts
-		- first relaase and fix bugs
+		- first release and fix bugs
 
 - PROJECT: utility framework
 	- TOOLS: transfer, validation, assimilation and xml

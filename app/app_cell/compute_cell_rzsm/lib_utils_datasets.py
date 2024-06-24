@@ -264,7 +264,6 @@ def apply_rzsm_datasets_cell(
             if var_scale_factor is not None:
                 collections_obj_in[var_name_in] = collections_obj_in[var_name_in] * var_scale_factor
 
-
         # get data in
         obj_data = collections_obj_in[list_name_in]
 

@@ -22,8 +22,8 @@ time_format_algorithm = '%Y-%m-%d %H:%M'
 time_machine = pd.Timestamp.now
 
 # Logging information
-logger_name = 'app_cell_swi'
-logger_file = 'app_cell_swi.txt'
+logger_name = 'app_cell_rzsm'
+logger_file = 'app_cell_rzsm.txt'
 logger_handle = 'file'  # 'file' or 'stream'
 logger_format = '%(asctime)s %(name)-12s %(levelname)-8s ' \
                 '%(message)-80s %(filename)s:[%(lineno)-6s - %(funcName)-20s()] '

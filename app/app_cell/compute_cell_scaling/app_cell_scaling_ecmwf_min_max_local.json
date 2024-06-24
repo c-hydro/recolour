@@ -11,7 +11,7 @@
       "datetime_source_cell": "%Y%m%d%H",
       "sub_path_source_cell": "%Y/%m/%d/",
       "datetime_ref_cell": "%Y%m%d%H",
-      "sub_path_ref_cell": "%Y/%m/%d/",
+      "sub_path_ref_cell": "",
       "datetime_destination_cell": "%Y%m%d%H",
       "sub_path_destination_cell": "%Y/%m/%d/"
     }
@@ -63,11 +63,11 @@
   "datasets": {
     "static": {
       "cell_datasets_data": {
-      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_static/",
+      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_static_nrt/",
       "file_name": "grid.nc"
       },
       "cell_datasets_ref": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_static/",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_static_dr/",
         "file_name": "grid.nc"
       }
     },
@@ -86,7 +86,7 @@
           }
         },
        "cell_datasets_ref": {
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_cell_nrt_vars/profile/{sub_path_ref_cell}",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_cell_dr/profile/{sub_path_ref_cell}",
           "file_name": "rzsm_{cell_n}.nc",
           "variables_in": {
             "datasets": ["var_0_7", "var_0_28", "var_0_100", "time"],
@@ -102,7 +102,7 @@
         "cell_datasets": {
           "active": true,
           "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_cell_nrt_vars/scaling/min_max/{sub_path_destination_cell}",
-          "file_name": "scaling_{cell_n}.nc",
+          "file_name": "rzsm_{cell_n}_scaled.nc",
           "variables_in": {
             "datasets": [
               "time_data",

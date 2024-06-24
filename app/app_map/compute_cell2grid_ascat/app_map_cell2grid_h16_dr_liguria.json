@@ -21,8 +21,8 @@
     }
   },
   "info": {
-    "datasets": "ECMWF",
-    "product": "rzsm_var40"
+    "datasets": "ASCAT",
+    "product": "H16"
   },
   "cells": {
     "__comment__": "cell_start=0, cell_end=2591",
@@ -33,77 +33,78 @@
   },
   "parameters": {
     "variables": {
-      "name": ["sm_values_0_28_profile", "sm_values_0_28_scaled", "time_delta"],
-      "min_value": [0, 0, null],
-      "max_value": [1, 1, null],
-      "scale_factor": [100, 100, null],
-      "no_data": [-9999, -9999, null]
+      "name": ["sm_values", "sm_noise", "flag_proc", "flag_corr", "time_delta"],
+      "min_value": [0, 0, null, null, null],
+      "max_value": [100, 100, null, null, null],
+      "scale_factor": [1, 1, null, null, null],
+      "no_data": [-999999, -999999, null, null, null]
     },
     "resample": {
-      "max_distance": 20000,
+      "__comment__": "grid_resolution: 0.05 --> errors because change reference grid",
+      "max_distance": 65000,
       "grid_resolution": null,
       "min_neighbours": 1,
       "neighbours": 8,
-      "apply_to": ["sm_values_0_28_profile", "sm_values_0_28_scaled", "time_delta"]
+      "apply_to": ["sm_values", "sm_noise", "flag_proc", "flag_corr", "time_delta"]
     },
     "filter" : {
-      "active": false,
+      "active": true,
       "method": "box",
       "mode": "center",
       "args": {"width": 15, "st_dev": 4}
     },
     "interpolate": {
-      "active": true,
+      "active": false,
       "method": "nn",
-      "max_distance": 25000,
+      "max_distance": 65000,
       "neighbours": 8,
-      "apply_to": ["sm_values_0_28_profile", "sm_values_0_28_scaled", "time_delta"]
+      "apply_to": ["sm_values", "sm_noise", "flag_proc", "flag_corr", "time_delta"]
     }
   },
   "datasets": {
     "static": {
       "grid_product": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_static/",
-        "file_name": "grid.nc"
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_static/",
+        "file_name": "TUW_WARP5_grid_info_2_3.nc"
       },
       "grid_reference" : {
         "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/domain/",
-        "file_name": "italia_cn_500_latlon.tif"
+        "file_name": "geo_liguria.tiff"
       }
     },
     "dynamic" : {
       "source": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_cell_nrt_vars/scaling/{sub_path_source}",
-        "file_name": "scaling_{cell_n}.nc",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_dr/h16/",
+        "file_name": "h16_{cell_n}.nc",
         "variables_in": {
-          "datasets": ["var_0_28", "var_0_28_scaled","time"],
+          "datasets": ["sm", "sm_noise", "proc_flag", "corr_flag", "time"],
           "registry": ["row_size", "lon", "lat", "location_id"]
         },
         "variables_out": {
-          "datasets": ["sm_values_0_28_profile", "sm_values_0_28_scaled", "time"],
+          "datasets": ["sm_values", "sm_noise", "flag_proc", "flag_corr", "time"],
           "registry": ["row_size", "longitude", "latitude", "location"]
         }
       },
       "ancillary": {
         "points" : {
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_ancillary/cells2grid/scaled/{sub_path_ancillary_points}",
-          "file_name": "ecmwf_variables_points_{cell_n}_{datetime_ancillary_points}.nc"
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_ancillary/cells2grid/{sub_path_ancillary_points}",
+          "file_name": "ascat_variables_points_{cell_n}_{datetime_ancillary_points}.nc"
         },
         "grid": {
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_ancillary/cells2grid/scaled/{sub_path_ancillary_grid}",
-          "file_name": "ecmwf_variables_grid_{datetime_ancillary_grid}.workspace"
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_ancillary/cells2grid/{sub_path_ancillary_grid}",
+          "file_name": "ascat_variables_grid_{datetime_ancillary_grid}.workspace"
         }
       },
       "destination": {
         "__comment__": "format: [netcdf, tiff]",
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_map/scaled/{sub_path_destination}",
-        "file_name": "ecmwf_map_{datetime_destination}.tiff",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_map/{sub_path_destination}",
+        "file_name": "ascat_map_{datetime_destination}_liguria.tiff",
         "variables_in": {
-          "datasets": ["sm_values_0_28_profile", "sm_values_0_28_scaled", "time_delta"],
+          "datasets": ["sm_values", "sm_noise", "flag_proc", "flag_corr", "time_delta"],
           "registry": ["longitude", "latitude"]
         },
         "variables_out": {
-          "datasets": ["sm_values_0_28_profile", "sm_values_0_28_scaled", "sm_time"],
+          "datasets": ["sm_values", "sm_noise", "flag_proc", "flag_corr", "sm_time"],
           "registry": ["longitude", "latitude"]
         },
         "format": "tiff"
@@ -120,7 +121,7 @@
     "time_rounding" : "H"
   },
   "log": {
-    "path_log" : "/home/fabio/Desktop/Recolour_Workspace/ws/log/cells2grid/scaled/",
-    "file_log": "app_map_cell2grid_ecmwf_scaled.txt"
+    "path_log" : "/home/fabio/Desktop/Recolour_Workspace/ws/log/cells2grid/",
+    "file_log": "app_map_cell2grid_ascat.txt"
   }
 }

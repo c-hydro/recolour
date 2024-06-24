@@ -79,10 +79,10 @@ def organize_file_nc(obj_variable, obj_time=None,
 # ----------------------------------------------------------------------------------------------------------------------
 # method to read nc file
 def read_file_nc(file_name, file_variables_selected=None,
-                 var_name_geo_x='lon', var_name_geo_y='lat'):
+                 var_name_geo_x='Longitude', var_name_geo_y='Latitude'):
 
     if file_variables_selected is None:
-        file_variables_selected = ['var40', 'var41', 'var42', 'var43',]
+        file_variables_selected = ['SM']
 
     # check file availability
     if os.path.exists(file_name):
@@ -90,27 +90,26 @@ def read_file_nc(file_name, file_variables_selected=None,
         # open file
         file_dset_tmp = xr.open_dataset(file_name)
 
-        # adjust coords
-        file_geo_x_max = np.nanmax(file_dset_tmp.coords[var_name_geo_x])
-        if file_geo_x_max > 180:
-            file_dset_tmp.coords[var_name_geo_x] = (file_dset_tmp.coords[var_name_geo_x] + 180) % 360 - 180
-            file_dset_tmp = file_dset_tmp.sortby(file_dset_tmp[var_name_geo_x])
-
         # select variable(s)
         file_variables_found = list(file_dset_tmp.variables)
+
+        # adjust geo orientation (hmc format)
+        data_lons = file_dset_tmp[var_name_geo_x].values
+        data_lats = np.flipud(file_dset_tmp[var_name_geo_y].values)
 
         data_obj, data_attrs = {}, {}
         for var_name in file_variables_selected:
             if var_name in file_variables_found:
                 file_values_tmp = np.squeeze(file_dset_tmp[var_name].values)
+
+                # adjust data orientation (hmc format)
+                file_values_tmp = np.flipud(file_values_tmp)
+
                 file_attrs_tmp = file_dset_tmp[var_name].attrs
                 data_obj[var_name] = file_values_tmp
                 data_attrs[var_name] = file_attrs_tmp
             else:
                 alg_logger.warning(' ===> Variable "' + var_name + '" not found in the filename "' + file_name + '"')
-
-        data_lons = file_dset_tmp[var_name_geo_x].values
-        data_lats = file_dset_tmp[var_name_geo_y].values
 
         common_attrs = file_dset_tmp.attrs
 

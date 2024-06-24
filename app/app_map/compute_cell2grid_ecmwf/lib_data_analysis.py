@@ -97,7 +97,7 @@ def filter_data(dframe_obj_in,
 def mask_data(da_obj_in, da_reference, mask_value_min=0, mask_value_max=None, mask_no_data=np.nan,
               var_name_data='variable', var_name_geo_x='longitude', var_name_geo_y='latitude',
               coord_name_x='longitude', coord_name_y='latitude', dim_name_x='longitude', dim_name_y='latitude',
-              ):
+              mask_domain=False, mask_domain_value=0):
 
     data_values = da_obj_in.values
     geo_x_values = da_obj_in[var_name_geo_x].values
@@ -108,6 +108,9 @@ def mask_data(da_obj_in, da_reference, mask_value_min=0, mask_value_max=None, ma
         data_values[mask_values < mask_value_min] = mask_no_data
     if mask_value_max is not None:
         data_values[mask_values > mask_value_max] = mask_no_data
+
+    if mask_domain:
+        data_values[mask_values == mask_domain_value] = mask_no_data
 
     # method to create data array
     da_obj_out = create_darray_2d(

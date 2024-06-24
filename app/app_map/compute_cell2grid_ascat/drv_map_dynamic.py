@@ -402,7 +402,8 @@ class DrvMap:
 
                         # method to mask data
                         da_variable_masked = mask_data(
-                            da_variable_interpolated, grid_reference_domain, var_name_data=var_name)
+                            da_variable_interpolated, grid_reference_domain, var_name_data=var_name,
+                            mask_domain=True)
 
                         # save variable in a common collection
                         variable_collections[var_name] = da_variable_masked

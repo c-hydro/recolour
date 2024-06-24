@@ -11,7 +11,7 @@
       "datetime_source": "%Y%m%d%H",
       "sub_path_source": "%Y/%m/%d/",
       "datetime_destination": "%Y%m%d%H",
-      "sub_path_destination": "%Y/%m/"
+      "sub_path_destination": ""
     }
   },
   "info": {
@@ -78,8 +78,8 @@
     "dynamic" : {
       "source": {
         "__comment__": "dr :: /home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_dr/h16/ ::  h16_{cell_n}.nc",
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_nrt/h16/{sub_path_source}",
-        "file_name": "{cell_n}.nc",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_dr/h120_ssm/",
+        "file_name": "H120_{cell_n}.nc",
         "variables_in": {
           "datasets": ["sm", "sm_noise", "proc_flag", "corr_flag", "time"],
           "registry": ["row_size", "lon", "lat", "location_id"]
@@ -90,7 +90,7 @@
         }
       },
       "destination": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_nrt/swi/{sub_path_destination}",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_dr/h120_swi/",
         "file_name": "swi_{cell_n}.nc",
         "variables_in": {
           "datasets": ["sm", "sm_noise", "proc_flag", "corr_flag", "time", "swi_values_t06", "swi_values_t12", "swi_values_t32"],
@@ -114,6 +114,6 @@
   },
   "log": {
     "path_log" : "/home/fabio/Desktop/Recolour_Workspace/ws/log/swi/",
-    "file_log": "app_cell_swi_ascat.txt"
+    "file_log": "app_cell_swi_ascat_dr.txt"
   }
 }
