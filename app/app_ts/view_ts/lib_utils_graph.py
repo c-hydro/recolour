@@ -166,9 +166,9 @@ def configure_time_series_metrics(metrics_data):
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to view time series
-def view_time_series(file_name, point_ts,
+def view_time_series(file_name, point_ts_data,
                      point_metrics, point_registry, min_ts=0, max_ts=100,
-                     file_fields=None, file_groups=None, file_metrics=None,
+                     file_fields=None, file_groups_name=None, file_groups_time=None, file_metrics=None,
                      fig_title='figure', fig_label_axis_x='time', fig_label_axis_y='value',
                      fig_legend=None, fig_style=None,
                      fig_cbar='coolwarm', fig_cbar_kw={}, fig_dpi=120):
@@ -178,156 +178,216 @@ def view_time_series(file_name, point_ts,
     registry_tag, registry_name, registry_code = point_registry['tag'], point_registry['name'], point_registry['code']
     registry_geo_x, registry_geo_y = point_registry['longitude'], point_registry['latitude']
 
-    point_ts[point_ts < min_ts] = np.nan
-    point_ts[point_ts > max_ts] = np.nan
+    point_ts_data[point_ts_data < min_ts] = np.nan
+    point_ts_data[point_ts_data > max_ts] = np.nan
 
     # figure fields
-    if 'time' in point_ts.index.name:
-        time_period = point_ts.index
+    if 'time' in point_ts_data.index.name:
+        time_period = point_ts_data.index
         time_start, time_end = time_period[0], time_period[-1]
     else:
         log_stream.error(' ===> Time field not in the dataframe object. Time field must be included in dataframe')
         raise RuntimeError('Time field not in the dataframe object')
 
-    # configure time-series axes
-    [tick_time_period, tick_time_idx, tick_time_labels] = configure_time_series_axes(point_ts)
-    # configure time-series data for heatmaps
-    point_arr, point_name, point_label = configure_time_series_heatmap(point_ts, fig_legend)
-    # configure time-series data for heatmaps
-    metrics_arr, metrics_ts, metrics_type = configure_time_series_metrics(point_metrics)
+    if file_groups_time is not None:
+        from pandas.tseries.offsets import DateOffset
+        time_sub_period = file_groups_time['time_sub_period']
+        time_sub_n = file_groups_time['time_sub_name']
 
-    point_arr[point_arr < min_ts] = np.nan
-    point_arr[point_arr > max_ts] = np.nan
+        time_sub_period_start = deepcopy(time_start)
+        time_sub_period_end = deepcopy(time_end)
 
-    metrics_arr[metrics_arr == -9999] = np.nan
-    metrics_arr[metrics_arr == -9998] = np.nan
+        time_period_collections, time_period_id = {}, 1
+        time_sub_period_tmp = deepcopy(time_sub_period_start)
+        while time_sub_period_tmp < time_sub_period_end:
+            time_sub_period_lower = deepcopy(time_sub_period_tmp)
+            time_sub_period_tmp = time_sub_period_tmp + DateOffset(**time_sub_period)
+            time_sub_period_upper = deepcopy(time_sub_period_tmp)
 
-    # open figure
-    fig = plt.figure(figsize=(17, 10))
-    fig.autofmt_xdate()
+            time_period_collections[time_period_id] = [time_sub_period_lower, time_sub_period_upper]
 
-    # super title
-    fig_title = fig_title.format(point_name=registry_name, point_tag=registry_tag, point_code=registry_code)
-    plt.suptitle(fig_title, size=12, color='black', weight='bold')
-    # ------------------------------------------------------------------------------------------------------------------
+            time_period_id += 1
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # subplot 1 (heatmap)
-    ax1 = plt.subplot(3, 9, (1, 7))
-    ax1.set_xticklabels([])
+        time_period_max = np.max(list(time_period_collections.keys()))
 
-    # create heatmap
-    image_norm = mpl.colors.Normalize(vmin=min_ts, vmax=max_ts)
-    image_renderer = ax1.imshow(point_arr, cmap=fig_cbar, norm=image_norm)
+        if time_period_collections[time_period_max][1] > time_sub_period_end:
+            time_period_collections[time_period_max][1] = time_sub_period_end
 
-    # create colorbar
-    cbar = ax1.figure.colorbar(image_renderer, ax=ax1, shrink=0.6, **fig_cbar_kw)
-    cbar.ax.set_ylabel(fig_label_axis_y, rotation=-90, va="bottom", color='#000000')
+    else:
+        time_sub_n = '{:02d}'
+        time_period_collections, time_period_id = {}, 0
+        time_period_collections[time_period_id] = [time_start, time_end]
 
-    # show all ticks and label them with the respective list entries
-    ax1.set_xticks(np.arange(len(tick_time_labels)))
-    ax1.set_xticklabels(tick_time_labels)
-    ax1.set_yticks(np.arange(len(point_label)))
-    ax1.set_yticklabels(point_label)
+    # iterate over period(s)
+    for time_period_id, time_period_range in time_period_collections.items():
 
-    # rotate the tick labels and set their alignment.
-    plt.setp(ax1.get_xticklabels(), rotation=90, fontsize=6, ha="right", rotation_mode="anchor")
-    # create grid
-    ax1.set_xticks(np.arange(point_arr.shape[1] + 1) - .5, minor=True)
-    ax1.set_yticks(np.arange(point_arr.shape[0] + 1) - .5, minor=True)
-    ax1.grid(which="minor", color="w", linestyle='-', linewidth=3)
-    ax1.tick_params(which="minor", bottom=False, left=False)
+        # select time start and time end
+        time_start_string, time_start_stamp = time_period_range[0].strftime('%Y%m%d%H%M'), time_period_range[0]
+        time_end_string, time_end_stamp = time_period_range[1].strftime('%Y%m%d%H%M'), time_period_range[1]
 
-    # create annotations
-    for i in range(len(point_label)):
-        for j in range(len(tick_time_period)):
-            text = ax1.text(
-                j, i, point_arr[i, j].round(1),
-                ha="center", va="center", color="w", fontsize=6, fontweight='bold')
-    # set title
-    # ax1.set_title(fig_title, size=12, color='black', weight='bold')
-    # ------------------------------------------------------------------------------------------------------------------
+        # get time-series data for selected period
+        point_ts_string = time_sub_n.format(time_period_id)
+        point_ts_period = point_ts_data.loc[time_start_stamp:time_end_stamp]
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # subplot 2 (metrics)
-    ax2 = plt.subplot(3, 9, (8, 9))
-
-    ax2.xaxis.set_visible(False)
-    ax2.yaxis.set_visible(False)
-    ax2.axis("off")
-
-    metrics_text, metrics_rows, metrics_cols = [], [], metrics_type
-    for point_id, metrics_name in enumerate(metrics_ts):
-        metrics_row = metrics_arr[point_id, :]
-        metrics_text.append(['%1.2f' % x for x in metrics_row])
-
-        metrics_row = configure_time_series_lut(metrics_name, fig_legend)
-        metrics_rows.append(metrics_row)
-
-    # add a table in the center
-    table = plt.table(cellText=metrics_text,
-                          rowLabels=metrics_rows,
-                          colLabels=metrics_cols,
-                          loc='center')
-
-    for (row, col), cell in table.get_celld().items():
-        if (row == 0) or (col == -1):
-            cell.set_text_props(fontproperties=FontProperties(weight='bold'))
-
-    # Adjust layout to make room for the table:
-    plt.subplots_adjust(left=0.2, bottom=0.2)
-    # ------------------------------------------------------------------------------------------------------------------
-
-    # ------------------------------------------------------------------------------------------------------------------
-    # subplot 3 (series)
-    ax3 = plt.subplot(3, 9, (10, 27))
-
-    # iterate over serie(s)
-    px_obj, label_obj = [], []
-    for point_id, (point_key, point_data) in enumerate(point_ts.items()):
-
-        # get style and label
-        point_style = configure_time_series_style(point_key, fig_style)
-        point_label = configure_time_series_lut(point_key, fig_legend)
-
-        if point_style is None:
-            point_px = ax3.plot(point_data.index, point_data.values,
-                                label=point_label, lw=1)
+        # define file name
+        if ('time_start' not in file_name) and ('time_end' not in file_name):
+            file_name_def = file_name.format(
+                group_name=file_groups_name, time_sub_name=point_ts_string)
+        elif ('time_start' in file_name) and ('time_end' in file_name):
+            file_name_def = file_name.format(
+                group_name=file_groups_name, time_sub_name=point_ts_string,
+                time_start=time_start_string, time_end=time_end_string)
+        elif ('time_start' in file_name) and ('time_end' not in file_name):
+            file_name_def = file_name.format(
+                group_name=file_groups_name, time_sub_name=point_ts_string, time_start=time_start_string)
+        elif ('time_start' not in file_name) and ('time_end' in file_name):
+            file_name_def = file_name.format(
+                group_name=file_groups_name, time_sub_name=point_ts_string, time_end=time_end_string)
         else:
-            point_px = ax3.plot(point_data.index, point_data.values,
-                                label=point_label, **point_style)
+            log_stream.error(' ===> File name not correctly defined')
+            raise RuntimeError('File name not correctly defined')
 
-        px_obj.append(point_px[0])
-        label_obj.append(point_label)
+        # configure time-series axes
+        [tick_time_period, tick_time_idx, tick_time_labels] = configure_time_series_axes(point_ts_period)
+        # configure time-series data for heatmaps
+        point_arr, point_name, point_label = configure_time_series_heatmap(point_ts_period, fig_legend)
+        # configure time-series data for heatmaps
+        metrics_arr, metrics_ts, metrics_type = configure_time_series_metrics(point_metrics)
 
-    px_obj, label_obj = tuple(px_obj), tuple(label_obj)
+        point_arr[point_arr < min_ts] = np.nan
+        point_arr[point_arr > max_ts] = np.nan
 
-    ax3.set_xlabel(fig_label_axis_x, color='#000000')
-    ax3.set_xlim(tick_time_period[0], tick_time_period[-1])
-    # ax3.set_ylabel(fig_label_axis_y, color='#000000')
-    ax3.set_ylim(min_ts, max_ts)
-    ax3.grid(b=True)
+        metrics_arr[metrics_arr == -9999] = np.nan
+        metrics_arr[metrics_arr == -9998] = np.nan
 
-    ax3.set_xticks(tick_time_idx)
-    ax3.set_xticklabels(tick_time_labels, rotation=90, fontsize=6)
+        # open figure
+        fig = plt.figure(figsize=(17, 10))
+        fig.autofmt_xdate()
 
-    ax4 = ax3.twinx()
-    ax4.set_ylabel(fig_label_axis_y, rotation=-90, va="bottom", color='#000000')
-    ax4.set_ylim(min_ts, max_ts)
+        # super title
+        fig_title = fig_title.format(
+            point_name=registry_name, point_tag=registry_tag, point_code=registry_code,
+            time_start=time_start_string, time_end=time_end_string, group_name=file_groups_name)
+        plt.suptitle(fig_title, size=12, color='black', weight='bold')
+        # ------------------------------------------------------------------------------------------------------------------
 
-    # add legend
-    legend = ax3.legend(px_obj, label_obj, frameon=False, ncol=2, loc=0)
-    ax3.add_artist(legend)
+        # ------------------------------------------------------------------------------------------------------------------
+        # subplot 1 (heatmap)
+        ax1 = plt.subplot(3, 9, (1, 7))
+        ax1.set_xticklabels([])
 
-    fig.tight_layout()
+        # create heatmap
+        image_norm = mpl.colors.Normalize(vmin=min_ts, vmax=max_ts)
+        image_renderer = ax1.imshow(point_arr, cmap=fig_cbar, norm=image_norm)
 
-    # save figure
-    file_path, file_folder = os.path.split(file_name)
-    os.makedirs(file_path, exist_ok=True)
-    fig.savefig(file_name, dpi=fig_dpi)
+        # create colorbar
+        cbar = ax1.figure.colorbar(image_renderer, ax=ax1, shrink=0.6, **fig_cbar_kw)
+        cbar.ax.set_ylabel(fig_label_axis_y, rotation=-90, va="bottom", color='#000000')
 
-    # close figure
-    # plt.show()
-    plt.close()
+        # show all ticks and label them with the respective list entries
+        ax1.set_xticks(np.arange(len(tick_time_labels)))
+        ax1.set_xticklabels(tick_time_labels)
+        ax1.set_yticks(np.arange(len(point_label)))
+        ax1.set_yticklabels(point_label)
+
+        # rotate the tick labels and set their alignment.
+        plt.setp(ax1.get_xticklabels(), rotation=90, fontsize=6, ha="right", rotation_mode="anchor")
+        # create grid
+        ax1.set_xticks(np.arange(point_arr.shape[1] + 1) - .5, minor=True)
+        ax1.set_yticks(np.arange(point_arr.shape[0] + 1) - .5, minor=True)
+        ax1.grid(which="minor", color="w", linestyle='-', linewidth=3)
+        ax1.tick_params(which="minor", bottom=False, left=False)
+
+        # create annotations
+        for i in range(len(point_label)):
+            for j in range(len(tick_time_period)):
+                text = ax1.text(
+                    j, i, point_arr[i, j].round(1),
+                    ha="center", va="center", color="w", fontsize=6, fontweight='bold')
+        # set title
+        # ax1.set_title(fig_title, size=12, color='black', weight='bold')
+        # ------------------------------------------------------------------------------------------------------------------
+
+        # ------------------------------------------------------------------------------------------------------------------
+        # subplot 2 (metrics)
+        ax2 = plt.subplot(3, 9, (8, 9))
+
+        ax2.xaxis.set_visible(False)
+        ax2.yaxis.set_visible(False)
+        ax2.axis("off")
+
+        metrics_text, metrics_rows, metrics_cols = [], [], metrics_type
+        for point_id, metrics_name in enumerate(metrics_ts):
+            metrics_row = metrics_arr[point_id, :]
+            metrics_text.append(['%1.2f' % x for x in metrics_row])
+
+            metrics_row = configure_time_series_lut(metrics_name, fig_legend)
+            metrics_rows.append(metrics_row)
+
+        # add a table in the center
+        table = plt.table(cellText=metrics_text,
+                              rowLabels=metrics_rows,
+                              colLabels=metrics_cols,
+                              loc='center')
+
+        for (row, col), cell in table.get_celld().items():
+            if (row == 0) or (col == -1):
+                cell.set_text_props(fontproperties=FontProperties(weight='bold'))
+
+        # Adjust layout to make room for the table:
+        plt.subplots_adjust(left=0.2, bottom=0.2)
+        # ------------------------------------------------------------------------------------------------------------------
+
+        # ------------------------------------------------------------------------------------------------------------------
+        # subplot 3 (series)
+        ax3 = plt.subplot(3, 9, (10, 27))
+
+        # iterate over serie(s)
+        px_obj, label_obj = [], []
+        for point_id, (point_key, point_data) in enumerate(point_ts_period.items()):
+
+            # get style and label
+            point_style = configure_time_series_style(point_key, fig_style)
+            point_label = configure_time_series_lut(point_key, fig_legend)
+
+            if point_style is None:
+                point_px = ax3.plot(point_data.index, point_data.values,
+                                    label=point_label, lw=1)
+            else:
+                point_px = ax3.plot(point_data.index, point_data.values,
+                                    label=point_label, **point_style)
+
+            px_obj.append(point_px[0])
+            label_obj.append(point_label)
+
+        px_obj, label_obj = tuple(px_obj), tuple(label_obj)
+
+        ax3.set_xlabel(fig_label_axis_x, color='#000000')
+        ax3.set_xlim(tick_time_period[0], tick_time_period[-1])
+        # ax3.set_ylabel(fig_label_axis_y, color='#000000')
+        ax3.set_ylim(min_ts, max_ts)
+        ax3.grid(b=True)
+
+        ax3.set_xticks(tick_time_idx)
+        ax3.set_xticklabels(tick_time_labels, rotation=90, fontsize=6)
+
+        ax4 = ax3.twinx()
+        ax4.set_ylabel(fig_label_axis_y, rotation=-90, va="bottom", color='#000000')
+        ax4.set_ylim(min_ts, max_ts)
+
+        # add legend
+        legend = ax3.legend(px_obj, label_obj, frameon=False, ncol=2, loc=0)
+        ax3.add_artist(legend)
+
+        fig.tight_layout()
+
+        # save figure
+        file_folder_def, _ = os.path.split(file_name_def)
+        os.makedirs(file_folder_def, exist_ok=True)
+        fig.savefig(file_name_def, dpi=fig_dpi)
+
+        # close figure
+        # plt.show()
+        plt.close()
 
 # ----------------------------------------------------------------------------------------------------------------------

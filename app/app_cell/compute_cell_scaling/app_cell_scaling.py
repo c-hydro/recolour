@@ -10,7 +10,7 @@ __author__ =
 __library__ = 'recolour'
 
 General command line:
-python app_cell_scaling.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
+python app_map_grid_smr.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
 20240517 (1.0.0) --> First development

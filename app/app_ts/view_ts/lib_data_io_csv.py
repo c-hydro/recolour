@@ -41,6 +41,8 @@ def read_file_csv(file_name, dframe_index='time', dframe_date_format='%Y-%m-%d %
     file_dframe = file_dframe.set_index(dframe_index)
     file_dframe.sort_index(inplace=True)
 
+    file_dframe.index.name = dframe_index
+
     return file_dframe
 
 # ----------------------------------------------------------------------------------------------------------------------

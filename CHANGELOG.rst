@@ -2,8 +2,16 @@
 Changelog
 =========
 
-Version 1.7.0 [2024-06-24]
+Version 1.7.0 [2024-07-09]
 **************************
+
+- PROJECT: operational framework soil moisture rescaled (obs/mod)
+	- APPS -- MAP: create_map_smr
+		- first release based on old soil moisture packages
+
+- PROJECT: operational framework grid	
+	- APPS -- TS: resample_grid_src2ref
+		- first release
 
 - PROJECT: operational framework time-series	
 	- APPS -- TS: convert_grid_ecmwf2csv, convert_grid_hmc2csv, convert_grid_ascat2csv, convert_grid_smap2csv, convert_grid_gldas2csv
@@ -13,14 +21,14 @@ Version 1.7.0 [2024-06-24]
 
 Version 1.6.0 [2024-05-29]
 **************************
-- PROJECT: operational framework tc
+- PROJECT: operational framework soil moisture triple collocation
 	- APPS -- CELL: app_map_create_tc
 		- update codes to smooth the coasts areas to avoid artefacts
 		- update codes to organize domain datasets and metrics using the same resampling and filtering strategy (testing)
 		- update codes to correct the time selection based on tolerance period
 		. fix bugs in weight method (case: ref found, k1 not found and k2 found)
 
-- PROJECT: operational framework obs/mod
+- PROJECT: operational framework soil moisture rescaled (obs/mod)
 	- APPS -- CELL: app_cell_swi
 		- first release to convert the ssm to swi time-series
 	- APPS -- CELL: app_cell_rzsm
@@ -62,7 +70,7 @@ Version 1.4.1 [2024-04-09]
 
 Version 1.4.0 [2024-03-29]
 **************************
-- PROJECT: operational framework obs/mod
+- PROJECT: operational framework soil moisture rescaled (obs/mod)
 	- APPS -- MAP: convert_cell2grid_ascat
 		- first release (product h16 and h103)
 	- APPS -- MAP: convert_cell2grid_metrics
@@ -80,7 +88,7 @@ Version 1.4.0 [2024-03-29]
 	
 Version 1.3.0 [2024-02-28]
 **************************
-- PROJECT: operational framework obs/mod
+- PROJECT: operational framework soil moisture rescaled (obs/mod)
 	- APPS -- MAP: convert_swath2cell
 		- fix bugs
 		- update code to product h16, h103, h104 and h105
@@ -103,7 +111,7 @@ Version 1.3.0 [2024-02-28]
 
 Version 1.2.0 [2023-12-19]
 **************************
-- PROJECT: operational framework tc
+- PROJECT: operational framework soil moisture triple collocation
 	- APPS: create_grid_tc
 		- add temporal periods to match available products (reference, k1 and k2)
 		- add resampling procedure to remap products k1 and k2 to the reference grid
@@ -112,7 +120,7 @@ Version 1.2.0 [2023-12-19]
 
 Version 1.1.0 [2023-11-28]
 **************************
-- PROJECT: operational framework tc and time-series
+- PROJECT: operational framework soil moisture triple collocation and time-series
 	- APPS: cell, maps and time-series
 	- TOOLS: converter, downloader, plot_validation, plot_timeseries, validation, xml
 	- NOTEBOOKS: time-series datasets and products

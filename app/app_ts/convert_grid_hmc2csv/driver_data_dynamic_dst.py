@@ -62,6 +62,10 @@ class DriverData:
             self.format_dst = self.params_dict['format_dynamic_destination']
         else:
             self.format_dst = 'csv'
+        if 'nans_destination' in self.params_dict:
+            self.nans_dst = self.params_dict['nans_destination']
+        else:
+            self.nans_dst = 'fill'
 
         self.reset_dst = flags_dict['reset_dynamic_destination']
 
@@ -141,8 +145,17 @@ class DriverData:
 
             # map datasets fields
             file_obj_var = map_vars_dict(file_obj_raw, file_fields)
-            # fill nan(s) with no_data
-            file_obj_var = file_obj_var.fillna(self.no_data_dst)
+
+            # datasets nans
+            if self.nans_dst == 'fill':
+                # fill nan(s) with no_data
+                file_obj_var = file_obj_var.fillna(self.no_data_dst)
+            elif self.nans_dst == 'drop':
+                # drop nan(s)
+                file_obj_var = file_obj_var.dropna(axis='rows', how='all')
+            else:
+                log_stream.error(' ===> Nans destination type "' + self.nans_dst + '" is not allowed')
+                raise NotImplemented('Case not implemented yet')
 
             # create datasets folder
             folder_name, file_name = os.path.split(file_path)

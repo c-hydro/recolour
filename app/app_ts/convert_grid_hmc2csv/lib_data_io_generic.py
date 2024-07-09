@@ -10,6 +10,8 @@ Version:       '1.0.0'
 # ----------------------------------------------------------------------------------------------------------------------
 # libraries
 import logging
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
@@ -116,6 +118,14 @@ def extract_data_grid2point(
         # get dataset and geo
         grid_data = grid_da.values.ravel()
         grid_geo = grid_obj_geo.values.ravel()
+
+        ''' debug
+        grid_values = grid_da.values[:, :, 0]
+        plt.figure()
+        plt.imshow(grid_values)
+        plt.colorbar()
+        plt.show()
+        '''
 
         # iterate over point(s)
         point_obj_dict = {}

@@ -66,7 +66,7 @@
   "data": {
     "static" : {
       "source": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/registry/liguria/",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/registry/liguria/",
         "file_name": "sm_ws_registry.csv",
         "format": "csv",
         "fields": {
@@ -76,14 +76,14 @@
         }
       },
       "destination": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/registry/liguria/",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/registry/liguria/",
         "file_name": "sm_ws_registry.workspace"
       }
     },
     "dynamic": {
       "source": {
         "ref": {
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/data_record/{source_sub_path_ref}",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/data_record/{source_sub_path_ref}",
           "file_name": "sm_ts_obs_{source_datetime_ref}_vwc_10_cm_all_liguria.csv",
           "format": "csv",
           "fields": {},
@@ -100,7 +100,7 @@
           "time_end": null
         },
         "other_k1": {
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/data_record/{source_sub_path_other_k1}",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/data_record/{source_sub_path_other_k1}",
           "file_name": "sm_ts_hmc_{source_datetime_other_k1}_soil_moisture_liguria.csv",
           "format": "csv",
           "fields": {},
@@ -117,7 +117,7 @@
           "time_end": null
         },
         "other_k2": {
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/data_record/{source_sub_path_other_k2}",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/data_record/{source_sub_path_other_k2}",
           "file_name": "sm_ts_ecmwf_{source_datetime_other_k2}_rzsm_layer_0_7_cm_liguria.csv",
           "format": "csv",
           "fields": {},
@@ -134,7 +134,7 @@
           "time_end": null
         },
         "other_k3": {
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/data_record/{source_sub_path_other_k3}",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/data_record/{source_sub_path_other_k3}",
           "file_name": "sm_ts_ecmwf_{source_datetime_other_k3}_rzsm_layer_0_28_cm_liguria.csv",
           "format": "csv",
           "fields": {},
@@ -151,7 +151,7 @@
           "time_end": null
         },
         "other_k4": {
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/data_record/{source_sub_path_other_k4}",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/data_record/{source_sub_path_other_k4}",
           "file_name": "sm_ts_ecmwf_{source_datetime_other_k4}_rzsm_layer_0_100_cm_liguria.csv",
           "format": "csv",
           "fields": {},
@@ -168,7 +168,7 @@
           "time_end": null
         },
         "other_k5": {
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/data_record/{source_sub_path_other_k5}",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/data_record/{source_sub_path_other_k5}",
           "file_name": "sm_ts_spl3smp_e_{source_datetime_other_k5}_soil_moisture_liguria.csv",
           "format": "csv",
           "fields": {},
@@ -186,11 +186,11 @@
         }
       },
       "ancillary": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/ancillary/liguria/obs/{ancillary_sub_path_time}",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/ancillary/liguria/data/{ancillary_sub_path_time}",
         "file_name": "sm_ts_{ancillary_datetime}_d5_liguria.workspace"
       },
       "destination": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/analysis/liguria/{destination_sub_path_time}",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/analysis/liguria/data/{destination_sub_path_time}",
         "file_name": "sm_ts_{destination_datetime}_{point_name}_datasets_liguria.csv",
         "format": "csv",
         "fields": {
@@ -213,11 +213,11 @@
     }
   },
   "tmp": {
-    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/tmp/",
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/tmp/",
     "file_name": null
   },
   "log": {
-    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/log/",
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/log/",
     "file_name": "sm_ts_sync_liguria.txt"
   },
   "time": {

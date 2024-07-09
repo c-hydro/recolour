@@ -65,7 +65,8 @@ def convert_vars_to_data(obj_dframe_in, obj_fields=None, time_format='%Y-%m-%d %
     attrs_data_in, attrs_list, attrs_null_no_data_other, attrs_null_no_data_ref = {}, None, None, None
     for data_name, data_values in obj_dframe_in.items():
 
-        data_attrs = data_values.attrs
+        # get attributes
+        data_attrs = deepcopy(obj_dframe_in.attrs)
         if data_name in list(data_attrs.keys()):
 
             obj_attrs_tmp = data_attrs[data_name]

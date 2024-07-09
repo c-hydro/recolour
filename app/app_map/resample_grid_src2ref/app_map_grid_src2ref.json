@@ -1,0 +1,53 @@
+{
+  "flags": {
+    "reset_datasets": true
+  },
+  "template": {
+    "datetime_source": "%Y%m%d%H",
+    "sub_path_source": "%Y/%m/",
+    "datetime_ancillary": "%Y%m%d%H",
+    "sub_path_ancillary": "%Y/%m/",
+    "datetime_destination": "%Y%m%d%H",
+    "sub_path_destination": "%Y/%m/"
+  },
+  "methods": {
+    "resample": {
+      "resample_mode": "resample_points_to_grid",
+      "resample_method": "nearest", "resample_max_distance": 25000, "resample_fill_value": 0,
+      "resample_min_neighbours": 1, "resample_neighbours": 4
+    },
+    "mask": {
+      "mask_undefined_value": 0, "mask_fill_value": null
+    }
+  },
+  "datasets": {
+    "static": {
+      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/domain/",
+      "file_name": "grid_reference_100m_liguria.tiff"
+    },
+    "dynamic" : {
+      "source": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_map/scaled/{sub_path_source}",
+        "file_name": "ecmwf_map_{datetime_source}.tiff"
+      },
+      "destination": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_map/scaled/{sub_path_destination}",
+        "file_name": "ecmwf_{datetime_destination}_liguria.tiff"
+      }
+    }
+  },
+  "time": {
+    "_comment_": "2022-11-29 00:00 2022-12-02 03:00",
+    "time_run": null,
+    "time_frequency": "H",
+    "time_rounding" : "H"
+  },
+  "log": {
+    "folder_name" : "/home/fabio/Desktop/Recolour_Workspace/ws/log/",
+    "file_name": "app_map_grid_src2ref_ecmwf.txt"
+  },
+  "tmp": {
+    "folder_name" : "/home/fabio/Desktop/Recolour_Workspace/ws/tmp/",
+    "file_name": null
+  }
+}

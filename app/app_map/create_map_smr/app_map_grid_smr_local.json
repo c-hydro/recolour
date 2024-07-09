@@ -1,0 +1,219 @@
+{
+  "flags": {
+    "reset_ancillary_cell": false,
+    "reset_ancillary_grid": true,
+    "reset_destination_grid": true,
+    "reset_logs": true
+  },
+  "template": {
+    "datasets": {
+      "cell_n": "string_cell_n"
+    },
+    "time": {
+      "datetime_source_cell_ref_nrt": "%Y%m%d%H",
+      "sub_path_source_cell_ref_nrt": "%Y/%m/%d/",
+      "datetime_source_cell_ref_dr": "%Y%m%d%H",
+      "sub_path_source_cell_ref_dr": "%Y/%m/%d/",
+      "datetime_source_cell_other_dr": "%Y%m%d%H",
+      "sub_path_source_cell_other_dr": "%Y/%m/%d/",
+      "datetime_ancillary_cell": "%Y%m%d%H",
+      "sub_path_ancillary_cell": "%Y/%m/%d/",
+      "datetime_ancillary_grid": "%Y%m%d%H",
+      "sub_path_ancillary_grid": "%Y/%m/%d/",
+      "datetime_destination_cell": "%Y%m%d%H",
+      "sub_path_destination_cell": "%Y/%m/%d/",
+      "datetime_destination_grid": "%Y%m%d%H",
+      "sub_path_destination_grid": "%Y/%m/%d/"
+    }
+  },
+  "info": {
+    "reference": {"datasets": "ASCAT", "product": "H16"},
+    "other": {"datasets": "ECMWF", "product": "H26"}
+  },
+  "cells": {
+    "__comment__": "cell_start=0, cell_end=2591",
+    "name": "italy",
+    "cell_start": null,
+    "cell_end": null,
+    "cell_list": [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430, 1431]
+  },
+  "parameters": {
+    "variables": {
+      "name": [
+        "layer_1_ref_nrt", "layer_2_ref_nrt", "layer_3_ref_nrt",
+        "layer_1_ref_dr", "layer_2_ref_dr", "layer_3_ref_dr",
+        "layer_1_other_dr", "layer_2_other_dr", "layer_3_other_dr",
+        "time"],
+      "min_value": [
+        0, 0, 0,
+        0, 0, 0,
+        0, 0, 0,
+        null],
+      "max_value": [
+        100, 100, 100,
+        100, 100, 100,
+        1, 1, 1,
+        null],
+      "scale_factor": [
+        1, 1, 1,
+        1, 1, 1,
+        100, 100, 100,
+        null],
+      "no_data": [
+        -9999, -9999, -9999,
+        -9999, -9999, -9999,
+        -9999, -9999, -9999,
+        null]
+    },
+    "fx": {
+      "select": {
+        "var_name": "layer_1_scaled", "min_value": 0.0, "max_value": 100.0, "no_data_value": null, "no_data_skip_rows": true
+      },
+      "resample": {
+        "min_neighbours": 1, "neighbours": 4, "search_rad": 50000, "method": "nn", "fill_value": -9999.0
+      },
+      "filter": {
+        "__comment__": "filter_type: gauss, box, null",
+        "filter_type": null,
+        "gauss_st_dev": 5,
+        "gauss_mode": "center",
+        "box_width": 3},
+      "mask": {"no_data_ref": 0},
+      "scale": {
+        "variables": {
+          "source": {
+            "layer_1": ["layer_1_ref_nrt", "layer_1_ref_dr", "layer_1_other_dr"],
+            "layer_2": ["layer_2_ref_nrt", "layer_2_ref_dr", "layer_2_other_dr"],
+            "layer_3": ["layer_3_ref_nrt", "layer_3_ref_dr", "layer_3_other_dr"],
+            "time": null
+          },
+          "destination" : {
+            "layer_1": "layer_1_scaled",
+            "layer_2": "layer_2_scaled",
+            "layer_3": "layer_3_scaled",
+            "time": null
+          }
+        },
+        "methods": {
+          "__comment__": "methods: mean_std",
+          "layer_1": {"type": "mean_std",
+            "args": {"ref_nrt":  "layer_1_ref_nrt", "ref_dr": "layer_1_ref_dr", "other_dr":  "layer_1_other_dr"}},
+          "layer_2": {"type": "mean_std",
+            "args": {"ref_nrt":  "layer_2_ref_nrt", "ref_dr": "layer_2_ref_dr", "other_dr":  "layer_2_other_dr"}},
+          "layer_3": {"type": "mean_std",
+            "args": {"ref_nrt":  "layer_3_ref_nrt", "ref_dr": "layer_3_ref_dr", "other_dr":  "layer_3_other_dr"}},
+          "time": null
+        }
+      }
+    }
+  },
+  "datasets": {
+    "static": {
+      "source": {
+        "reference": {
+          "cell_datasets_data_nrt": {
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_smr_auxiliary/ascat/",
+            "file_name": "TUW_WARP5_grid_info_2_3.nc"
+          },
+          "cell_datasets_data_dr": {
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_smr_auxiliary/ascat/",
+            "file_name": "TUW_WARP5_grid_info_2_3.nc"
+          }
+        },
+        "other": {
+          "cell_datasets_data_dr": {
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_smr_auxiliary/ecmwf/",
+            "file_name": "grid.nc"
+          }
+        }
+      },
+      "destination": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_smr_auxiliary/domain/",
+        "file_name": "grid_reference_1000m.tiff"
+      }
+    },
+    "dynamic" : {
+      "source": {
+        "reference": {
+          "cell_datasets_data_nrt": {
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_smr_data/ascat_cell_nrt/swi/{sub_path_source_cell_ref_nrt}",
+            "file_name": "swi_{cell_n}.nc",
+            "variables_in": {
+              "datasets": ["swi_values_t06", "swi_values_t12", "swi_values_t32", "time"],
+              "registry": ["row_size", "lon", "lat", "location_id"]
+            },
+            "variables_out": {
+              "datasets": ["layer_1_ref_nrt", "layer_2_ref_nrt", "layer_3_ref_nrt", "time_ref_nrt"],
+              "registry": ["row_size_ref_nrt","lon_ref_nrt", "lat_ref_nrt", "location_id_ref_nrt"]
+            }
+          },
+         "cell_datasets_data_dr": {
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_smr_data/ascat_cell_dr/swi/",
+            "file_name": "H120_{cell_n}_swi.nc",
+            "variables_in": {
+              "datasets": ["swi_values_t06", "swi_values_t12", "swi_values_t32", "time"],
+              "registry": ["row_size", "lon", "lat", "location_id"]
+            },
+            "variables_out": {
+              "datasets": ["layer_1_ref_dr", "layer_2_ref_dr", "layer_3_ref_dr", "time_ref_dr"],
+              "registry": ["row_size_ref_dr","lon_ref_dr", "lat_ref_dr", "location_id_ref_dr"]
+            }
+         }
+        },
+        "other": {
+           "cell_datasets_data_dr": {
+              "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_smr_data/ecmwf_cell_dr/profile/",
+              "file_name": "rzsm_{cell_n}.nc",
+              "variables_in": {
+                "datasets": ["var_0_7", "var_0_28", "var_0_100", "time"],
+                "registry": ["lon", "lat", "location_id"]
+              },
+              "variables_out": {
+                "datasets": ["layer_1_other_dr", "layer_2_other_dr", "layer_3_other_dr", "time_other_dr"],
+                "registry": ["lon_other_dr", "lat_other_dr", "location_id_other_dr"]
+              }
+            }
+        }
+      },
+      "ancillary": {
+        "cell_datasets": {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_smr_ancillary/{sub_path_ancillary_cell}",
+          "file_name": "sm_{sub_path_ancillary_cell}_{cell_n}_scaled.workspace"
+        },
+        "grid_datasets": {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_smr_ancillary/{sub_path_ancillary_grid}",
+          "file_name": "sm_{sub_path_ancillary_grid}_merged_scaled.workspace"
+        }
+      },
+      "destination": {
+        "grid_datasets": {
+          "__comment__": "format: netcdf, tiff",
+          "format": "netcdf",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_smr_nrt/{sub_path_destination_grid}",
+          "file_name": "sm_{datetime_destination_grid}_obs_mod.nc",
+          "variables_in": [
+              "time_scaled", "delta_scaled",
+              "layer_1_scaled", "layer_2_scaled", "layer_3_scaled",
+              "location_id_ref_scaled"],
+          "variables_out": [
+              "time", "delta",
+              "sm_layer_1", "sm_layer_2", "sm_layer_3",
+              "location_id"]
+        }
+      }
+    }
+  },
+  "time": {
+    "_comment_": "2022-11-29 00:00 2022-12-02 03:00",
+    "time_now": null,
+    "time_start": null,
+    "time_end": null,
+    "time_period": 1,
+    "time_frequency": "H",
+    "time_rounding" : "H"
+  },
+  "log": {
+    "path_log" : "/home/fabio/Desktop/Recolour_Workspace/ws/log/scaling/",
+    "file_log": "app_cell_scaling_ecmwf.txt"
+  }
+}

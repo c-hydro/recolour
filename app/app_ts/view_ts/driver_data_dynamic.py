@@ -77,7 +77,7 @@ class DriverData:
         self.label_axis_x_tag, self.label_axis_y_tag = 'label_axis_x', 'label_axis_y'
         self.legend_tag, self.style_tag = 'legend', "style"
         # other tags
-        self.metrics_tag, self.group_tag = 'metrics', 'groups'
+        self.metrics_tag, self.group_data_tag, self.group_time_tag = 'metrics', 'groups_data', 'groups_time'
 
         # get reset flags
         self.reset_src = flags_dict['reset_dynamic_source']
@@ -98,13 +98,13 @@ class DriverData:
             value_min_src_data, value_max_src_data, value_no_data_src_data)
 
         # get source metrics
-        (folder_name_src_met, file_name_src_met, fields_src_met, _, _, _, _, _) = self.get_info_data(
+        (folder_name_src_met, file_name_src_met, fields_src_met, format_src_met, _, _, _, _) = self.get_info_data(
             self.source_dict['metrics'])
         file_path_src_met = os.path.join(folder_name_src_met, file_name_src_met)
         # zip source metrics
         self.dset_obj_src_met = self.zip_info_data(
             folder_name_src_met, file_name_src_met, file_path_src_met,
-            fields_src_met)
+            fields_src_met, format_src_met)
 
         # get ancillary data
         (folder_name_anc, file_name_anc, _, _, _, _, _, _) = self.get_info_data(self.ancillary_dict)
@@ -130,7 +130,11 @@ class DriverData:
 
         # get destination other
         self.metrics_settings = self.destination_dict[self.metrics_tag]
-        self.groups_settings = self.destination_dict[self.group_tag]
+        self.groups_data_settings = self.destination_dict[self.group_data_tag]
+        self.groups_time_settings = self.destination_dict[self.group_time_tag]
+
+        if self.groups_data_settings is None:
+            self.groups_data_settings = {'group_default': None}
 
         # get tmp data
         (folder_name_tmp, file_name_tmp, _, _, _, _, _, _) = self.get_info_data(self.tmp_dict)
@@ -279,7 +283,7 @@ class DriverData:
         for point_fields in point_registry.to_dict(orient="records"):
 
             # debug
-            point_fields = point_registry.to_dict('records')[8] # valzemola
+            # point_fields = point_registry.to_dict('records')[8] # valzemola
 
             # get point information
             point_tag, point_name, point_code = point_fields['tag'], point_fields['name'], point_fields['code']
@@ -302,16 +306,38 @@ class DriverData:
                 point_data_raw, point_metrics_raw,
                 fields=self.dset_obj_dst_file['fields'], metrics=self.metrics_settings)
 
-            # view point time-series
-            view_time_series(file_path_dst_point,
-                             point_ts=point_data_selected, point_metrics=point_metrics_selected,
-                             point_registry=point_fields,
-                             file_fields=file_fields_dst,
-                             file_groups=self.groups_settings, file_metrics=self.metrics_settings,
-                             fig_title=fig_title,
-                             fig_legend=fig_legend, fig_style=fig_style,
-                             fig_label_axis_x=fig_label_x_tag, fig_label_axis_y=fig_label_y_tag,
-                             fig_dpi=150)
+            # iterate over groups
+            for group_tag, group_data in self.groups_data_settings.items():
+
+                # group info start
+                log_stream.info(' ------> Group "' + group_tag + '" ... ')
+
+                # get point data and metrics by group
+                if group_data is not None:
+                    point_data_group = point_data_selected[group_data]
+
+                    point_metrics_group = {}
+                    for group_step in group_data:
+                        point_metrics_group[group_step] = point_metrics_selected[group_step]
+
+                else:
+                    point_data_group = deepcopy(point_data_selected)
+                    point_metrics_group = deepcopy(point_metrics_selected)
+
+                # view point time-series
+                view_time_series(file_path_dst_point,
+                                 point_ts_data=point_data_group, point_metrics=point_metrics_group,
+                                 point_registry=point_fields,
+                                 file_fields=file_fields_dst,
+                                 file_groups_name=group_tag, file_groups_time=self.groups_time_settings,
+                                 file_metrics=self.metrics_settings,
+                                 fig_title=fig_title,
+                                 fig_legend=fig_legend, fig_style=fig_style,
+                                 fig_label_axis_x=fig_label_x_tag, fig_label_axis_y=fig_label_y_tag,
+                                 fig_dpi=150)
+
+                # group info end
+                log_stream.info(' ------> Group "' + group_tag + '" ... DONE')
 
             # point info end
             log_stream.info(' -----> Point "' + point_tag + '" ... DONE')
@@ -340,7 +366,8 @@ class DriverData:
         file_path_dst_raw = self.dset_obj_dst_file[self.path_name_tag]
 
         # get format(s)
-        file_format_src = self.dset_obj_src_data[self.format_tag]
+        file_format_src_data = self.dset_obj_src_data[self.format_tag]
+        file_format_src_met = self.dset_obj_src_met[self.format_tag]
 
         # get flag(s)
         reset_src, reset_dst = self.reset_src, self.reset_dst
@@ -393,14 +420,29 @@ class DriverData:
                 # check source reference file availability
                 if os.path.exists(file_path_src_data_point) and (os.path.exists(file_path_src_met_point)):
 
-                    # check source file format
-                    if file_format_src == 'json':
+                    # check source data file format
+                    if file_format_src_data == 'json':
 
                         # method to get data
                         point_data_raw = read_file_json(file_path_src_data_point)
                         # method to convert data
                         point_data_converted = convert_data_to_vars(
                             point_data_raw, obj_fields=self.dset_obj_src_data['fields'])
+
+                    elif file_format_src_data == 'csv':
+
+                        # method to get data
+                        point_data_raw = read_file_csv(file_path_src_data_point, dframe_index='time')
+                        # method to convert data
+                        point_data_converted = convert_data_to_vars(
+                            point_data_raw, obj_fields=self.dset_obj_src_data['fields'])
+
+                    else:
+                        log_stream.error(' ===> Source data type "' + file_format_src_data + '" is not supported.')
+                        raise NotImplemented('Case not implemented yet')
+
+                    # check source metrics file format
+                    if file_format_src_met == 'csv':
 
                         # method to get metrics
                         point_met_raw = read_file_csv(file_path_src_met_point, dframe_index='metrics')
@@ -409,7 +451,7 @@ class DriverData:
                             point_met_raw, obj_fields=self.dset_obj_src_met['fields'])
 
                     else:
-                        log_stream.error(' ===> Source data type "' + file_format_src + '" is not supported.')
+                        log_stream.error(' ===> Source metrics type "' + file_format_src_met + '" is not supported.')
                         raise NotImplemented('Case not implemented yet')
 
                 else:

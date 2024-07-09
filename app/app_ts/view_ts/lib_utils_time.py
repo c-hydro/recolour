@@ -92,13 +92,24 @@ def set_time(time_ref_args=None, time_ref_file=None, time_format='%Y-%m-%d %H:$M
             log_stream.error(' ===> Variable "time_start" is greater than "time_end". Check your settings file.')
             raise RuntimeError('Time_Range is not correctly defined.')
 
-        time_now = date.today()
-        time_ref = time_now.strftime(time_format)
+        time_range = pd.date_range(start=time_ref_file_start, end=time_ref_file_end, freq=time_frequency)
+        log_stream.info(' -----> Time info defined by "time_start" and "time_end" arguments ... DONE')
+
+        # set time reference
+        log_stream.info(' -----> Time reference "time_reference" defined by ... ')
+        if time_ref_args is not None:
+            time_ref = time_ref_args
+            log_stream.info(' -----> Time reference "time_reference" defined by ... script time arguments')
+        elif time_ref_file is not None:
+            time_ref = time_ref_file
+            log_stream.info(' -----> Time reference "time_reference" defined by ... script file settings')
+        else:
+            time_now = date.today()
+            time_ref = time_now.strftime(time_format)
+            log_stream.info(' -----> Time reference "time_reference" defined by ... now')
+
         time_ref = pd.Timestamp(time_ref)
         time_ref = time_ref.floor(time_rounding)
-        time_range = pd.date_range(start=time_ref_file_start, end=time_ref_file_end, freq=time_frequency)
-
-        log_stream.info(' -----> Time info defined by "time_start" and "time_end" arguments ... DONE')
 
     else:
         log_stream.info(' ----> Set time period ... FAILED')

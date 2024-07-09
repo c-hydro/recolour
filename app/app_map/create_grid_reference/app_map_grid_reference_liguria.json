@@ -17,38 +17,38 @@
     },
     "interpolate":{
       "grid_interpolation_active": true,
-      "grid_interpolation_resolution": 0.0025,
+      "grid_interpolation_resolution": 0.00025,
       "grid_interpolation_method": "near"
     }
   },
   "grid": {
     "source": {
-      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/domain/",
+      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/domain/",
       "file_name": "geo_liguria.tiff"
     },
     "ancillary": {
       "raw": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/domain/",
-        "file_name": "grid_reference_raw_250m_liguria.workspace"
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/domain/",
+        "file_name": "grid_reference_raw_25m_liguria.workspace"
       },
       "def": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/domain/",
-        "file_name": "grid_reference_def_250m_liguria.workspace"
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/domain/",
+        "file_name": "grid_reference_def_25m_liguria.workspace"
       }
     },
     "destination": {
       "__comment__": "format: [netcdf, tiff]",
-      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/domain/",
-      "file_name": "grid_reference_250m_liguria.tiff",
+      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/domain/",
+      "file_name": "grid_reference_25m_liguria.tiff",
       "format": "tiff"
     }
   },
   "log": {
-    "folder_name" : "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/log/grid_reference/",
+    "folder_name" : "/home/fabio/Desktop/Recolour_Workspace/ws/log/grid_reference/",
     "file_name": "app_map_grid_reference_liguria.txt"
   },
   "tmp": {
-    "folder_name" : "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/tmp/grid_reference/",
+    "folder_name" : "/home/fabio/Desktop/Recolour_Workspace/ws/tmp/grid_reference/",
     "file_name": ""
   }
 }

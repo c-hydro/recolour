@@ -20,10 +20,14 @@ from copy import deepcopy
 
 from lib_info_args import logger_name
 from lib_info_args import (geo_coord_name_x, geo_coord_name_y, time_coord_name,
-                           geo_dim_name_x, geo_dim_name_y, time_dim_name)
+                           geo_dim_name_x, geo_dim_name_y, time_dim_name,
+                           geo_var_name_x, geo_var_name_y, time_var_name)
 
 # logging
 log_stream = logging.getLogger(logger_name)
+
+# debugging
+from matplotlib.pylab import plt
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -93,8 +97,87 @@ def convert_dataset_to_data_array(dset_obj):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+# method to add variables to dataset
+def add_vars_to_dataset(
+        dset_obj_data, dset_obj_soil, time_obj=None,
+        dset_vars_mapping=None,
+        coord_name_x=geo_coord_name_x, coord_name_y=geo_coord_name_y, coord_name_time=time_coord_name,
+        dim_name_x=geo_dim_name_x, dim_name_y=geo_dim_name_y, dim_name_time=time_dim_name,
+        var_name_x=geo_var_name_x, var_name_y=geo_var_name_y, var_name_time=time_var_name):
+
+    if dset_vars_mapping is None:
+        dset_vars_mapping = {'VTot': 'SM'}
+
+    if time_obj is not None:
+        dims_order = [dim_name_y, dim_name_x, dim_name_time]
+    else:
+        dims_order = [dim_name_y, dim_name_x]
+
+    for var_name_in in list(dset_obj_data.data_vars):
+        if var_name_in == 'VTot':
+            if dset_vars_mapping is not None:
+                var_name_out = dset_vars_mapping[var_name_in]
+                if dset_obj_soil is not None:
+
+                    var_data_in = dset_obj_data[var_name_in].values
+                    var_geo_x_in, var_geo_y_in = dset_obj_data[var_name_x].values, dset_obj_data[var_name_y].values
+                    var_dims_in = var_data_in.ndim
+
+                    var_time = deepcopy([time_obj])
+
+                    dims_reduction = False
+                    var_dims_tmp = deepcopy(var_dims_in)
+                    if var_dims_in == 3:
+                        var_data_in = np.squeeze(var_data_in)
+                        var_dims_tmp = var_data_in.ndim
+                        if var_dims_tmp == 2:
+                            dims_reduction = True
+
+                    var_data_volume_max = dset_obj_soil.values
+                    var_data_in[var_data_in < 0] = np.nan
+
+                    var_data_out = (var_data_in / var_data_volume_max) * 100
+                    var_data_out[var_data_out > 100] = np.nan
+                    var_data_out[var_data_out < 0] = np.nan
+
+                    ''' debug
+                    plt.figure()
+                    plt.imshow(var_data_in)
+                    plt.colorbar()
+                    plt.figure()
+                    plt.imshow(var_data_volume_max)
+                    plt.colorbar()
+                    plt.figure()
+                    plt.imshow(var_data_out)
+                    plt.colorbar()
+                    plt.show()
+                    '''
+
+                    if dims_reduction:
+                        if var_dims_tmp == 2:
+                            var_data_out = np.expand_dims(var_data_out, axis=2)
+
+                    var_da_out = xr.DataArray(
+                        var_data_out, name=var_name_out,
+                        dims=dims_order,
+                        coords={coord_name_x: (dim_name_x, var_geo_x_in),
+                                coord_name_y: (dim_name_y, var_geo_y_in),
+                                coord_name_time: (dim_name_time, var_time)})
+
+                else:
+
+                    log_stream.error(' ===> Soil volume max dataset is not defined')
+                    raise IOError('Variable soil volume max dataset must be defined to convert the VTot variable')
+
+                dset_obj_data[var_name_out] = var_da_out
+
+    return dset_obj_data
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
 # method to filter dataset
-def filter_dataset(dset_obj, dset_vars_filter=None):
+def filter_dataset(dset_obj, dset_vars_filter=None, dset_vars_mapping=None):
 
     if dset_vars_filter is not None:
 
@@ -115,6 +198,17 @@ def filter_dataset(dset_obj, dset_vars_filter=None):
         dset_map_in = None
         if dset_vars_map is not None:
             dset_map_in = list(dset_vars_map.keys())
+
+        if dset_vars_mapping is not None:
+            for id_map_step, dset_map_step in enumerate(dset_map_in):
+                if dset_map_step in list(dset_vars_mapping.keys()):
+
+                    key_map_upd = dset_vars_mapping[dset_map_step]
+                    value_map_upd = dset_vars_map[dset_map_step]
+                    dset_vars_map.pop(dset_map_step, None)
+                    dset_vars_map[key_map_upd] = value_map_upd
+
+                    dset_map_in[id_map_step] = dset_vars_mapping[dset_map_step]
 
         if dset_map_in is not None:
             dset_select = dset_obj[dset_map_in]

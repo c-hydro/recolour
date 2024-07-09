@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 """
-RECOLOUR APP - TIME-SERIES - ANALYZER  - REprocess paCkage for sOiL mOistUre pRoducts
-__date__ = '20240305'
-__version__ = '1.1.0'
+RECOLOUR APP - TIME-SERIES - METRICS ANALYZER  - REprocess paCkage for sOiL mOistUre pRoducts
+__date__ = '20240705'
+__version__ = '1.2.0'
 __author__ = 'Fabio Delogu (fabio.delogu@cimafoundation.org'
 __library__ = 'recolour'
 
@@ -10,6 +10,7 @@ General command line:
 python3 app_sm_ts_analyze.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
+20240705 (1.2.0) --> Add new features in managing times for data record and nrt time-series; fix bugs in write csv datasets
 20240305 (1.1.0) --> Operational release
 20240108 (1.0.0) --> Beta release
 """
@@ -37,10 +38,10 @@ log_stream = logging.getLogger(logger_name)
 # -------------------------------------------------------------------------------------
 # algorithm information
 project_name = 'recolour'
-alg_name = 'Application for analyzing the time-series'
+alg_name = 'Application for analyzing and computing the time-series metrics'
 alg_type = 'Package'
-alg_version = '1.1.0'
-alg_release = '2024-03-05'
+alg_version = '1.2.0'
+alg_release = '2024-07-05'
 # -------------------------------------------------------------------------------------
 
 

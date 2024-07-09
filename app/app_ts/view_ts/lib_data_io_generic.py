@@ -205,6 +205,7 @@ def convert_data_to_vars(obj_data, obj_fields=None, delimiter_format=','):
     dframe_data.attrs = dframe_attrs
 
     dframe_data = dframe_data.sort_index()
+    dframe_data.index.name = 'time'
 
     return dframe_data
 # ----------------------------------------------------------------------------------------------------------------------

@@ -197,8 +197,16 @@ class DriverData:
 
         if time_start is None and time_end is None:
             if time_period is not None and time_freq is not None:
-                time_range = pd.date_range(end=time_reference, periods=time_period, freq=time_freq)
-                time_start, time_end = time_range[0], time_range[-1]
+                if time_period == 'PERIOD_BY_TIME_SETTINGS':
+                    time_range_by_set = self.time_range
+                    time_start_by_set, time_end_by_set = time_range_by_set[0], time_range_by_set[-1]
+                    if time_start_by_set > time_end_by_set:
+                        time_end_by_set, time_start_by_set = time_range_by_set[0], time_range_by_set[-1]
+                    time_range = pd.date_range(start=time_start_by_set, end=time_end_by_set, freq=time_freq)
+                    time_start, time_end = time_range[0], time_range[-1]
+                else:
+                    time_range = pd.date_range(end=time_reference, periods=time_period, freq=time_freq)
+                    time_start, time_end = time_range[0], time_range[-1]
             else:
                 log_stream.error(' ===> The variables "time_period" and "time_frequency" are both undefined')
                 raise RuntimeError('The variables "time_period" and "time_frequency" must be defined')
@@ -327,11 +335,13 @@ class DriverData:
                         # write data in csv format
                         write_file_csv(
                             file_path_dst_data_point, point_dframe_converted,
+                            dframe_index_format='%Y-%m-%d %H:%M',
                             dframe_sep=',', dframe_decimal='.', dframe_float_format='%.2f',
                             dframe_index=True, dframe_header=True, dframe_index_label='time')
                         # write metrics in csv format
                         write_file_csv(
                             file_path_dst_met_point, point_attrs_converted,
+                            dframe_index_format=None,
                             dframe_sep=',', dframe_decimal='.', dframe_float_format='%.2f',
                             dframe_index=True, dframe_header=True, dframe_index_label='metrics')
 
@@ -354,6 +364,7 @@ class DriverData:
                         # write metrics in csv format
                         write_file_csv(
                             file_path_dst_met_point, point_attrs_converted,
+                            dframe_index_format=None,
                             dframe_sep=',', dframe_decimal='.', dframe_float_format='%.2f',
                             dframe_index=True, dframe_header=True, dframe_index_label='metrics')
 

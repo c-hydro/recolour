@@ -20,7 +20,8 @@ from lib_data_io_pickle import read_obj, write_obj
 from lib_data_io_generic import extract_data_grid2point, join_data_point, combine_data_point_by_time
 from lib_data_io_gzip import unzip_filename
 
-from lib_utils_obj import create_dict_from_list, create_dataset, filter_dataset, convert_dataset_to_data_array
+from lib_utils_obj import (create_dict_from_list, create_dataset, add_vars_to_dataset,
+                           filter_dataset, convert_dataset_to_data_array)
 from lib_utils_system import fill_tags2string, make_folder
 from lib_utils_time import define_time_frequency
 from lib_utils_zip import remove_zip_extension
@@ -85,6 +86,8 @@ class DriverData:
         self.geo_spatial_mask = self.params_dict['geo_spatial_mask']
 
         self.grid_obj = self.static_obj['grid_obj']
+        self.soil_type_obj = self.static_obj['soil_type_obj']
+        self.soil_vmax_obj = self.static_obj['soil_vmax_obj']
         self.point_obj = self.static_obj['point_obj']
 
         # source object(s)
@@ -143,6 +146,7 @@ class DriverData:
         time_obj = self.time_obj
         # get static
         grid_obj_geo, point_obj_geo = self.grid_obj, self.point_obj
+        grib_obj_soil_type, grid_obj_soil_vmax = self.soil_type_obj, self.soil_vmax_obj
 
         # get path(s)
         file_path_src_raw, file_path_anc_raw = self.file_path_src, self.file_path_anc
@@ -220,8 +224,16 @@ class DriverData:
                             grid_obj_dset_raw = create_dataset(
                                 grid_data, grid_geo_x, grid_geo_y,
                                 data_time=time_step, data_attrs=grid_attrs, common_attrs=geo_attrs)
+
+                            # method to convert variable into dataset
+                            grid_obj_dset_raw = add_vars_to_dataset(
+                                grid_obj_dset_raw, grid_obj_soil_vmax,
+                                time_obj=time_step, dset_vars_mapping={'VTot': 'SM'})
+
                             # method to select dataset
-                            grid_obj_dset_def = filter_dataset(grid_obj_dset_raw, dset_vars_filter=self.fields_src)
+                            grid_obj_dset_def = filter_dataset(
+                                dset_obj=grid_obj_dset_raw,
+                                dset_vars_filter=self.fields_src, dset_vars_mapping={'VTot': 'SM'})
                             # method to convert dset to darray collection
                             grid_obj_da_vars = convert_dataset_to_data_array(grid_obj_dset_def)
 
