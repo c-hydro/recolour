@@ -91,7 +91,7 @@ def main():
     # -------------------------------------------------------------------------------------
     # Source datasets
     driver_data_source = DriverData_Source(
-        time_reference=time_reference,
+        time_reference=time_reference, time_range=time_range,
         registry_dict=data_settings['data']['source']['registry'],
         datasets_dict=data_settings['data']['source']['datasets'],
         ancillary_dict=data_settings['data']['ancillary'],
@@ -128,7 +128,6 @@ def main():
     # -------------------------------------------------------------------------------------
 
 # -------------------------------------------------------------------------------------
-
 
 # -------------------------------------------------------------------------------------
 # Method to get script argument(s)

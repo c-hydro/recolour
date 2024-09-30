@@ -1,0 +1,140 @@
+{
+  "algorithm": {
+    "general": {
+      "title": "Viewing tool for soil moisture time-series",
+      "web-site": "",
+      "source": "Python library developed by CIMA Research Foundation",
+      "history": "1.1.0 [20240927]",
+      "project-info": "recolour",
+      "algorithm": "Algorithm developed by CIMA Research Foundation"
+    },
+    "flags": {
+      "reset_static": true,
+      "reset_dynamic_source": true,
+      "reset_dynamic_destination": true
+    },
+    "methods": {},
+    "template": {
+      "datasets": {
+        "point_name": "string_point_name",
+        "point_code": "string_point_code"
+      },
+      "time": {
+        "source_sub_path_time": "%Y/%m/%d",
+        "source_datetime": "%Y%m%d%H%M",
+        "ancillary_sub_path_time": "%Y/%m/%d",
+        "ancillary_datetime": "%Y%m%d%H%M",
+        "destination_sub_path_time": "%Y/%m/%d",
+        "destination_datetime": "%Y%m%d%H%M"
+      }
+    }
+  },
+  "data": {
+    "static" : {
+      "source": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/registry/marche/",
+        "file_name": "sm_ws_registry.csv",
+        "format": "csv",
+        "fields": {
+          "code": "code",
+          "longitude": "longitude", "latitude": "latitude",
+          "name": "name", "valid": "valid", "units": "units", "tag": "tag"
+        }
+      },
+      "destination": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/registry/marche/",
+        "file_name": "sm_ws_registry.workspac"
+      }
+    },
+    "dynamic": {
+      "source": {
+        "data": {
+          "__comment__": "ts format: json, csv",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/analysis/marche/ts_scaling/{source_sub_path_time}/{point_name}/",
+          "file_name": "soil_moisture_nrt_scale_{source_datetime}_{point_name}_ts_5cm_data.csv",
+          "format": "csv",
+          "fields": {
+            "ref": "sm_obs",
+            "other_k1": "sm_hmc",
+            "time": "time"
+          },
+          "value_min": 0,
+          "value_max": 100,
+          "value_no_data": -9999.0
+        },
+        "metrics": {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/analysis/marche/ts_scaling/{source_sub_path_time}/{point_name}/",
+          "file_name": "soil_moisture_nrt_scale_{source_datetime}_{point_name}_ts_5cm_metrics.csv",
+          "format": "csv",
+          "fields": {
+            "ref": "sm_obs",
+            "other_k1": "sm_hmc",
+            "time": "time"
+          }
+        }
+      },
+      "ancillary": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/ancillary/marche/ts_view/{ancillary_sub_path_time}/{point_name}/",
+        "file_name": "soil_moisture_nrt_view_{ancillary_datetime}_{point_name}_ts_5cm.workspace"
+      },
+      "destination": {
+      	"folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/plot/marche/{destination_sub_path_time}/",
+        "file_name": "soil_moisture_nrt_{destination_datetime}_{point_name}_{group_name}_ts_5cm.jpeg",
+        "format": "jpeg",
+        "fields": {
+          "ref": "sm_obs",
+          "other_k1": "sm_hmc",
+          "time": "time"
+        },
+        "title": "Soil Moisture - Time Series - {point_name} from {time_start} to {time_end} - {group_name}",
+        "label_axis_x": "time [hours]",
+        "label_axis_y": "soil moisture [%]",
+        "label_spacing_x": {"type": "automatic", "period": 3},
+        "legend": {
+          "ref": "OBS 5cm",
+          "other_k1": "HMC"
+        },
+        "style": {
+          "time_series": {
+            "ref": {"marker": "o", "color": "black", "linestyle": "--", "lw": 1, "ms": 4, "alpha": 1.0},
+            "other_k1": {"marker": null, "color": "green", "linestyle": "-", "lw": 1, "ms": null, "alpha": 1.0}
+          },
+          "heatmap": {
+            "line_width": 0.3, "line_color": "gray",
+            "cmap": "coolwarm",
+            "cbar_label": "avg soil moisture [%]",
+            "text_color": "black", "text_weight": "bold", "text_size": 6
+          }
+        },
+        "metrics": ["pearson_r", "nash_sutcliffe"],
+        "groups_data": {
+          "hmc": ["ref", "other_k1"]
+        },
+        "groups_time": {
+          "time_sub_period": {"months": 1},
+          "time_sub_name": "{:02d}",
+          "time_start": null,
+          "time_end": null,
+          "time_reference": null
+        }
+      }
+    }
+  },
+  "tmp": {
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/tmp/",
+    "file_name": null
+  },
+  "log": {
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/log/",
+    "file_name": "recolour_viewer_sm_realtime_5cm.txt"
+  },
+  "time": {
+    "__test__": "time_start: 2021-08-01 00:00, time_end: 2023-10-01 00:00",
+    "time_reference": null,
+    "time_period": 0,
+    "time_frequency": "H",
+    "time_rounding": "H",
+    "time_start": null,
+    "time_end": null
+  }
+}

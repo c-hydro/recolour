@@ -1,0 +1,116 @@
+{
+  "algorithm": {
+    "general": {
+      "title": "Analyzing tool for soil moisture time-series",
+      "web-site": "",
+      "source": "Python library developed by CIMA Research Foundation",
+      "history": "1.2.0 [20240705]",
+      "project-info": "recolour",
+      "algorithm": "Algorithm developed by CIMA Research Foundation"
+    },
+    "flags": {
+      "reset_static": true,
+      "reset_dynamic_source": true,
+      "reset_dynamic_destination": true
+    },
+    "methods": {
+      "ref": {
+        "scale": {"mode": false, "type": null},
+        "filter": {"mode": false, "type": null, "window": 3}
+      },
+      "other_k1": {
+        "scale": {"mode": true, "type": "cdf_beta_match"},
+        "filter": {"mode": false, "type": null, "window": 3}
+      }
+    },
+    "template": {
+      "datasets": {
+        "point_name": "string_point_name",
+        "point_code": "string_point_code"
+      },
+      "time": {
+        "source_sub_path": "%Y/%m/%d",
+        "source_datetime": "%Y%m%d%H%M",
+        "ancillary_sub_path_time": "%Y/%m/%d",
+        "ancillary_datetime": "%Y%m%d%H%M",
+        "destination_sub_path_time": "%Y/%m/%d",
+        "destination_datetime": "%Y%m%d%H%M"
+      }
+    }
+  },
+  "data": {
+    "static" : {
+      "source": {
+        "folder_name": "/hydro/data/data_static/registry_sm/",
+        "file_name": "soil_moisture_registry_ws.csv",
+        "format": "csv",
+        "fields": {
+          "code": "code",
+          "longitude": "longitude", "latitude": "latitude",
+          "name": "name", "valid": "valid", "units": "units", "tag": "tag"
+        }
+      },
+      "destination": {
+        "folder_name": "/hydro/analysis/sm/ancillary/geo/",
+        "file_name": "soil_moisture_nrt_scale_registry_10cm.workspace"
+      }
+    },
+    "dynamic": {
+      "source": {
+        "folder_name": "/hydro/analysis/sm/time_series/nrt/dst/sync/{source_sub_path}/{point_name}/",
+        "file_name": "soil_moisture_nrt_sync_{source_datetime}_{point_name}_ts_10cm.csv",
+        "format": "csv",
+        "fields": {
+          "ref": "sm_obs",
+          "other_k1": "sm_hmc",
+          "time": "time"
+        },
+        "value_min": 0,
+        "value_max": 100,
+        "value_no_data": -9999.0,
+        "time_period": 30,
+        "time_frequency": "H",
+        "time_rounding": "H"
+      },
+      "ancillary": {
+        "folder_name": "/hydro/analysis/sm/ancillary/data/nrt/dst/scale/{ancillary_sub_path_time}/{point_name}/",
+        "file_name": "soil_moisture_nrt_scale_{ancillary_datetime}_{point_name}_ts_10cm.workspace"
+      },
+      "destination": {
+        "data": {
+          "folder_name": "/hydro/analysis/sm/time_series/nrt/dst/scale/{destination_sub_path_time}/{point_name}/",
+          "file_name": "soil_moisture_nrt_scale_{destination_datetime}_{point_name}_ts_10cm_data.csv",
+          "format": "csv",
+          "fields": {
+            "ref": "sm_obs",
+            "other_k1": "sm_hmc",
+            "time": "time"
+          },
+          "value_min": 0,
+          "value_max": 100,
+          "value_no_data": -9999.0
+        },
+        "metrics": {
+          "folder_name": "/hydro/analysis/sm/time_series/nrt/dst/scale/{destination_sub_path_time}/{point_name}/",
+          "file_name": "soil_moisture_nrt_scale_{destination_datetime}_{point_name}_ts_10cm_metrics.csv"
+        }
+      }
+    }
+  },
+  "tmp": {
+    "folder_name": "/hydro/tmp/",
+    "file_name": null
+  },
+  "log": {
+    "folder_name": "/hydro/log/analyzer_sm/",
+    "file_name": "recolour_scaler_sm_realtime_10cm.txt"
+  },
+  "time": {
+    "time_reference": null,
+    "time_period": 0,
+    "time_frequency": "H",
+    "time_rounding": "H",
+    "time_start": null,
+    "time_end": null
+  }
+}

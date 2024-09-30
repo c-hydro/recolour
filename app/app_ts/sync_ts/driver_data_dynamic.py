@@ -284,61 +284,68 @@ class DriverData:
             for point_key, point_dframe in dframe_point.items():
 
                 # point step start
-                log_stream.info(' -----> Point "' + point_key + '"  ... ')
+                log_stream.info(' -----> Point "' + point_key + '" ... ')
 
-                # define destination file
-                file_path_dst_step = self.define_file_name(
-                    file_path_dst_raw, time_step=time_run, time_start=time_start_anls, time_end=time_end_anls,
-                    point_name=point_key, point_code=None, point_tag=point_key)
+                # check point dataset availability (or exit if defined by NoneType)
+                if point_dframe is not None:
 
-                # define dataframe format for the output file
-                point_dframe = point_dframe.fillna(self.value_no_data_dst)
-                point_dframe = point_dframe.round(decimals=2)
+                    # define destination file
+                    file_path_dst_step = self.define_file_name(
+                        file_path_dst_raw, time_step=time_run, time_start=time_start_anls, time_end=time_end_anls,
+                        point_name=point_key, point_code=None, point_tag=point_key)
 
-                # check destination file format
-                if self.format_dst == 'csv':
+                    # define dataframe format for the output file
+                    point_dframe = point_dframe.fillna(self.value_no_data_dst)
+                    point_dframe = point_dframe.round(decimals=2)
 
-                    # remap fields name
-                    point_dframe = remap_dframe(point_dframe, self.fields_dst)
+                    # check destination file format
+                    if self.format_dst == 'csv':
 
-                    # create datasets folder
-                    folder_name_dst, file_name_dst = os.path.split(file_path_dst_step)
-                    make_folder(folder_name_dst)
+                        # remap fields name
+                        point_dframe = remap_dframe(point_dframe, self.fields_dst)
 
-                    # write data in csv format
-                    write_file_csv(
-                        file_path_dst_step, point_dframe,
-                        dframe_sep=file_delimiter_dst, dframe_decimal='.',
-                        dframe_no_data=file_value_no_data_dst,
-                        dframe_float_format='%.{:}f'.format(str(file_decimal_precision_dst)),
-                        dframe_index=True, dframe_header=True,
-                        dframe_index_label='time', dframe_index_format=file_date_format_dst)
+                        # create datasets folder
+                        folder_name_dst, file_name_dst = os.path.split(file_path_dst_step)
+                        make_folder(folder_name_dst)
 
-                elif self.format_dst == 'json':
+                        # write data in csv format
+                        write_file_csv(
+                            file_path_dst_step, point_dframe,
+                            dframe_sep=file_delimiter_dst, dframe_decimal='.',
+                            dframe_no_data=file_value_no_data_dst,
+                            dframe_float_format='%.{:}f'.format(str(file_decimal_precision_dst)),
+                            dframe_index=True, dframe_header=True,
+                            dframe_index_label='time', dframe_index_format=file_date_format_dst)
 
-                    # convert static information in dictionary format
-                    point_registry = convert_registry_point_to_dict(point_key, point_obj, tag_registry='tag')
-                    # convert dynamic information to dictionary format
-                    point_datasets = convert_datasets_point_to_dict(point_dframe)
-                    # remap fields name
-                    point_datasets = remap_dict(point_datasets, self.fields_dst)
+                    elif self.format_dst == 'json':
 
-                    # merge point information
-                    point_collections = {**point_registry, **point_datasets}
+                        # convert static information in dictionary format
+                        point_registry = convert_registry_point_to_dict(point_key, point_obj, tag_registry='tag')
+                        # convert dynamic information to dictionary format
+                        point_datasets = convert_datasets_point_to_dict(point_dframe)
+                        # remap fields name
+                        point_datasets = remap_dict(point_datasets, self.fields_dst)
 
-                    # create datasets folder
-                    folder_name_dst, file_name_dst = os.path.split(file_path_dst_step)
-                    make_folder(folder_name_dst)
+                        # merge point information
+                        point_collections = {**point_registry, **point_datasets}
 
-                    # write data in json format
-                    write_file_json(file_path_dst_step, point_collections)
+                        # create datasets folder
+                        folder_name_dst, file_name_dst = os.path.split(file_path_dst_step)
+                        make_folder(folder_name_dst)
+
+                        # write data in json format
+                        write_file_json(file_path_dst_step, point_collections)
+
+                    else:
+                        log_stream.error(' ===> File format is not supported')
+                        raise NotImplemented('Case not implemented yet')
+
+                    # point step end
+                    log_stream.info(' -----> Point "' + point_key + '" ... DONE')
 
                 else:
-                    log_stream.error(' ===> File format is not supported')
-                    raise NotImplemented('Case not implemented yet')
-
-                # point step end
-                log_stream.info(' -----> Point "' + point_key + '"  ... DONE')
+                    # point step end (no data available)
+                    log_stream.info(' -----> Point "' + point_key + '" ... SKIPPED. Datasets are defined by NoneType')
 
             # method start info
             log_stream.info(' ----> Organize destination object(s) ... DONE')
@@ -381,24 +388,33 @@ class DriverData:
                 # point step start
                 log_stream.info(' -----> Point "' + point_key + '"  ... ')
 
-                # method to resample time-series
-                point_dframe_resampled = resample_data_point(
-                    deepcopy(point_dframe_tmp),
-                    resample_frequency=self.par_resample_time_freq, resample_method=self.par_resample_time_method)
+                # check dataframe
+                if point_dframe_tmp is not None:
 
-                # method to fill time-series
-                point_dframe_filled = fill_data_point(
-                    deepcopy(point_dframe_resampled),
-                    fill_method=self.par_fill_time_method,
-                    fill_order=self.par_fill_time_order,
-                    fill_limit=self.par_fill_time_limit,
-                    fill_direction=self.par_fill_time_dir)
+                    # method to resample time-series
+                    point_dframe_resampled = resample_data_point(
+                        deepcopy(point_dframe_tmp),
+                        resample_frequency=self.par_resample_time_freq, resample_method=self.par_resample_time_method)
 
-                # save in a common obj
-                dframe_point_out[point_key] = point_dframe_filled
+                    # method to fill time-series
+                    point_dframe_filled = fill_data_point(
+                        deepcopy(point_dframe_resampled),
+                        fill_method=self.par_fill_time_method,
+                        fill_order=self.par_fill_time_order,
+                        fill_limit=self.par_fill_time_limit,
+                        fill_direction=self.par_fill_time_dir)
 
-                # point step end
-                log_stream.info(' -----> Point "' + point_key + '"  ... DONE')
+                    # save in a common obj
+                    dframe_point_out[point_key] = point_dframe_filled
+
+                    # point step end
+                    log_stream.info(' -----> Point "' + point_key + '"  ... DONE')
+
+                else:
+                    # point step end
+                    log_stream.info(' -----> Point "' + point_key + '"  ... SKIPPED. Datasets are defined by NoneType')
+                    # save in a common obj
+                    dframe_point_out[point_key] = None
 
             # method end info
             log_stream.info(' ----> Analyze object(s) ... DONE.')
@@ -511,45 +527,84 @@ class DriverData:
             # get data end
             log_stream.info(' -----> Get datasets ... DONE')
 
-            # combine data start
-            log_stream.info(' -----> Combine datasets by time ... ')
-            # method to range data point
-            time_frequency_expected, time_start_expected, time_end_expected, time_range_expected = range_data_point(
-                point_obj_collections_raw, time_run_reference=self.time_run,
-                time_start_reference=self.time_start, time_end_reference=self.time_end)
-            # method to combine data point to the expected time range
-            point_obj_collections_combined = combine_data_point_by_time(
-                point_obj_collections_raw, point_obj_registry,
-                time_start_expected=time_start_expected, time_end_expected=time_end_expected,
-                time_frequency_expected=time_frequency_expected, time_reverse=True)
-            # combine data end
-            log_stream.info(' -----> Combine datasets by time ... DONE')
+            # check data start (ref and other_n)
+            log_stream.info(' -----> Check datasets ... ')
 
-            # join data start
-            log_stream.info(' -----> Join datasets ... ')
-            # method to join data point(s)
-            point_obj_collections_joined = join_data_point(
-                time_range_expected, point_obj_collections_combined, point_obj_registry)
-            # join data end
-            log_stream.info(' -----> Join datasets ... ')
+            point_obj_check_ref, point_obj_check_other = False, False
+            if point_obj_collections_raw is not None:
 
-            # dump data start
-            log_stream.info(' -----> Dump datasets ... ')
-            # check data availability
-            if point_obj_collections_joined is not None:
+                if 'ref' in list(point_obj_collections_raw):
+                    point_ref = point_obj_collections_raw['ref']
+                    if point_ref is None:
+                        log_stream.warning(' ===> Datasets reference is defined by NoneType. Procedure will be skipped')
+                    else:
+                        point_obj_check_ref = True
+                else:
+                    log_stream.warning(' ===> Datasets reference is not defined available. Procedure will be skipped')
 
-                # method to dump data
-                folder_name_anc, file_name_anc = os.path.split(file_path_anc_step)
-                make_folder(folder_name_anc)
-                write_obj(file_path_anc_step, point_obj_collections_joined)
+                for key, value in list(point_obj_collections_raw.items()):
+                    if key != 'ref':
+                        point_data_other = point_obj_collections_raw[key]
+                        if point_data_other is not None:
+                            point_obj_check_other = True
+                            break
+                if not point_obj_check_other:
+                    log_stream.warning(' ===> Datasets other_n are not defined available. Procedure will be skipped')
+            else:
+                log_stream.warning(' ===> All datasets are defined by NoneType. Procedure will be skipped')
 
-                # dump data end
-                log_stream.info(' -----> Dump datasets ... DONE')
+            # check data start (ref and other_n)
+            log_stream.info(' -----> Check datasets ... DONE')
+
+            # apply check conditions of ref and other_n datasets
+            if point_obj_check_ref and point_obj_check_other:
+
+                # combine data start
+                log_stream.info(' -----> Combine datasets by time ... ')
+                # method to range data point
+                time_frequency_expected, time_start_expected, time_end_expected, time_range_expected = range_data_point(
+                    point_obj_collections_raw, time_run_reference=self.time_run,
+                    time_start_reference=self.time_start, time_end_reference=self.time_end)
+                # method to combine data point to the expected time range
+                point_obj_collections_combined = combine_data_point_by_time(
+                    point_obj_collections_raw, point_obj_registry,
+                    time_start_expected=time_start_expected, time_end_expected=time_end_expected,
+                    time_frequency_expected=time_frequency_expected, time_reverse=True)
+                # combine data end
+                log_stream.info(' -----> Combine datasets by time ... DONE')
+
+                # join data start
+                log_stream.info(' -----> Join datasets ... ')
+                # method to join data point(s)
+                point_obj_collections_joined = join_data_point(
+                    time_range_expected, point_obj_collections_combined, point_obj_registry)
+                # join data end
+                log_stream.info(' -----> Join datasets ... DONE')
+
+                # dump data start
+                log_stream.info(' -----> Dump datasets ... ')
+                # check data availability
+                if point_obj_collections_joined is not None:
+
+                    # method to dump data
+                    folder_name_anc, file_name_anc = os.path.split(file_path_anc_step)
+                    make_folder(folder_name_anc)
+                    write_obj(file_path_anc_step, point_obj_collections_joined)
+
+                    # dump data end
+                    log_stream.info(' -----> Dump datasets ... DONE')
+
+                else:
+                    # dump data end (joined datasets are not available)
+                    point_obj_collections_joined = None
+                    log_stream.info(' -----> Dump datasets ... SKIPPED. Datasets is not available')
 
             else:
-                # dump data end
+                # dump data end (reference or/and all other_kn datasets are defined by NoneType
                 point_obj_collections_joined = None
-                log_stream.info(' -----> Dump datasets ... SKIPPED. Datasets is not available')
+                log_stream.info(' -----> Dump datasets ... SKIPPED. '
+                                'Reference datasets is defined by NoneType or/and all '
+                                'other_kn datasets are defined by NoneType')
 
         else:
             # read ancillary file

@@ -164,7 +164,7 @@ class DriverData:
             # dump datasets dframe
             write_file_csv(
                 file_path, file_obj_var,
-                dframe_sep=',', dframe_decimal='.', dframe_float_format='%.3f',
+                dframe_sep=';', dframe_decimal='.', dframe_float_format='%.3f',
                 dframe_index=True, dframe_header=True, dframe_index_label='time')
 
         else:

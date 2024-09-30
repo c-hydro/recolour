@@ -14,8 +14,6 @@ import os
 import numpy as np
 import pandas as pd
 
-from copy import deepcopy
-
 from lib_utils_system import fill_tags2string
 from lib_utils_obj import map_vars_dframe, sanitize_string, fill_tags_time
 from lib_info_args import logger_name
@@ -156,14 +154,18 @@ def wrap_datasets_csv(file_path_template,
                                 '" ... SKIPPED. File "' + file_path_defined + '" does not exists.')
 
         # store point data to common workspace
-        point_series = pd.Series(point_values_collections, index=point_time_collections)
+        if point_values_collections is not None:
+            point_series = pd.Series(point_values_collections, index=point_time_collections)
 
-        # sort index
-        if sort_index:
-            if ascending_index:
-                point_series = point_series.sort_index(ascending=True)
-            else:
-                point_series = point_series.sort_index(ascending=False)
+            # sort index
+            if sort_index:
+                if ascending_index:
+                    point_series = point_series.sort_index(ascending=True)
+                else:
+                    point_series = point_series.sort_index(ascending=False)
+        else:
+            log_stream.warning(' ===> Data not available for selected point. Series is defined by NoneType')
+            point_series = None
 
         section_data_collections[registry_tag] = point_series
 

@@ -98,7 +98,8 @@ def set_time(time_ref_args=None, time_ref_file=None, time_format='%Y-%m-%d %H:$M
                 log_stream.warning(' ===> TimePeriod must be greater then 0. TimePeriod is set automatically to 1')
                 time_range = pd.DatetimeIndex([time_ref], freq=time_frequency)
         else:
-            time_range = None
+            log_stream.error(' ===> TimePeriod must be defined and not equal to NoneType')
+            raise RuntimeError('Set TimePeriod value in the settings file')
 
         log_stream.info(' -----> Time info defined by "time_run" argument ... DONE')
 
@@ -159,7 +160,15 @@ def define_time_frequency(time_index, time_freq_default='D'):
     if isinstance(time_index, pd.DatetimeIndex):
         if time_index.shape[0] >= 3:
             time_freq_raw = pd.infer_freq(time_index)
+
+            if time_freq_raw is None:
+                log_stream.warning(' ===> Time freq is not defined by inferred frequency. Define using the '
+                                   'time delta methods')
+                time_delta = time_index[1] - time_index[0]
+                time_freq_raw = time_delta.resolution_string
+
             time_freq_str = re.findall("[a-zA-Z]+", time_freq_raw)[0]
+
         elif time_index.shape[0] == 2:
             time_delta = time_index[1] - time_index[0]
             time_freq_str = time_delta.resolution_string

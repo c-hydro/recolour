@@ -75,6 +75,7 @@ class DriverData:
         # figure tag(s)
         self.title_tag = 'title'
         self.label_axis_x_tag, self.label_axis_y_tag = 'label_axis_x', 'label_axis_y'
+        self.label_spacing_x_tag = 'label_spacing_x'
         self.legend_tag, self.style_tag = 'legend', "style"
         # other tags
         self.metrics_tag, self.group_data_tag, self.group_time_tag = 'metrics', 'groups_data', 'groups_time'
@@ -121,11 +122,11 @@ class DriverData:
             folder_name_dst_fig, file_name_dst_fig, file_path_dst_fig,
             fields_dst_fig, format_dst_fig)
 
-        (title_dst_fig, label_axis_x_dst_fig, label_axis_y_dst_fig,
+        (title_dst_fig, label_axis_x_dst_fig, label_axis_y_dst_fig, label_spacing_x_dst_fig,
          fig_legend, fig_style) = self.get_info_figure(self.destination_dict)
         # zip tmp data
         self.dset_obj_dst_fig = self.zip_info_figure(
-            title_dst_fig, label_axis_x_dst_fig, label_axis_y_dst_fig,
+            title_dst_fig, label_axis_x_dst_fig, label_axis_y_dst_fig, label_spacing_x_dst_fig,
             fig_legend, fig_style)
 
         # get destination other
@@ -188,9 +189,11 @@ class DriverData:
 
     # -------------------------------------------------------------------------------------
     # method to zip info figure
-    def zip_info_figure(self, fig_title, fig_label_axis_x, fig_label_axis_y, fig_legend, fig_style):
+    def zip_info_figure(self, fig_title, fig_label_axis_x, fig_label_axis_y, fig_label_spacing_x,
+                        fig_legend, fig_style):
         info_obj = {self.title_tag: fig_title,
                     self.label_axis_x_tag: fig_label_axis_x, self.label_axis_y_tag: fig_label_axis_y,
+                    self.label_spacing_x_tag: fig_label_spacing_x,
                     self.legend_tag: fig_legend, self.style_tag: fig_style}
         return info_obj
     # -------------------------------------------------------------------------------------
@@ -202,10 +205,11 @@ class DriverData:
         fig_title = check_key_of_obj(self.title_tag, obj_data, value_data_default='title')
         fig_label_axis_x = check_key_of_obj(self.label_axis_x_tag, obj_data, value_data_default='x [-]')
         fig_label_axis_y = check_key_of_obj(self.label_axis_y_tag, obj_data, value_data_default='y [-]')
+        fig_label_spacing_x = check_key_of_obj(self.label_spacing_x_tag, obj_data, value_data_default=None)
         fig_legend = check_key_of_obj(self.legend_tag, obj_data, value_data_default=None)
         fig_style = check_key_of_obj(self.style_tag, obj_data, value_data_default=None)
 
-        return fig_title, fig_label_axis_x, fig_label_axis_y, fig_legend, fig_style
+        return fig_title, fig_label_axis_x, fig_label_axis_y, fig_label_spacing_x, fig_legend, fig_style
 
     # -------------------------------------------------------------------------------------
 
@@ -278,6 +282,10 @@ class DriverData:
         fig_title = self.dset_obj_dst_fig[self.title_tag]
         fig_label_x_tag = self.dset_obj_dst_fig[self.label_axis_x_tag]
         fig_label_y_tag = self.dset_obj_dst_fig[self.label_axis_y_tag]
+        if self.label_spacing_x_tag in list(self.dset_obj_dst_fig.keys()):
+            fig_spacing_x = self.dset_obj_dst_fig[self.label_spacing_x_tag]
+        else:
+            fig_spacing_x = None
 
         # iterate over point(s)
         for point_fields in point_registry.to_dict(orient="records"):
@@ -298,49 +306,63 @@ class DriverData:
                 time_step=time_run, time_start=None, time_end=None,
                 point_name=point_tag, point_code=point_code, point_tag=point_tag)
 
-            # get point data and metrics
-            point_data_raw = point_data_collections[point_tag]['data']
-            point_metrics_raw = point_data_collections[point_tag]['metrics']
-            # select point data and metrics
-            point_data_selected, point_metrics_selected = configure_time_series_info(
-                point_data_raw, point_metrics_raw,
-                fields=self.dset_obj_dst_file['fields'], metrics=self.metrics_settings)
+            # check point tag (availability in the collections object)
+            if point_tag in list(point_data_collections.keys()):
 
-            # iterate over groups
-            for group_tag, group_data in self.groups_data_settings.items():
+                # check point object
+                if point_data_collections[point_tag] is not None:
 
-                # group info start
-                log_stream.info(' ------> Group "' + group_tag + '" ... ')
+                    # get point data and metrics
+                    point_data_raw = point_data_collections[point_tag]['data']
+                    point_metrics_raw = point_data_collections[point_tag]['metrics']
+                    # select point data and metrics
+                    point_data_selected, point_metrics_selected = configure_time_series_info(
+                        point_data_raw, point_metrics_raw,
+                        fields=self.dset_obj_dst_file['fields'], metrics=self.metrics_settings)
 
-                # get point data and metrics by group
-                if group_data is not None:
-                    point_data_group = point_data_selected[group_data]
+                    # iterate over groups
+                    for group_tag, group_data in self.groups_data_settings.items():
 
-                    point_metrics_group = {}
-                    for group_step in group_data:
-                        point_metrics_group[group_step] = point_metrics_selected[group_step]
+                        # group info start
+                        log_stream.info(' ------> Group "' + group_tag + '" ... ')
+
+                        # get point data and metrics by group
+                        if group_data is not None:
+                            point_data_group = point_data_selected[group_data]
+
+                            point_metrics_group = {}
+                            for group_step in group_data:
+                                point_metrics_group[group_step] = point_metrics_selected[group_step]
+
+                        else:
+                            point_data_group = deepcopy(point_data_selected)
+                            point_metrics_group = deepcopy(point_metrics_selected)
+
+                        # view point time-series
+                        view_time_series(file_path_dst_point,
+                                         point_ts_data=point_data_group, point_metrics=point_metrics_group,
+                                         point_registry=point_fields,
+                                         file_fields=file_fields_dst,
+                                         file_groups_name=group_tag, file_groups_time=self.groups_time_settings,
+                                         file_metrics=self.metrics_settings,
+                                         fig_title=fig_title,
+                                         fig_legend=fig_legend, fig_style=fig_style,
+                                         fig_label_axis_x=fig_label_x_tag, fig_label_axis_y=fig_label_y_tag,
+                                         fig_spacing_x=fig_spacing_x,
+                                         fig_dpi=150)
+
+                        # group info end
+                        log_stream.info(' ------> Group "' + group_tag + '" ... DONE')
+
+                    # point info end
+                    log_stream.info(' -----> Point "' + point_tag + '" ... DONE')
 
                 else:
-                    point_data_group = deepcopy(point_data_selected)
-                    point_metrics_group = deepcopy(point_metrics_selected)
-
-                # view point time-series
-                view_time_series(file_path_dst_point,
-                                 point_ts_data=point_data_group, point_metrics=point_metrics_group,
-                                 point_registry=point_fields,
-                                 file_fields=file_fields_dst,
-                                 file_groups_name=group_tag, file_groups_time=self.groups_time_settings,
-                                 file_metrics=self.metrics_settings,
-                                 fig_title=fig_title,
-                                 fig_legend=fig_legend, fig_style=fig_style,
-                                 fig_label_axis_x=fig_label_x_tag, fig_label_axis_y=fig_label_y_tag,
-                                 fig_dpi=150)
-
-                # group info end
-                log_stream.info(' ------> Group "' + group_tag + '" ... DONE')
-
-            # point info end
-            log_stream.info(' -----> Point "' + point_tag + '" ... DONE')
+                    # point info end (datasets is defined by NoneType)
+                    log_stream.info(' -----> Point "' + point_tag + '" ... SKIPPED. Datasets is defined by NoneType')
+            else:
+                # point info end (Point is not available in the collections object)
+                log_stream.info(' -----> Point "' + point_tag + '" ... SKIPPED. Datasets is not available')
 
         # method end info
         log_stream.info(' ----> View time-series object(s) ... DONE.')

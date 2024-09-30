@@ -29,26 +29,33 @@ def combine_data_point_by_time(point_data_collections_src, point_geo,
                                time_start_expected, time_end_expected, point_data_name='values',
                                time_frequency_expected='D', time_reverse=True):
     # create time range expected
-    time_range_expected = pd.date_range(start=time_start_expected, end=time_end_expected, freq=time_frequency_expected)
+    if (time_start_expected is not None) or (time_end_expected is not None):
+        time_range_expected = pd.date_range(start=time_start_expected, end=time_end_expected, freq=time_frequency_expected)
+    else:
+        time_range_expected = None
 
     # iterate over variable(s)
     point_data_collections_dst = {}
     if point_data_collections_src is not None:
         for point_id, (point_label, point_data_raw) in enumerate(point_data_collections_src.items()):
 
-            # create null data
-            null_data = np.zeros(shape=(time_range_expected.shape[0], 1))
-            null_data[:] = np.nan
-            # create null dataframe
-            point_data_expected = pd.DataFrame(data=null_data, index=time_range_expected)
+            if point_data_raw is not None:
+                # create null data
+                null_data = np.zeros(shape=(time_range_expected.shape[0], 1))
+                null_data[:] = np.nan
+                # create null dataframe
+                point_data_expected = pd.DataFrame(data=null_data, index=time_range_expected)
 
-            # update expected data with raw data
-            point_data_expected.update(point_data_raw)
-            # time reverse flag
-            if time_reverse:
-                point_data_expected = point_data_expected.sort_index(ascending=False)
-            # set column name
-            point_data_expected.columns = [point_data_name]
+                # update expected data with raw data
+                point_data_expected.update(point_data_raw)
+                # time reverse flag
+                if time_reverse:
+                    point_data_expected = point_data_expected.sort_index(ascending=False)
+                # set column name
+                point_data_expected.columns = [point_data_name]
+            else:
+                # define not defined data using NoneType
+                point_data_expected = None
 
             # store data in a common obj
             point_data_collections_dst[point_label] = point_data_expected
@@ -88,37 +95,46 @@ def range_data_point(point_collection,
 
     time_start_collection, time_end_collection, frequency_collection, seconds_collections = [], [], [], []
     for point_name, point_data in point_collection.items():
-        time_index_step = point_data.index
-        time_start_step, time_end_step = time_index_step[0], time_index_step[-1]
-        time_frequency_step = define_time_frequency(time_index_step)
 
-        if time_frequency_step[0].isalpha():
-            tmp_frequency_step = ''.join(['1', time_frequency_step])
+        if point_data is not None:
+
+            time_index_step = point_data.index
+            time_start_step, time_end_step = time_index_step[0], time_index_step[-1]
+            time_frequency_step = define_time_frequency(time_index_step)
+
+            if time_frequency_step[0].isalpha():
+                tmp_frequency_step = ''.join(['1', time_frequency_step])
+            else:
+                tmp_frequency_step = deepcopy(time_frequency_step)
+
+            seconds_step = pd.to_timedelta(tmp_frequency_step).total_seconds()
+
+            seconds_collections.append(seconds_step)
+            frequency_collection.append(time_frequency_step)
+
+            if time_start_reference is not None:
+                if time_start_reference < time_start_step:
+                    time_start_step = deepcopy(time_start_reference)
+            if time_end_reference is not None:
+                if time_end_reference > time_end_step:
+                    time_end_step = deepcopy(time_end_reference)
+                if time_run_reference > time_end_step:
+                    time_end_step = deepcopy(time_run_reference)
+
+            time_start_collection.append(time_start_step)
+            time_end_collection.append(time_end_step)
         else:
-            tmp_frequency_step = deepcopy(time_frequency_step)
+            log_stream.warning(' ===> Point data are not available for "' + point_name + '"')
 
-        seconds_step = pd.to_timedelta(tmp_frequency_step).total_seconds()
+    # check seconds object to define times variable(s)
+    if len(seconds_collections) > 0:
+        idx_min = np.argmin(np.array(seconds_collections))
 
-        seconds_collections.append(seconds_step)
-        frequency_collection.append(time_frequency_step)
-
-        if time_start_reference is not None:
-            if time_start_reference < time_start_step:
-                time_start_step = deepcopy(time_start_reference)
-        if time_end_reference is not None:
-            if time_end_reference > time_end_step:
-                time_end_step = deepcopy(time_end_reference)
-            if time_run_reference > time_end_step:
-                time_end_step = deepcopy(time_run_reference)
-
-        time_start_collection.append(time_start_step)
-        time_end_collection.append(time_end_step)
-
-    idx_min = np.argmin(np.array(seconds_collections))
-
-    time_frequency = frequency_collection[idx_min]
-    time_start = pd.DatetimeIndex(time_start_collection).min()
-    time_end = pd.DatetimeIndex(time_end_collection).max()
+        time_frequency = frequency_collection[idx_min]
+        time_start = pd.DatetimeIndex(time_start_collection).min()
+        time_end = pd.DatetimeIndex(time_end_collection).max()
+    else:
+        time_frequency, time_start, time_end = None, None, None
 
     return time_frequency, time_start, time_end
 # ----------------------------------------------------------------------------------------------------------------------

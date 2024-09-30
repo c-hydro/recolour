@@ -36,11 +36,12 @@ class DriverData:
 
     # -------------------------------------------------------------------------------------
     # initialize class
-    def __init__(self, time_reference, registry_dict, datasets_dict, ancillary_dict,
+    def __init__(self, time_reference, time_range, registry_dict, datasets_dict, ancillary_dict,
                  flags_dict=None, template_dict=None, tmp_dict=None):
 
         # set time reference
         self.time_reference = time_reference
+        self.time_range = time_range
         # set registry, ancillary and datasets dictionary
         self.registry_dict = registry_dict
         self.ancillary_dict = ancillary_dict
@@ -96,8 +97,12 @@ class DriverData:
             self.time_frequency = self.datasets_dict[self.time_frequency_tag]
 
         # to use in realtime run
+        if self.time_start is None:
+            time_range = time_range.sort_values(ascending=True)
+            self.time_start = time_range[0].strftime(time_format_algorithm)
         if self.time_end is None:
-            self.time_end = self.time_reference.strftime(time_format_algorithm)
+            time_range = time_range.sort_values(ascending=True)
+            self.time_end = time_range[-1].strftime(time_format_algorithm)
 
         self.file_path_datasets = os.path.join(folder_name_datasets, file_name_datasets)
 
@@ -240,23 +245,33 @@ class DriverData:
             dframe_datasets, dframe_time_start, dframe_time_end = self.get_obj_datasets(
                 file_path_datasets_generic, self.fields_datasets, dframe_registry)
 
-            # organize dframe obj
-            dframe_obj = {
-                'registry': dframe_registry, 'datasets': dframe_datasets,
-                'time_start': dframe_time_start, 'time_end': dframe_time_end
-            }
+            # check time start and end to organize dframe data
+            if (dframe_time_start is not None) and (dframe_time_end is not None):
 
-            # dump dframe obj
-            folder_name_ancillary, file_name_ancillary = os.path.split(file_path_ancillary_def)
-            make_folder(folder_name_ancillary)
-            write_obj(file_path_ancillary_def, dframe_obj)
+                # organize dframe obj
+                dframe_obj = {
+                    'registry': dframe_registry, 'datasets': dframe_datasets,
+                    'time_start': dframe_time_start, 'time_end': dframe_time_end
+                }
+
+                # dump dframe obj
+                folder_name_ancillary, file_name_ancillary = os.path.split(file_path_ancillary_def)
+                make_folder(folder_name_ancillary)
+                write_obj(file_path_ancillary_def, dframe_obj)
+
+                # method end info
+                log_stream.info(' ----> Organize source object(s) ... DONE')
+            else:
+                # set dataframe to NoneType (all data are not available)
+                dframe_obj = None
+                # method end info
+                log_stream.info(' ----> Organize source object(s) ... SKIPPED. All datasets are not available')
 
         else:
             # read source obj
             dframe_obj = read_obj(file_path_ancillary_def)
-
-        # method end info
-        log_stream.info(' ----> Organize source object(s) ... DONE')
+            # method end info
+            log_stream.info(' ----> Organize source object(s) ... DONE. Datasets previously saved')
 
         return dframe_obj
 

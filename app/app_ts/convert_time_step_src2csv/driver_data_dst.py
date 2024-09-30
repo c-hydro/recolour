@@ -406,34 +406,41 @@ class DriverData:
         # get path(s)
         file_path_registry_generic, file_path_datasets_generic = self.file_path_registry, self.file_path_datasets
 
-        # get source registry and datasets
-        dframe_registry, dframe_datasets = data_source_obj['registry'], data_source_obj['datasets']
+        # check source obj
+        if data_source_obj is not None:
 
-        # get source time start and end
-        time_start_src, time_end_src = data_source_obj['time_start'], data_source_obj['time_end']
-        time_start_dst, time_end_dst = self.time_start_datasets, self.time_end_datasets
-        if self.time_range is not None:
-            time_start_user, time_end_user = sorted(self.time_range)[0], sorted(self.time_range)[-1]
+            # get source registry and datasets
+            dframe_registry, dframe_datasets = data_source_obj['registry'], data_source_obj['datasets']
+
+            # get source time start and end
+            time_start_src, time_end_src = data_source_obj['time_start'], data_source_obj['time_end']
+            time_start_dst, time_end_dst = self.time_start_datasets, self.time_end_datasets
+            if self.time_range is not None:
+                time_start_user, time_end_user = sorted(self.time_range)[0], sorted(self.time_range)[-1]
+            else:
+                time_start_user, time_end_user = None, None
+
+            # select time range (based on multiple selection)
+            time_range_selection = self.select_time_boundaries(
+                time_start_user, time_end_user,
+                time_start_src, time_end_src,
+                time_start_dst, time_end_dst,
+                time_rounding=self.time_rounding_datasets, time_frequency=self.time_frequency_datasets)
+
+            # dump registry dframe
+            self.dump_obj_registry(file_path_registry_generic, dframe_registry, self.fields_registry)
+            # dump datasets dframe
+            self.dump_obj_datasets(
+                file_path_datasets_generic, dframe_datasets,
+                file_time=time_range_selection, file_fields=self.fields_datasets,
+                file_var_in=self.var_name_in, file_var_out=self.var_name_out)
+
+            # method end info
+            log_stream.info(' ----> Organize destination object(s) ... DONE')
+
         else:
-            time_start_user, time_end_user = None, None
-
-        # select time range (based on multiple selection)
-        time_range_selection = self.select_time_boundaries(
-            time_start_user, time_end_user,
-            time_start_src, time_end_src,
-            time_start_dst, time_end_dst,
-            time_rounding=self.time_rounding_datasets, time_frequency=self.time_frequency_datasets)
-
-        # dump registry dframe
-        self.dump_obj_registry(file_path_registry_generic, dframe_registry, self.fields_registry)
-        # dump datasets dframe
-        self.dump_obj_datasets(
-            file_path_datasets_generic, dframe_datasets,
-            file_time=time_range_selection, file_fields=self.fields_datasets,
-            file_var_in=self.var_name_in, file_var_out=self.var_name_out)
-
-        # method start info
-        log_stream.info(' ----> Organize destination object(s) ... DONE')
+            # method end info (no data available)
+            log_stream.info(' ----> Organize destination object(s) ... SKIPPED. All datasets are not available')
 
     # -------------------------------------------------------------------------------------
 

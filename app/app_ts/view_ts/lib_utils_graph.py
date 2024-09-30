@@ -16,6 +16,9 @@ import os
 import numpy as np
 import pandas as pd
 
+import seaborn as sns
+
+import matplotlib.dates as mdates
 import matplotlib as mpl
 import matplotlib.pylab as plt
 from matplotlib.font_manager import FontProperties
@@ -120,22 +123,30 @@ def configure_time_series_style(ts_name, obj_configuration=None):
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to configure time-series for heatmaps
-def configure_time_series_heatmap(point_ts, point_legend=None):
+def configure_time_series_heatmap(point_ts, point_columns_excluded=None, point_legend=None):
+
+    if point_columns_excluded is None:
+        point_columns_excluded = ['time']
+
+    if not isinstance(point_columns_excluded, list):
+        point_columns_excluded = [point_columns_excluded]
 
     point_label_list, point_name_list, point_arr = [], [], None
     for point_name, point_data in point_ts.items():
-        if point_arr is None:
-            point_arr = point_data.values
-        else:
-            point_arr = np.vstack([point_arr, point_data.values])
 
-        if point_legend is not None:
-            point_label = configure_time_series_lut(point_name, point_legend)
-        else:
-            point_label = deepcopy(point_name)
+        if not point_name in point_columns_excluded:
+            if point_arr is None:
+                point_arr = point_data.values
+            else:
+                point_arr = np.vstack([point_arr, point_data.values])
 
-        point_label_list.append(point_label)
-        point_name_list.append(point_name)
+            if point_legend is not None:
+                point_label = configure_time_series_lut(point_name, point_legend)
+            else:
+                point_label = deepcopy(point_name)
+
+            point_label_list.append(point_label)
+            point_name_list.append(point_name)
 
     return point_arr, point_name_list, point_label_list
 # ----------------------------------------------------------------------------------------------------------------------
@@ -171,7 +182,26 @@ def view_time_series(file_name, point_ts_data,
                      file_fields=None, file_groups_name=None, file_groups_time=None, file_metrics=None,
                      fig_title='figure', fig_label_axis_x='time', fig_label_axis_y='value',
                      fig_legend=None, fig_style=None,
-                     fig_cbar='coolwarm', fig_cbar_kw={}, fig_dpi=120):
+                     fig_spacing_x=None,
+                     fig_cbar='coolwarm', fig_dpi=120):
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # figure style
+    fig_style_ts, fig_style_hm = None, None
+    if 'time_series' in list(fig_style.keys()):
+        fig_style_ts = fig_style['time_series']
+        for fig_key, fig_value in fig_legend.items():
+            if fig_key in fig_style_ts:
+                fig_style_ts[fig_value] = fig_style_ts[fig_key]
+                fig_style_ts.pop(fig_key)
+
+    if 'heatmap' in list(fig_style.keys()):
+        fig_style_hm = fig_style['heatmap']
+    else:
+        fig_style_hm = {
+            "line_width": 0.2, "line_color": "black", "line_weight": "bold",
+            "cmap": fig_cbar, "cbar_label": "variable [-]"}
+    # ------------------------------------------------------------------------------------------------------------------
 
     # ------------------------------------------------------------------------------------------------------------------
     # figure registry
@@ -229,6 +259,29 @@ def view_time_series(file_name, point_ts_data,
         point_ts_string = time_sub_n.format(time_period_id)
         point_ts_period = point_ts_data.loc[time_start_stamp:time_end_stamp]
 
+        # adjust time period information  (for heatmap)
+        point_ts_period['day'] = pd.to_datetime(point_ts_period.index).date
+        point_ts_period = point_ts_period.rename(columns=fig_legend)
+        pivot_ts_period = point_ts_period.pivot_table(columns='day', aggfunc='mean')
+        pivot_ts_period.index.name = None
+
+        point_ts_period = point_ts_period.drop(['day'], axis=1)
+
+        time_range = pd.date_range(start=time_start_stamp, end=time_end_stamp, freq='12H')
+
+        day_space = 1
+        if fig_spacing_x is not None:
+            if fig_spacing_x['type'] == 'days':
+                if 'period' in fig_spacing_x:
+                    day_space = fig_spacing_x['period']
+        day_list_generic = []
+        for time_step in time_range:
+            if time_step.day not in day_list_generic:
+                day_list_generic.append(time_step.day)
+        day_list_ticks = day_list_generic[0::day_space]
+        if time_range[-1].day != day_list_ticks[-1]:
+            day_list_ticks.append(time_range[-1].day)
+
         # define file name
         if ('time_start' not in file_name) and ('time_end' not in file_name):
             file_name_def = file_name.format(
@@ -250,7 +303,8 @@ def view_time_series(file_name, point_ts_data,
         # configure time-series axes
         [tick_time_period, tick_time_idx, tick_time_labels] = configure_time_series_axes(point_ts_period)
         # configure time-series data for heatmaps
-        point_arr, point_name, point_label = configure_time_series_heatmap(point_ts_period, fig_legend)
+        point_arr, point_name, point_label = configure_time_series_heatmap(
+            point_ts_period, point_columns_excluded=['time', 'date'], point_legend=None)
         # configure time-series data for heatmaps
         metrics_arr, metrics_ts, metrics_type = configure_time_series_metrics(point_metrics)
 
@@ -261,7 +315,7 @@ def view_time_series(file_name, point_ts_data,
         metrics_arr[metrics_arr == -9998] = np.nan
 
         # open figure
-        fig = plt.figure(figsize=(17, 10))
+        fig = plt.figure(figsize=(18, 10))
         fig.autofmt_xdate()
 
         # super title
@@ -277,35 +331,24 @@ def view_time_series(file_name, point_ts_data,
         ax1.set_xticklabels([])
 
         # create heatmap
-        image_norm = mpl.colors.Normalize(vmin=min_ts, vmax=max_ts)
-        image_renderer = ax1.imshow(point_arr, cmap=fig_cbar, norm=image_norm)
+        ax1 = sns.heatmap(data=pivot_ts_period, vmin=min_ts, vmax=max_ts,
+                          annot=True, fmt='.1f', center=None,
+                          linewidths=fig_style_hm['line_width'],
+                          linecolor=fig_style_hm['line_color'],
+                          cbar=True, square=True,
+                          annot_kws={
+                              'size': fig_style_hm['text_size'],
+                              'color': fig_style_hm['text_color'],
+                              "weight": fig_style_hm['text_weight']
+                          },
+                          cbar_kws={
+                              "shrink": 0.5, 'aspect': 10,
+                              'label': fig_style_hm['cbar_label']
+                          },
+                          ax=ax1, cmap=fig_style_hm['cmap'])
 
-        # create colorbar
-        cbar = ax1.figure.colorbar(image_renderer, ax=ax1, shrink=0.6, **fig_cbar_kw)
-        cbar.ax.set_ylabel(fig_label_axis_y, rotation=-90, va="bottom", color='#000000')
-
-        # show all ticks and label them with the respective list entries
-        ax1.set_xticks(np.arange(len(tick_time_labels)))
-        ax1.set_xticklabels(tick_time_labels)
-        ax1.set_yticks(np.arange(len(point_label)))
-        ax1.set_yticklabels(point_label)
-
-        # rotate the tick labels and set their alignment.
-        plt.setp(ax1.get_xticklabels(), rotation=90, fontsize=6, ha="right", rotation_mode="anchor")
-        # create grid
-        ax1.set_xticks(np.arange(point_arr.shape[1] + 1) - .5, minor=True)
-        ax1.set_yticks(np.arange(point_arr.shape[0] + 1) - .5, minor=True)
-        ax1.grid(which="minor", color="w", linestyle='-', linewidth=3)
-        ax1.tick_params(which="minor", bottom=False, left=False)
-
-        # create annotations
-        for i in range(len(point_label)):
-            for j in range(len(tick_time_period)):
-                text = ax1.text(
-                    j, i, point_arr[i, j].round(1),
-                    ha="center", va="center", color="w", fontsize=6, fontweight='bold')
-        # set title
-        # ax1.set_title(fig_title, size=12, color='black', weight='bold')
+        # rotate the tick labels and set their alignment
+        ax1.set_xticklabels(ax1.get_xticklabels(), rotation=90, fontsize=6) # ha="right", rotation_mode="anchor"
         # ------------------------------------------------------------------------------------------------------------------
 
         # ------------------------------------------------------------------------------------------------------------------
@@ -326,9 +369,8 @@ def view_time_series(file_name, point_ts_data,
 
         # add a table in the center
         table = plt.table(cellText=metrics_text,
-                              rowLabels=metrics_rows,
-                              colLabels=metrics_cols,
-                              loc='center')
+                          rowLabels=metrics_rows, colLabels=metrics_cols,
+                          loc='center')
 
         for (row, col), cell in table.get_celld().items():
             if (row == 0) or (col == -1):
@@ -342,23 +384,25 @@ def view_time_series(file_name, point_ts_data,
         # subplot 3 (series)
         ax3 = plt.subplot(3, 9, (10, 27))
 
-        # iterate over serie(s)
+        # iterate over series
         px_obj, label_obj = [], []
         for point_id, (point_key, point_data) in enumerate(point_ts_period.items()):
 
-            # get style and label
-            point_style = configure_time_series_style(point_key, fig_style)
-            point_label = configure_time_series_lut(point_key, fig_legend)
+            if point_key not in ['time', 'day']:
 
-            if point_style is None:
-                point_px = ax3.plot(point_data.index, point_data.values,
-                                    label=point_label, lw=1)
-            else:
-                point_px = ax3.plot(point_data.index, point_data.values,
-                                    label=point_label, **point_style)
+                # get style and label
+                point_style = configure_time_series_style(point_key, fig_style_ts)
+                # point_label = configure_time_series_lut(point_key, fig_legend)
 
-            px_obj.append(point_px[0])
-            label_obj.append(point_label)
+                if point_style is None:
+                    point_px = ax3.plot(point_data.index, point_data.values,
+                                        label=point_key, lw=1)
+                else:
+                    point_px = ax3.plot(point_data.index, point_data.values,
+                                        label=point_key, **point_style)
+
+                px_obj.append(point_px[0])
+                label_obj.append(point_key)
 
         px_obj, label_obj = tuple(px_obj), tuple(label_obj)
 
@@ -368,8 +412,18 @@ def view_time_series(file_name, point_ts_data,
         ax3.set_ylim(min_ts, max_ts)
         ax3.grid(b=True)
 
-        ax3.set_xticks(tick_time_idx)
-        ax3.set_xticklabels(tick_time_labels, rotation=90, fontsize=6)
+        if fig_spacing_x is None:
+            ax3.set_xticks(tick_time_idx)
+            ax3.set_xticklabels(tick_time_labels, rotation=90, fontsize=6)
+        elif fig_spacing_x['type'] == 'days':
+            ax3.xaxis.set_major_locator(mdates.DayLocator(day_list_ticks))
+            ax3.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d %H"))
+            ax3.set_xticklabels(ax3.get_xticklabels(), rotation=0, fontsize=6)
+        elif fig_spacing_x['type'] == 'automatic':
+            pass
+        else:
+            log_stream.error(' ===> Spacing type not correctly defined')
+            raise RuntimeError('Spacing type not correctly defined')
 
         ax4 = ax3.twinx()
         ax4.set_ylabel(fig_label_axis_y, rotation=-90, va="bottom", color='#000000')

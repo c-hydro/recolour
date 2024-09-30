@@ -2,8 +2,8 @@
 """
 RECOLOUR APP - TIME-SERIES - VIEWER  - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20240112'
-__version__ = '1.0.0'
+__date__ = '20240927'
+__version__ = '1.1.0'
 __author__ = 'Fabio Delogu (fabio.delogu@cimafoundation.org'
 __library__ = 'recolour'
 
@@ -11,6 +11,7 @@ General command line:
 python app_sm_ts_view.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
+20240927 (1.1.0) --> Operational release (plot monthly time-series)
 20240112 (1.0.0) --> Beta release
 """
 

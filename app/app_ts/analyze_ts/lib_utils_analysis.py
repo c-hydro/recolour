@@ -111,42 +111,68 @@ def apply_time_series_filter(ts_series_data, ts_filter_type='exp', ts_filter_win
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to scale time series
-def apply_time_series_scaling(ts_ref, ts_other, ts_scale_method='cdf_beta_match'):
+def apply_time_series_scaling(ts_ref, ts_other, ts_scale_method='cdf_beta_match',
+                              ts_min=0.01, ts_max=100):
 
     # organize time-series reference
+    if (ts_min is not None) & (ts_max is not None):
+        ts_ref[(ts_ref < ts_min) | (ts_ref > ts_max)] = np.nan
     ts_ref = ts_ref.dropna()
-    ts_values = ts_ref.values
-    ts_index = ts_ref.index.values
-    ts_n = ts_index.__len__()
-    ts_data = {'ref': ts_values}
-    ts_dframe_reference = pd.DataFrame(data=ts_data, index=ts_index)
+
+    values_ref = ts_ref.values
+    index_ref = ts_ref.index.values
+    n_ref_filtered = index_ref.__len__()
+    data_ref = {'ref': values_ref}
+
+    dframe_reference = pd.DataFrame(data=data_ref, index=index_ref)
+
     # organize time-series other
+    if (ts_min is not None) & (ts_max is not None):
+        ts_other[(ts_other < ts_min) | (ts_other > ts_max)] = np.nan
     ts_other = ts_other.dropna()
-    ts_values = ts_other.values
-    ts_index = ts_other.index.values
-    ts_n = ts_index.__len__()
-    ts_data = {'other': ts_values}
-    ts_dframe_other = pd.DataFrame(data=ts_data, index=ts_index)
+
+    values_other = ts_other.values
+    index_other = ts_other.index.values
+    n_other_filtered = index_other.__len__()
+    data_other = {'other': values_other}
+    dframe_other = pd.DataFrame(data=data_other, index=index_other)
+
+    if n_ref_filtered > n_other_filtered:
+        log_stream.warning(
+            ' ===> Reference time-series (' + str(n_ref_filtered) +
+            ') is greater than other time-series (' + str(n_other_filtered) + ')')
+
+        dframe_other = dframe_other.interpolate(method='polynomial', order=4, limit=10, limit_direction='forward')
+        n_other_interpolated = dframe_other.index.__len__()
+
+    if n_other_filtered > n_ref_filtered:
+        log_stream.warning(
+            ' ===> Reference time-series (' + str(n_ref_filtered) +
+            ') is less than other time-series (' + str(n_other_filtered) + ')')
+
+        dframe_reference = dframe_reference.interpolate(method='polynomial', order=4, limit=10, limit_direction='forward')
+        n_ref_interpolated = dframe_reference.index.__len__()
 
     # check other time-series
-    if not ts_dframe_other.empty:
+    if not dframe_other.empty:
 
         # join time-series common
-        if ts_dframe_reference.__len__() > ts_dframe_other.__len__():
-            ts_dframe_common = ts_dframe_other.join(ts_dframe_reference)
-        elif ts_dframe_reference.__len__() < ts_dframe_other.__len__():
-            ts_dframe_common = ts_dframe_reference.join(ts_dframe_other)
+        if dframe_reference.__len__() > dframe_other.__len__():
+            dframe_common = dframe_other.join(dframe_reference)
+        elif dframe_reference.__len__() < dframe_other.__len__():
+            dframe_common = dframe_reference.join(dframe_other)
         else:
-            ts_dframe_common = ts_dframe_reference.join(ts_dframe_other)
+            dframe_common = dframe_reference.join(dframe_other)
+
         # get info common
-        ts_dframe_common = ts_dframe_common.dropna()
-        ts_fields_common = list(ts_dframe_common.columns)
-        ts_idx_common = ts_fields_common.index('ref')
+        dframe_common = dframe_common.dropna()
+        fields_common = list(dframe_common.columns)
+        idx_common = fields_common.index('ref')
 
         # scale datasets using a method defined in pytesmo library
-        ts_dframe_scaled = scaling.scale(ts_dframe_common, method=ts_scale_method, reference_index=ts_idx_common)
+        dframe_scaled = scaling.scale(dframe_common, method=ts_scale_method, reference_index=idx_common)
         # return ts scaled
-        ts_scaled = ts_dframe_scaled['other']
+        ts_scaled = dframe_scaled['other']
 
     else:
         # return ts defined by NoneType

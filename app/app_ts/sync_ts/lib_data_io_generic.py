@@ -255,7 +255,7 @@ def fill_data_point(dframe_data_in,
 # ----------------------------------------------------------------------------------------------------------------------
 # method to resample data point
 def resample_data_point(dframe_data_in,
-                        resample_frequency=None, resample_method=None):
+                        resample_frequency=None, resample_method=None, resample_direction='left'):
 
     if (resample_frequency is not None) and (resample_method is not None):
 
@@ -264,23 +264,111 @@ def resample_data_point(dframe_data_in,
 
         if resample_method == 'average':
 
-            dframe_data_out = pd.DataFrame(index=var_time_list)
-            dframe_data_out = dframe_data_out.resample(resample_frequency).mean()
-            dframe_data_out = dframe_data_out.sort_index()
+            data_frequency = dframe_data_in.index.freq.freqstr
 
-            for var_name_step in var_name_list:
+            if not data_frequency[0].isnumeric():
+                data_frequency = '1' + data_frequency
+            if not resample_frequency[0].isnumeric():
+                resample_frequency = '1' + resample_frequency
 
-                series_data_in = dframe_data_in[var_name_step]
-                series_data_out = series_data_in.resample(resample_frequency).mean()
+            seconds_data_frequency = int(pd.to_timedelta(data_frequency).total_seconds())
+            seconds_resample_frequency = int(pd.to_timedelta(resample_frequency).total_seconds())
+            str_data_frequency, str_resample_frequency = data_frequency[1:], resample_frequency[1:]
 
-                dframe_data_out = dframe_data_out.join(series_data_out)
+            # check resample and data frequency
+            if seconds_data_frequency < seconds_resample_frequency:
+                var_time_start, var_time_end = var_time_list[0], var_time_list[-1]
+
+                flag_inverse_time = False
+                if var_time_start > var_time_end:
+                    var_time_list = sorted(var_time_list)
+                    var_time_start, var_time_end = var_time_list[0], var_time_list[-1]
+                    flag_inverse_time = True
+
+                if resample_direction == 'right':
+                    var_time_start = var_time_start - pd.Timedelta(1, str_data_frequency)
+                elif resample_direction == 'left':
+                    var_time_end = var_time_end + pd.Timedelta(1, str_data_frequency)
+                else:
+                    log_stream.error(' ===> Resample direction "' + resample_direction + '" is not allowed')
+                    raise RuntimeError('Check the resample direction and choose "left" or "right"')
+
+                var_time_list = pd.date_range(start=var_time_start, end=var_time_end, freq=str_resample_frequency)
+
+                if flag_inverse_time:
+                    var_time_list = var_time_list[::-1]
+
+                if resample_direction == 'right':
+                    dframe_data_out = pd.DataFrame(index=var_time_list[1:])
+                    dframe_data_out = dframe_data_out.sort_index()
+                    var_time_period = var_time_list
+                elif resample_direction == 'left':
+                    dframe_data_out = pd.DataFrame(index=var_time_list[:-1])
+                    dframe_data_out = dframe_data_out.sort_index()
+                    var_time_period = var_time_list
+                else:
+                    log_stream.error(' ===> Resample direction "' + resample_direction + '" is not allowed')
+                    raise RuntimeError('Check the resample direction and choose "left" or "right"')
+
+                for var_name_step in var_name_list:
+
+                    series_data_in = dframe_data_in[var_name_step]
+
+                    time_list, values_list = [], []
+                    for id_period, time_period in enumerate(var_time_period):
+
+                        time_check = False
+                        if resample_direction == 'right':
+                            time_check = id_period < len(var_time_period) - 1
+                        elif resample_direction == 'left':
+                            time_check = id_period < len(var_time_period) - 1
+                        else:
+                            log_stream.error(' ===> Resample direction "' + resample_direction + '" is not allowed')
+                            raise RuntimeError('Check the resample direction and choose "left" or "right"')
+
+                        # check time conditions (to avoid not defined index)
+                        if time_check:
+
+                            time_start, time_end = var_time_period[id_period], var_time_period[id_period + 1]
+                            if resample_direction == 'right':
+                                time_start = time_start + pd.Timedelta(1, str_data_frequency)
+                            elif resample_direction == 'left':
+                                time_end = time_end - pd.Timedelta(1, str_data_frequency)
+                            else:
+                                log_stream.error(' ===> Resample direction "' + resample_direction + '" is not allowed')
+                                raise RuntimeError('Check the resample direction and choose "left" or "right"')
+
+                            series_data_tmp = series_data_in[time_start:time_end]
+                            value_tmp = series_data_tmp.mean()
+
+                            values_list.append(value_tmp)
+                            if resample_direction == 'left':
+                                time_list.append(time_start)
+                            elif resample_direction == 'right':
+                                time_list.append(time_end)
+                            else:
+                                log_stream.error(' ===> Resample direction "' + resample_direction + '" is not allowed')
+                                raise RuntimeError('Check the resample direction and choose "left" or "right"')
+
+                    # create series out
+                    series_data_out = pd.Series(data=values_list, index=time_list, name=var_name_step)
+
+                    # join dframe out
+                    dframe_data_out = dframe_data_out.join(series_data_out)
+
+            elif seconds_data_frequency == seconds_resample_frequency:
+                dframe_data_out = deepcopy(dframe_data_in)
+            else:
+                log_stream.error(' ===> Resample frequency operation is not supported')
+                raise NotImplementedError('Case not implemented yet. Only "average" method is available')
 
         else:
             log_stream.error(' ===> Resample time operation "' + resample_method + '" is not supported')
             raise NotImplementedError('Case not implemented yet. Only "average" method is available')
 
     elif (resample_frequency is not None) and (resample_method is None):
-        dframe_data_out = dframe_data_in.resample(resample_frequency)
+        log_stream.error(' ===> Resample frequency and method are not defined')
+        raise NotImplemented('Case not implemented yet.')
     else:
         dframe_data_out = deepcopy(dframe_data_in)
 
@@ -326,7 +414,7 @@ def join_data_point(time_range, point_collections, point_registry,
         log_stream.info(' ------> Compose time-series for point "' + point_reference + '" ... ')
 
         # iterate over datasets to join to common obj
-        dset_obj_collections = {}
+        dset_obj_collections, dset_obj_list = {}, []
         for point_dset, point_dframe in point_collections.items():
 
             # info datasets start
@@ -343,6 +431,7 @@ def join_data_point(time_range, point_collections, point_registry,
 
                 # check datasets key
                 if point_key is not None:
+
                     if point_key in list(point_dframe.columns):
 
                         # get data
@@ -363,23 +452,38 @@ def join_data_point(time_range, point_collections, point_registry,
                         point_values_common = np.zeros(shape=time_index_tmpl.shape[0])
                         point_values_common[:] = np.nan
                 else:
-                    log_stream.error(' ===> Datasets key is defined by NoneType')
-                    raise RuntimeError('Key must be defined to correctly run the algorithm')
+                    log_stream.warning(' ===> Datasets key for "' + point_tag +
+                                       '" is not defined or defined by NoneType')
+                    point_values_common = np.zeros(shape=time_index_tmpl.shape[0])
+                    point_values_common[:] = np.nan
+
             else:
                 log_stream.warning(' ===> Datasets are not available in the source reference object')
                 point_values_common = np.zeros(shape=time_index_tmpl.shape[0])
                 point_values_common[:] = np.nan
 
             # store datasets in a common object
-            dset_obj_collections[point_dset] = point_values_common
-
-            # info datasets end
-            log_stream.info(' -------> Datasets "' + point_dset + '" ... DONE')
+            if point_values_common is not None:
+                # store data in the collections
+                dset_obj_collections[point_dset] = point_values_common
+                # info datasets end
+                log_stream.info(' -------> Datasets "' + point_dset + '" ... DONE')
+            else:
+                # info datasets end
+                log_stream.info(' -------> Datasets "' + point_dset +
+                                '" ... SKIPPED. Common datasets is not defined; all datasets are not defined in the selected time-series')
 
         # convert dict to dframe object
         dframe_obj = pd.DataFrame(data=dset_obj_collections, index=time_index_tmpl)
         dframe_obj.index.name = 'time'
         dframe_obj = dframe_obj.sort_index()
+
+        # iterate over columns to check if all elements are null or not
+        for column_name in dframe_obj.columns:
+            column_null = dframe_obj[column_name].isnull().all()
+            if column_null:
+                dframe_obj = None
+                break
 
         # store dataframe to common obj
         point_obj_collections[point_reference] = dframe_obj

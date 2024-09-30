@@ -2,6 +2,23 @@
 Changelog
 =========
 
+Version 1.8.0 [2024-09-30]
+**************************
+- PROJECT: operational framework time-series
+	- APPS -- convert_grid_hmc2csv
+		- fix bugs related to the dumping of time-series (delimiter and formats for matching to the other ts methods)
+	- APPS -- convert_time_step_src2csv
+		- fix bugs related to time_start/time_end in realtime applications
+	- APPS -- sync_ts
+		- fix bugs related to unavailable point or datasets
+		- extend method to resample time-series with different frequency
+	- APPS -- analyze_ts
+		- fix bugs related to unavailable point or datasets
+		- add options to rescale methods to make the analysis only in the variable range
+	- APPS -- view_ts
+		- fix bugs related to unavailable point or datasets
+		- extend heatmaps features using the seaborn package
+
 Version 1.7.0 [2024-07-09]
 **************************
 

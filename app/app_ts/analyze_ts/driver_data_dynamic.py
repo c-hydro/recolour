@@ -407,8 +407,8 @@ class DriverData:
         point_analysis_collections = {}
         for point_fields in point_registry.to_dict(orient="records"):
 
-            # debug
-            #point_fields = point_registry.to_dict(orient="records")[8]
+            # debug 14: monte_san_vicino -- 13: monte_carpegna
+            #point_fields = point_registry.to_dict(orient="records")[13]
 
             # get point information
             point_tag, point_name, point_code = point_fields['tag'], point_fields['name'], point_fields['code']
@@ -420,120 +420,144 @@ class DriverData:
             # get point data
             point_data_src = point_data_collections[point_tag]
 
-            # get ts reference
-            ts_ref = point_data_src[ts_name_ref]
-            # check if ts reference is not None
-            if ts_ref is not None:
+            # check data source
+            if point_data_src is not None:
 
-                # remove nan(s)
-                ts_ref = ts_ref.dropna()
-                time_ref = ts_ref.index
+                # get ts reference
+                ts_ref = point_data_src[ts_name_ref]
 
-                # check if ts reference is not empty
-                if not ts_ref.empty:
+                # check if ts reference is not None
+                if ts_ref is not None:
 
-                    # iterate over time-series other
-                    ts_collections = {ts_name_ref: ts_ref}
-                    for ts_name_step in ts_name_other:
+                    # remove nan(s)
+                    ts_ref = ts_ref.dropna()
+                    time_ref = ts_ref.index
 
-                        # get point methods
-                        ts_methods = point_methods[ts_name_step]
-                        ts_other_src = point_data_src[ts_name_step]
+                    # check if ts reference is not empty
+                    if not ts_ref.empty:
 
-                        # check if ts other is not None
-                        if ts_other_src is not None:
+                        # iterate over time-series other
+                        ts_collections = {ts_name_ref: ts_ref}
+                        for ts_name_step in ts_name_other:
 
-                            # apply filter to time-series
-                            if 'filter' in list(ts_methods.keys()):
-                                # get parameters
-                                filter_method_mode = ts_methods['filter']['mode']
-                                filter_method_type = ts_methods['filter']['type']
-                                filter_method_window = ts_methods['filter']['window']
-                                # active method
-                                if filter_method_mode:
-                                    # method to filter time-series
-                                    if filter_method_type is not None:
-                                        ts_other_tmp = apply_time_series_filter(
-                                            ts_other_src,
-                                            ts_filter_type=filter_method_type, ts_filter_window=filter_method_window)
+                            # get point methods
+                            ts_methods = point_methods[ts_name_step]
+                            ts_other_src = point_data_src[ts_name_step]
+
+                            # check if ts other is not None
+                            if ts_other_src is not None:
+
+                                # apply filter to time-series
+                                if 'filter' in list(ts_methods.keys()):
+                                    # get parameters
+                                    filter_method_mode = ts_methods['filter']['mode']
+                                    filter_method_type = ts_methods['filter']['type']
+                                    filter_method_window = ts_methods['filter']['window']
+                                    # active method
+                                    if filter_method_mode:
+                                        # method to filter time-series
+                                        if filter_method_type is not None:
+                                            ts_other_tmp = apply_time_series_filter(
+                                                ts_other_src,
+                                                ts_filter_type=filter_method_type, ts_filter_window=filter_method_window)
+                                        else:
+                                            ts_other_tmp = deepcopy(ts_other_src)
                                     else:
                                         ts_other_tmp = deepcopy(ts_other_src)
                                 else:
                                     ts_other_tmp = deepcopy(ts_other_src)
-                            else:
-                                ts_other_tmp = deepcopy(ts_other_src)
 
-                            # apply scaling to time-series
-                            if 'scale' in list(ts_methods.keys()):
-                                # get parameters
-                                scale_method_mode = ts_methods['scale']['mode']
-                                scale_method_type = ts_methods['scale']['type']
-                                # active method
-                                if scale_method_mode:
+                                # apply scaling to time-series
+                                if 'scale' in list(ts_methods.keys()):
+                                    # get parameters
+                                    scale_method_mode = ts_methods['scale']['mode']
+                                    scale_method_type = ts_methods['scale']['type']
 
-                                    # method to scale time-series
-                                    if scale_method_type is not None:
-                                        ts_other_scaled = apply_time_series_scaling(
-                                            ts_ref, ts_other_tmp,
-                                            ts_scale_method='cdf_beta_match')
+                                    scale_value_min = None
+                                    if 'value_min' in list(ts_methods['scale'].keys()):
+                                        scale_value_min = ts_methods['scale']['value_min']
+                                    scale_value_max = None
+                                    if 'value_max' in list(ts_methods['scale'].keys()):
+                                        scale_value_max = ts_methods['scale']['value_max']
+
+                                    # active method
+                                    if scale_method_mode:
+
+                                        # method to scale time-series
+                                        if scale_method_type is not None:
+                                            ts_other_scaled = apply_time_series_scaling(
+                                                ts_ref, ts_other_tmp,
+                                                ts_scale_method=scale_method_type,
+                                                ts_min=scale_value_min, ts_max=scale_value_max)
+                                        else:
+                                            ts_other_scaled = None
                                     else:
                                         ts_other_scaled = None
                                 else:
-                                    ts_other_scaled = None
-                            else:
-                                ts_other_scaled = deepcopy(ts_other_src)
+                                    ts_other_scaled = deepcopy(ts_other_src)
 
-                            # compute time-series metrics
-                            if ts_other_scaled is not None:
-                                ts_metrics = apply_time_series_metrics(ts_ref, ts_other_scaled)
-                                ts_other_scaled.attrs = ts_metrics
-                            else:
-                                log_stream.warning(' ===> Time series scaling for "' + ts_name_step +
-                                                   '" is not applied due to NoneType object')
+                                # compute time-series metrics
+                                if ts_other_scaled is not None:
+                                    ts_metrics = apply_time_series_metrics(ts_ref, ts_other_scaled)
+                                    ts_other_scaled.attrs = ts_metrics
+                                else:
+                                    log_stream.warning(' ===> Time series scaling for "' + ts_name_step +
+                                                       '" is not applied due to NoneType object')
 
-                            # collect time-series objects
-                            if ts_other_scaled is not None:
-                                ts_collections[ts_name_step] = ts_other_scaled
+                                # collect time-series objects
+                                if ts_other_scaled is not None:
+                                    ts_collections[ts_name_step] = ts_other_scaled
+                                else:
+
+                                    # create null time-series
+                                    data_null = [np.nan] * time_ref.__len__()
+                                    obj_null = {'other': data_null}
+                                    ts_null = pd.Series(data=obj_null, index=time_ref)
+                                    ts_null.name = 'other'
+
+                                    ts_collections[ts_name_step] = ts_null
+                                    log_stream.warning(' ===> Time series selected collection for "' + ts_name_step +
+                                                       '" is defined by NoneType object. Initialize with null series')
                             else:
 
                                 # create null time-series
                                 data_null = [np.nan] * time_ref.__len__()
                                 obj_null = {'other': data_null}
                                 ts_null = pd.Series(data=obj_null, index=time_ref)
-                                ts_null.name = 'other'
 
+                                # set time-series as None
                                 ts_collections[ts_name_step] = ts_null
-                                log_stream.warning(' ===> Time series selected collection for "' + ts_name_step +
+
+                                log_stream.warning(' ===> Time series raw collection for "' + ts_name_step +
                                                    '" is defined by NoneType object. Initialize with null series')
-                        else:
 
-                            # create null time-series
-                            data_null = [np.nan] * time_ref.__len__()
-                            obj_null = {'other': data_null}
-                            ts_null = pd.Series(data=obj_null, index=time_ref)
+                        # join time-series
+                        ts_dframe = join_time_series(
+                            ts_collections, ts_name_ref=ts_name_ref,
+                            time_start=self.time_obj_src['time_start'], time_end=self.time_obj_src['time_end'],
+                            time_freq=self.time_obj_src['time_frequency'])
+                        # store time-series
+                        point_analysis_collections[point_tag] = ts_dframe
 
-                            # set time-series as None
-                            ts_collections[ts_name_step] = ts_null
+                    else:
+                        # store time-series as None (if ref datasets is empty)
+                        log_stream.warning(' ===> Time series reference for point "' + point_tag +
+                                           '" is empty. Time series collections are not analyzed')
+                        point_analysis_collections[point_tag] = None
 
-                            log_stream.warning(' ===> Time series raw collection for "' + ts_name_step +
-                                               '" is defined by NoneType object. Initialize with null series')
-
-                    # join time-series
-                    ts_dframe = join_time_series(
-                        ts_collections, ts_name_ref=ts_name_ref,
-                        time_start=self.time_obj_src['time_start'], time_end=self.time_obj_src['time_end'],
-                        time_freq=self.time_obj_src['time_frequency'])
-                    # store time-series
-                    point_analysis_collections[point_tag] = ts_dframe
+                    # point info end
+                    log_stream.info(' -----> Point "' + point_tag + '" ... DONE')
 
                 else:
-                    # store time-series as None (if ref datasets is empty)
-                    log_stream.warning(' ===> Time series reference for point "' + point_tag +
-                                       '" is empty. Time series collections are not analyzed')
+                    # point info end
+                    log_stream.info(' -----> Point "' + point_tag +
+                                    '" ... SKIPPED. Point time-series reference is defined by NoneType')
                     point_analysis_collections[point_tag] = None
-
-            # point info start
-            log_stream.info(' -----> Point "' + point_tag + '" ... DONE')
+            else:
+                # point info end
+                log_stream.info(' -----> Point "' + point_tag +
+                                '" ... SKIPPED. Point object is defined by NoneType')
+                point_analysis_collections[point_tag] = None
 
         # method end info
         log_stream.info(' ----> Analyze time-series object(s) ... DONE.')

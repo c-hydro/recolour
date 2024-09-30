@@ -1,0 +1,143 @@
+  {
+  "algorithm": {
+    "general": {
+      "title": "Running tool for soil moisture time-series analysis",
+      "web-site": "",
+      "source": "Python library developed by CIMA Research Foundation",
+      "history": "1.0.0 [20231016]",
+      "project-info": "recolour",
+      "algorithm": "Algorithm developed by CIMA Research Foundation"
+    },
+    "flags": {
+      "reset_static": true,
+      "reset_dynamic_source": true,
+      "reset_dynamic_destination": true
+    },
+    "parameter": {
+      "resample_time_frequency": "H",
+      "resample_time_method": "average",
+      "resample_time_direction": "forward",
+      "fill_time_method": "polynomial",
+      "fill_time_order": 3,
+      "fill_time_limit": 3,
+      "fill_time_direction": "forward"
+    },
+    "template": {
+      "datasets": {
+        "point_name": "string_point_name",
+        "point_code": "string_point_code"
+      },
+      "time": {
+        "source_sub_path_ref": "%Y/%m/%d",
+        "source_datetime_ref": "%Y%m%d%H%M",
+        "source_datetime_ref_start": "%Y%m%d%H%M",
+        "source_datetime_ref_end": "%Y%m%d%H%M",
+        "source_sub_path_other_k1": "%Y/%m/%d",
+        "source_datetime_other_k1": "%Y%m%d%H%M",
+        "source_datetime_other_k1_start": "%Y%m%d%H%M",
+        "source_datetime_other_k1_end": "%Y%m%d%H%M",
+        "ancillary_sub_path_time": "%Y/%m/%d",
+        "ancillary_datetime": "%Y%m%d%H%M",
+        "ancillary_datetime_start": "%Y%m%d%H%M",
+        "ancillary_datetime_end": "%Y%m%d%H%M",
+        "destination_sub_path_time": "%Y/%m/%d",
+        "destination_datetime": "%Y%m%d%H%M",
+        "destination_datetime_start": "%Y%m%d%H%M",
+        "destination_datetime_end": "%Y%m%d%H%M"
+      }
+    }
+  },
+  "data": {
+    "static" : {
+      "source": {
+        "folder_name": "/hydro/data/data_static/registry_sm/",
+        "file_name": "soil_moisture_registry_ws.csv",
+        "format": "csv",
+        "fields": {
+          "code": "code",
+          "longitude": "longitude", "latitude": "latitude",
+          "name": "name", "valid": "valid", "units": "units", "tag": "tag"
+        }
+      },
+      "destination": {
+        "folder_name": "/hydro/analysis/sm/ancillary/data_static/",
+        "file_name": "soil_moisture_obs_registry_10cm.workspace"
+      }
+    },
+    "dynamic": {
+      "source": {
+        "ref": {
+          "folder_name": "/hydro/analysis/sm/time_series/obs/{source_sub_path_ref}",
+          "file_name": "soil_moisture_obs_{source_datetime_ref}_ts_10cm.csv",
+          "format": "csv",
+          "fields": {},
+          "value_min": 0,
+          "value_max": 100,
+          "scale_factor": 1,
+          "delimiter": ";",
+          "value_no_data": null,
+          "time_period": null,
+          "time_reference": null,
+          "time_frequency": "H",
+          "time_rounding": "H",
+          "time_start": null,
+          "time_end": null
+        },
+        "other_k1": {
+          "folder_name": "/hydro/analysis/sm/time_series/hmc/{source_sub_path_other_k1}",
+          "file_name": "soil_moisture_hmc_{source_datetime_other_k1}_ts.csv",
+          "format": "csv",
+          "fields": {},
+          "value_min": 0,
+          "value_max": 100,
+          "value_no_data": null,
+          "scale_factor": 100,
+          "delimiter": ";",
+          "time_period": null,
+          "time_reference": null,
+          "time_frequency": "H",
+          "time_rounding": "H",
+          "time_start": null,
+          "time_end": null
+        }
+      },
+      "ancillary": {
+        "folder_name": "/hydro/analysis/sm/ancillary/data_dynamic/{ancillary_sub_path_time}",
+        "file_name": "soil_moisture_layers_{ancillary_datetime}_ts_10cm.workspace"
+      },
+      "destination": {
+        "folder_name": "/hydro/analysis/sm/time_series/layers/{destination_sub_path_time}",
+        "file_name": "soil_moisture_layers_{destination_datetime}_{point_name}_ts_10cm.csv",
+        "format": "csv",
+        "fields": {
+          "ref": "sm_obs",
+          "other_k1": "sm_hmc",
+          "time": "time"
+        },
+        "value_min": 0,
+        "value_max": 100,
+        "value_no_data": -9999.0,
+        "delimiter": ";",
+        "date_format": "%Y-%m-%d %H:00",
+        "decimal_precision": 2
+
+      }
+    }
+  },
+  "tmp": {
+    "folder_name": "/hydro/tmp/",
+    "file_name": null
+  },
+  "log": {
+    "folder_name": "/hydro/log/analyzer_sm/",
+    "file_name": "recolour_synchronizer_sm_realtime_10cm.txt"
+  },
+  "time": {
+    "time_reference": null,
+    "time_period": 0,
+    "time_frequency": "H",
+    "time_rounding": "H",
+    "time_start": null,
+    "time_end": null
+  }
+}
