@@ -153,6 +153,8 @@ class DriverData:
             elif self.nans_dst == 'drop':
                 # drop nan(s)
                 file_obj_var = file_obj_var.dropna(axis='rows', how='all')
+                # fill nan(s) with no_data (some rows could be defined by nans and finite values)
+                file_obj_var = file_obj_var.fillna(self.no_data_dst)
             else:
                 log_stream.error(' ===> Nans destination type "' + self.nans_dst + '" is not allowed')
                 raise NotImplemented('Case not implemented yet')

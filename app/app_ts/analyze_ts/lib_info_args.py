@@ -22,8 +22,8 @@ time_format_algorithm = '%Y-%m-%d %H:%M'
 time_machine = pd.Timestamp.now
 
 # logging information
-logger_name = 'sm_ts_view_logger'
-logger_file = 'sm_ts_view.txt'
+logger_name = 'sm_ts_analyze_logger'
+logger_file = 'sm_ts_analyze.txt'
 logger_handle = 'file'  # 'file' or 'stream'
 logger_format = '%(asctime)s %(name)-12s %(levelname)-8s %(message)-80s ' \
                 '%(filename)s:[%(lineno)-6s - %(funcName)-20s()] '

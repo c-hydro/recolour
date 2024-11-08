@@ -6,7 +6,7 @@ Version 1.8.0 [2024-09-30]
 **************************
 - PROJECT: operational framework time-series
 	- APPS -- convert_grid_hmc2csv
-		- fix bugs related to the dumping of time-series (delimiter and formats for matching to the other ts methods)
+		- fix bugs related to the dumping of time-series (delimiter, no_data and formats for matching to the other ts methods)
 	- APPS -- convert_time_step_src2csv
 		- fix bugs related to time_start/time_end in realtime applications
 	- APPS -- sync_ts

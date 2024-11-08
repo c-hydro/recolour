@@ -133,6 +133,18 @@ class DriverData:
             else:
                 self.var_name_in = list(fields_vars.keys())[0]
                 self.var_name_out = list(fields_vars.values())[0]
+
+        elif self.type_datasets == 'one_pnt_all_var':
+            fields_vars = deepcopy(self.fields_datasets)
+
+            if 'time' in list(fields_vars.keys()):
+                fields_vars.pop('time')
+
+            self.var_name_in = list(fields_vars.keys())
+            self.var_name_out = list(fields_vars.values())
+        else:
+            log_stream.error(' ===> File type destination "' + self.type_datasets + '" is not expected')
+            raise NotImplemented('Case not implemented yet')
     # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------

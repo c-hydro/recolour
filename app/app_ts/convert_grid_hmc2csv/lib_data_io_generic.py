@@ -121,6 +121,7 @@ def extract_data_grid2point(
 
         ''' debug
         grid_values = grid_da.values[:, :, 0]
+        grid_values[grid_values < 0] = np.nan
         plt.figure()
         plt.imshow(grid_values)
         plt.colorbar()

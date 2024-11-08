@@ -38,7 +38,7 @@
         "var_name": "string_var_name"
       },
       "time" : {
-        "source_sub_path_time": "%Y/%m/%d/%H/",
+        "source_sub_path_time": "%Y/%m/",
         "source_datetime": "%Y%m%d%H00",
         "source_datetime_start": "%Y%m%d0000",
         "source_datetime_end": "%Y%m%d2300",
@@ -70,23 +70,23 @@
           "no_data": -9999.0
         },
         "grid_reference": {
-          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/hmc-ws/opchain_marche/data/data_static/gridded_marche/",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/hmc_static/",
           "file_name": "marche.dem.txt",
           "fields": {}
         },
         "soil_type_reference": {
-          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/hmc-ws/opchain_marche/data/data_static/gridded_marche/",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/hmc_static/",
           "file_name": "marche.cn.txt",
           "fields": {}
         },
         "river_network_reference": {
-          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/hmc-ws/opchain_marche/data/data_static/gridded_marche/",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/hmc_static/",
           "file_name": "marche.choice.txt",
           "fields": {}
         }
       },
       "destination": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/hmc/ancillary/data_static/",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/hmc_ancillary/",
         "file_name": "geo_reference_hmc_marche.workspace",
         "fields": {}
       }
@@ -95,7 +95,7 @@
       "source": {
         "__comment__file__": "nc: hmc.output-grid.202111260100.nc.gz, hmc.state-grid.{source_datetime}.nc.gz; tif: SoilMoistureItaly_202111260100.tif",
         "__comment__vars__": "SM, VTot",
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/hmc_grid/state/",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/hmc_grid/state/{source_sub_path_time}/",
         "file_name": "hmc.state-grid.{source_datetime}.nc.gz",
         "fields": {
           "var_data": "VTot"
@@ -128,10 +128,10 @@
       "__comment__": "time_period: [0, 1, 2 ...]; CURRENT_MONTH, PREVIOUS_MONTH",
       "__test__": "2023-06-20 00:00, 2023-08-01 00:00",
       "time_reference": null,
-      "time_period": 10,
+      "time_period": 1,
       "time_frequency": "H",
       "time_rounding": "H",
-      "time_start": "2024-06-15 00:00",
-      "time_end": "2024-06-29 00:00"
+      "time_start": "2021-11-01 00:00",
+      "time_end": "2021-12-30 00:00"
     }
 }

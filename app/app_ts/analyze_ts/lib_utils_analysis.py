@@ -3,8 +3,8 @@ Library Features:
 
 Name:          lib_utils_analysis
 Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:          '20240109'
-Version:       '1.0.0'
+Date:          '20241031'
+Version:       '1.1.0'
 """
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -191,24 +191,48 @@ def apply_time_series_metrics(ts_ref, ts_other):
     if ts_other is not None:
         y_df = ts_other.to_frame()
     else:
-        log_stream.error()
+        log_stream.error(' ===> Dataframe other is defined by NoneType')
+        raise RuntimeError('Check the algorithm. Dataframe must be defined by series or empty series')
 
-    xy_df = x_df.join(y_df)
-    xy_df = xy_df.dropna()
+    # check dataframe ref
+    x_check = deepcopy(x_df)
+    x_check = x_check.dropna()
+    # check dataframe other
+    y_check = deepcopy(y_df)
+    y_check = y_check.dropna()
 
-    x_values = xy_df['ref'].values
-    y_values = xy_df['other'].values
+    # check not empty dataframe(s)
+    if not x_check.empty and not y_check.empty:
 
-    with warnings.catch_warnings():
-        pearson_r, person_p = stats.pearsonr(x_values, y_values)
-        pearson_r, person_p = float('{:.2f}'.format(pearson_r)), float('{:.2e}'.format(person_p))
-        spearman_rho, spearman_p = stats.spearmanr(x_values, y_values)
-        spearman_rho, spearman_p = float('{:.2f}'.format(spearman_rho)), float('{:.2e}'.format(spearman_p))
-        kendall_tau, kendall_p = stats.kendalltau(x_values, y_values)
-        kendall_tau, kendall_p = float('{:.2f}'.format(kendall_tau)), float('{:.2e}'.format(kendall_p))
-        rmsd = float('{:.2f}'.format(metrics.rmsd(x_values, y_values)))
-        bias = float('{:.2f}'.format(metrics.bias(x_values, y_values)))
-        nash_sutcliffe = float('{:.2f}'.format(metrics.nash_sutcliffe(x_values, y_values)))
+        xy_df = x_df.join(y_df)
+        xy_df = xy_df.dropna()
+
+        x_values = xy_df['ref'].values
+        y_values = xy_df['other'].values
+
+        with warnings.catch_warnings():
+            pearson_r, person_p = stats.pearsonr(x_values, y_values)
+            pearson_r, person_p = float('{:.2f}'.format(pearson_r)), float('{:.2e}'.format(person_p))
+            spearman_rho, spearman_p = stats.spearmanr(x_values, y_values)
+            spearman_rho, spearman_p = float('{:.2f}'.format(spearman_rho)), float('{:.2e}'.format(spearman_p))
+            kendall_tau, kendall_p = stats.kendalltau(x_values, y_values)
+            kendall_tau, kendall_p = float('{:.2f}'.format(kendall_tau)), float('{:.2e}'.format(kendall_p))
+            rmsd = float('{:.2f}'.format(metrics.rmsd(x_values, y_values)))
+            bias = float('{:.2f}'.format(metrics.bias(x_values, y_values)))
+            nash_sutcliffe = float('{:.2f}'.format(metrics.nash_sutcliffe(x_values, y_values)))
+
+    else:
+        if x_check.empty:
+            log_stream.warning(' ===> Reference datasets is defined by empty dataframe. Metrics are not computed')
+        if y_check.empty:
+            log_stream.warning(' ===> Other datasets is defined by empty dataframe. Metrics are not computed')
+
+        pearson_r, person_p = np.nan, np.nan
+        spearman_rho, spearman_p =  np.nan, np.nan
+        kendall_tau, kendall_p = np.nan, np.nan
+        rmsd =np.nan
+        bias = np.nan
+        nash_sutcliffe = np.nan
 
     # Calculate correlation coefficients, RMSD, bias, Nash Sutcliffe
     ts_metrics = {'pearson_r': pearson_r, 'pearson_p': person_p,

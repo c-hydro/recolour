@@ -1,0 +1,87 @@
+{
+  "mode": {
+    "mp_mode": false,
+    "mp_cpu_n": 9
+  },
+  "flags": {
+    "reset_datasets_src": false,
+    "reset_datasets_dst": false,
+    "reset_logs": true
+  },
+  "parameters": {
+    "temporal_window": 12,
+    "seasonal_anomaly": false,
+    "seasonal_metrics": false
+  },
+  "domain": {
+    "name": "italy",
+    "cell_start": 1394,
+    "cell_end": 1398,
+    "cell_list": [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430, 1431]
+  },
+  "datasets": {
+    "source": {
+      "ref": {
+        "name": "ASCAT",
+        "variable": "sm",
+        "type": "data_record",
+        "kwargs": {
+          "mask_frozen_prob": 10,
+          "mask_snow_prob": 10
+        },
+        "path_ts": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/ascat_dr/h16/",
+        "path_static": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/ascat_static",
+        "file_grid": "TUW_WARP5_grid_info_2_3.nc",
+        "tmp": {
+          "active_tmp": true,
+          "path_tmp": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/validation_hsaf/ancillary/ascat/h16/",
+          "file_tmp": "ascat_{gpi_n}.workspace",
+          "clean_tmp": false
+        }
+      },
+      "k1": {
+        "name": "GLDAS",
+        "variable": "SoilMoi0_10cm_inst",
+        "type": "data_record",
+        "kwargs": {"lut_max_dist": 35000},
+        "path_ts": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/gldas_ts_dr/",
+        "path_static": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/gldas_ts_dr/",
+        "file_grid": "grid.nc",
+        "tmp": {
+          "active_tmp": true,
+          "path_tmp": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/validation_hsaf/ancillary/gldas/",
+          "file_tmp": "gldas_{gpi_n}.workspace",
+          "clean_tmp": true
+        }
+      },
+      "k2": {
+        "name": "CCI",
+        "variable": "sm",
+        "type": "data_record",
+        "kwargs": {"lut_max_dist": 35000},
+        "path_ts": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/cci_ts_dr/",
+        "path_static": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/cci_ts_dr/",
+        "file_grid": "grid.nc",
+        "tmp": {
+          "active_tmp": true,
+          "path_tmp": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/validation_hsaf/ancillary/cci/",
+          "file_tmp": "cci_{gpi_n}.workspace",
+          "clean_tmp": true
+        }
+      }
+    },
+    "destination": {
+      "path_analysis": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/validation_hsaf/results/TEST_H16/"
+    }
+  },
+  "time": {
+    "__comment__": "Validation 2024: 2021-06-01 to 2023-05-31",
+    "time_start": "2019-06-01",
+    "time_end": "2022-12-31",
+    "time_format": "%Y-%m-%d"
+  },
+  "log": {
+    "path_log" : "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/validation_hsaf/log/",
+    "file_log": "validation_ascat_gldas_cci_h16.txt"
+  }
+}

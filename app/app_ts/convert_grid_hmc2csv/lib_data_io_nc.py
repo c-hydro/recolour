@@ -100,11 +100,21 @@ def read_file_nc(file_name, file_variables_selected=None,
         data_obj, data_attrs = {}, {}
         for var_name in file_variables_selected:
             if var_name in file_variables_found:
+
+                # get variable values
                 file_values_tmp = np.squeeze(file_dset_tmp[var_name].values)
 
                 # adjust data orientation (hmc format)
                 file_values_tmp = np.flipud(file_values_tmp)
 
+                ''' debug
+                import matplotlib.pylab as plt
+                file_values_tmp[file_values_tmp < 0] = np.nan
+                plt.figure()
+                plt.imshow(file_values_tmp)
+                plt.colorbar()
+                plt.show()
+                '''
                 file_attrs_tmp = file_dset_tmp[var_name].attrs
                 data_obj[var_name] = file_values_tmp
                 data_attrs[var_name] = file_attrs_tmp

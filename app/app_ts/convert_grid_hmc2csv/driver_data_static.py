@@ -162,6 +162,9 @@ class DriverData:
             ''' debug
             import matplotlib.pylab as plt
             plt.figure()
+            plt.imshow(grid_soil_type_values)
+            plt.colorbar()
+            plt.figure()
             plt.imshow(grid_soil_vmax_values)
             plt.colorbar()
             plt.show()
