@@ -180,9 +180,7 @@ def reshuffle(product,
               cell_format_ts='%04d',
               data_sub_path_ts=None,
               reset_ts=True,
-              input_grid=None,
-              target_grid=None, orientation_grid='north-south-west-east',
-              bbox=None,
+              input_grid=None, target_grid=None, bbox=None,
               img_buffer=100,
               dataset_stack_root=None,
               stack_flag=True,
@@ -236,7 +234,7 @@ def reshuffle(product,
                 data_sub_path=data_sub_path_grid,
                 file_name_tmpl=file_name_tmpl_grid,
                 datetime_format=datetime_format_grid,
-                parameter=parameters, subgrid=input_grid, array_1D=True, grid_orientation=orientation_grid
+                parameter=parameters, subgrid=input_grid, array_1D=True
             )
             logging.info(' -----> 1) Define file type and format ... DONE')
         else:
@@ -451,13 +449,6 @@ def parse_args(args):
     )
 
     parser.add_argument(
-        "orientation",
-        type=str,
-        default="north-south-west-east",
-        help="Set grid_orientation."
-    )
-
-    parser.add_argument(
         "flags",
         type=str2bool,
         nargs=2,
@@ -626,7 +617,6 @@ def main(args):
         data_sub_path_ts=args.templates_dst[2],
         bbox=bbox_list_arr,
         target_grid=None,
-        orientation_grid=args.orientation,
         reset_ts=args.flags[1],
         dataset_stack_root=args.dataset_stack_root,
         stack_flag=True,

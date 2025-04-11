@@ -3,8 +3,8 @@
 """
 RECOLOUR TOOLS - ECMWF IMG2CELL - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20240507'
-__version__ = '1.8.1'
+__date__ = '20240502'
+__version__ = '1.8.0'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)'
     'Martina Natali (martina01.natali@edu.unife.it)'
@@ -14,7 +14,6 @@ General command line:
 python app_img2cell_ecmwf.py -settings_file configuration.json -time_now "YYYY-MM-DD HH:MM"
 
 Version(s):
-20240507 (1.8.1) --> Add settings to select the grid orientation
 20240502 (1.8.0) --> Fix bugs related to geo-referencing and grid creation
 20240415 (1.7.0) --> Update codes and fix bugs
 20231128 (1.6.0) --> Code refactor and fix bugs
@@ -43,8 +42,8 @@ from lib_reshuffle_ecmwf import main as main_runner
 project_name = 'recolour'
 alg_name = 'img2cell'
 alg_type = 'Application'
-alg_version = '1.8.1'
-alg_release = '2024-05-07'
+alg_version = '1.8.0'
+alg_release = '2024-05-02'
 # -------------------------------------------------------------------------------------
 
 
@@ -172,7 +171,7 @@ def set_logging(logger_file='./log.txt', logger_format=None):
     logging.basicConfig(level=logging.DEBUG, format=logger_format, filename=logger_path, filemode='w')
 
     # Set logger handle
-    logger_handle_1 = logging.FileHandler(logger_path, 'w')
+    logger_handle_1 = logging.FileHandler(logger_file, 'w')
     logger_handle_2 = logging.StreamHandler()
     # Set logger level
     logger_handle_1.setLevel(logging.DEBUG)

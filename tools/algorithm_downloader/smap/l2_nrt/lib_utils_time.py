@@ -12,6 +12,11 @@ Version:       '1.0.0'
 # libraries
 import logging
 import pandas as pd
+
+from lib_info_args import logger_name
+
+# logger stream
+logger_stream = logging.getLogger(logger_name)
 # -------------------------------------------------------------------------------------
 
 
@@ -64,7 +69,7 @@ def set_run_time(time_alg, time_settings, time_ascending=False):
     elif time_alg and time_set is None:
         time_now = time_alg
     else:
-        logging.error(' ===> TimeNow is not correctly set!')
+        logger_stream.error(' ===> TimeNow is not correctly set!')
         raise IOError('TimeNow is undefined! Check your settings or algorithm args!')
 
     time_now_raw = pd.Timestamp(time_now)
@@ -79,7 +84,7 @@ def set_run_time(time_alg, time_settings, time_ascending=False):
     if time_period > 0:
         time_range = pd.date_range(end=time_day_round, periods=time_period, freq=time_freq)
     else:
-        logging.warning(' ===> TimePeriod must be greater then 0. TimePeriod is set automatically to 1')
+        logger_stream.warning(' ===> TimePeriod must be greater then 0. TimePeriod is set automatically to 1')
         time_range = pd.DatetimeIndex([time_day_round], freq=time_freq)
 
     if time_last is not None:
@@ -102,7 +107,7 @@ def set_run_time_modified(time_alg, time_settings, time_ascending=False):
     time_now_round = pd.Timestamp(time_alg).floor(time_freq)
 
     if not time_start or not time_end:
-        logging.error(' ===> TimeStart or TimeEnd are not correctly set!')
+        logger_stream.error(' ===> TimeStart or TimeEnd are not correctly set!')
         raise IOError('Time is undefined! Check your settings!')
 
     time_start_raw = pd.Timestamp(time_start)

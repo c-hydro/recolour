@@ -57,7 +57,7 @@ from urllib.request import urlopen, Request, build_opener, HTTPCookieProcessor
 from urllib.error import HTTPError, URLError
 
 
-# from lib_utils_time import set_data_time, set_run_time, set_run_time_modified
+from lib_utils_time import set_data_time, set_run_time, set_run_time_modified
 # from lib_utils_cmr import get_credentials, build_version_query_params, build_cmr_query_url, cmr_request,\
 #     cmr_download_mp, cmr_download_seq, cmr_filter_urls, cmr_search
 # from lib_utils_log import set_logging
@@ -849,24 +849,24 @@ def set_data_time(time_step, time_settings):
 
 
 # -------------------------------------------------------------------------------------
-# Method to define run time range
-def set_run_time(time_alg, time_settings, time_ascending=False):
-    time_start = time_settings['time_start']
-    time_end = time_settings['time_end']
-    time_freq = time_settings['time_frequency']
-    time_now_round = pd.Timestamp(time_alg).floor(time_freq)
-
-    if not time_start or not time_end:
-        logging.error(' ===> TimeStart or TimeEnd are not correctly set!')
-        raise IOError('Time is undefined! Check your settings!')
-
-    time_start_raw = pd.Timestamp(time_start)
-    time_end_raw = pd.Timestamp(time_end)
-    time_range = pd.date_range(start=time_start_raw, end=time_end_raw, freq=time_freq)
-
-    time_period = pd.DatetimeIndex(time_range, freq=time_freq).sort_values(ascending=time_ascending)
-
-    return time_now_round, time_period
+# # Method to define run time range
+# def set_run_time(time_alg, time_settings, time_ascending=False):
+#     time_start = time_settings['time_start']
+#     time_end = time_settings['time_end']
+#     time_freq = time_settings['time_frequency']
+#     time_now_round = pd.Timestamp(time_alg).floor(time_freq)
+#
+#     if not time_start or not time_end:
+#         logging.error(' ===> TimeStart or TimeEnd are not correctly set!')
+#         raise IOError('Time is undefined! Check your settings!')
+#
+#     time_start_raw = pd.Timestamp(time_start)
+#     time_end_raw = pd.Timestamp(time_end)
+#     time_range = pd.date_range(start=time_start_raw, end=time_end_raw, freq=time_freq)
+#
+#     time_period = pd.DatetimeIndex(time_range, freq=time_freq).sort_values(ascending=time_ascending)
+#
+#     return time_now_round, time_period
 # -------------------------------------------------------------------------------------
 
 
@@ -1131,70 +1131,82 @@ def main():
             zip(short_name_list, version_list, cmr_url_list, urs_url_list,
                 cmr_page_size_list, url_filename_search_list,
                 cmr_file_url_list, polygon_list, filename_filter_list)):
-            # Retrieve url(s)
-            if not url_filename_search_step:
-                url_filename_search_step = cmr_search(
-                    short_name_step, version_step, time_start, time_end,
-                    bounding_box=bounding_box, polygon=polygon_step,
-                    filename_filter=filename_filter_step,
-                    cmr_page_size=cmr_page_size_step, cmr_url=cmr_url_step,
-                    cmr_file_url=cmr_file_url_step)
 
-            # Prepare folder(s) and filename(s)
-            time_stamp, filename_list_url, filename_obj_source, fileroot_obj_source = set_data_source(
-                file_id, url_filename_search_step,
-                file_obj=data_settings['data']['dynamic']['source'],
-                variable_obj=template_vars_data_list,
-                root_obj=template_root_list,
-                ancillary_obj=data_settings['algorithm']['ancillary'],
-                template_obj=data_settings['algorithm']['template'],
-                flag_cleaning_source=data_settings['algorithm']['flags']['cleaning_dynamic_data_source'])
+            # retrieve url file
+            url_filename_search_step = cmr_search(
+                short_name_step, version_step, time_start, time_end,
+                bounding_box=bounding_box, polygon=polygon_step,
+                filename_filter=filename_filter_step,
+                cmr_page_size=cmr_page_size_step, cmr_url=cmr_url_step,
+                cmr_file_url=cmr_file_url_step)
 
-            # Prepare ancillary filename(s)
-            filename_obj_ancillary_global, filename_obj_ancillary_domain = set_data_ancillary(
-                time_stamp, file_id,
-                file_obj=data_settings['data']['dynamic']['ancillary'],
-                variable_obj=template_vars_data_list,
-                ancillary_obj=data_settings['algorithm']['ancillary'],
-                template_obj=data_settings['algorithm']['template'],
-                flag_cleaning_ancillary_global=data_settings['algorithm']['flags']['cleaning_dynamic_data_ancillary_global'],
-                flag_cleaning_ancillary_domain=data_settings['algorithm']['flags']['cleaning_dynamic_data_ancillary_domain'])
+            # check filename (if not empty for data without dataset)
+            if url_filename_search_step:
 
-            # Prepare outcome filename(s)
-            filename_obj_outcome = set_data_outcome(
-                time_stamp, file_id,
-                file_obj=data_settings['data']['dynamic']['outcome'],
-                variable_obj=template_vars_data_list,
-                group_obj=template_group_data_list,
-                ancillary_obj=data_settings['algorithm']['ancillary'],
-                template_obj=data_settings['algorithm']['template'],
-                flag_cleaning_outcome=data_settings['algorithm']['flags']['cleaning_dynamic_data_ancillary_global'])
+                # Prepare folder(s) and filename(s)
+                time_stamp, filename_list_url, filename_obj_source, fileroot_obj_source = set_data_source(
+                    file_id, url_filename_search_step,
+                    file_obj=data_settings['data']['dynamic']['source'],
+                    variable_obj=template_vars_data_list,
+                    root_obj=template_root_list,
+                    ancillary_obj=data_settings['algorithm']['ancillary'],
+                    template_obj=data_settings['algorithm']['template'],
+                    flag_cleaning_source=data_settings['algorithm']['flags']['cleaning_dynamic_data_source'])
 
-            # Download file(s)
-            if data_settings['algorithm']['flags']['downloading_mp']:
-                cmr_download_mp(filename_list_url, filename_obj_source,
-                                process_n=data_settings['algorithm']['ancillary']['process_mp'])
+                # Prepare ancillary filename(s)
+                filename_obj_ancillary_global, filename_obj_ancillary_domain = set_data_ancillary(
+                    time_stamp, file_id,
+                    file_obj=data_settings['data']['dynamic']['ancillary'],
+                    variable_obj=template_vars_data_list,
+                    ancillary_obj=data_settings['algorithm']['ancillary'],
+                    template_obj=data_settings['algorithm']['template'],
+                    flag_cleaning_ancillary_global=data_settings['algorithm']['flags']['cleaning_dynamic_data_ancillary_global'],
+                    flag_cleaning_ancillary_domain=data_settings['algorithm']['flags']['cleaning_dynamic_data_ancillary_domain'])
+
+                # Prepare outcome filename(s)
+                filename_obj_outcome = set_data_outcome(
+                    time_stamp, file_id,
+                    file_obj=data_settings['data']['dynamic']['outcome'],
+                    variable_obj=template_vars_data_list,
+                    group_obj=template_group_data_list,
+                    ancillary_obj=data_settings['algorithm']['ancillary'],
+                    template_obj=data_settings['algorithm']['template'],
+                    flag_cleaning_outcome=data_settings['algorithm']['flags']['cleaning_dynamic_data_ancillary_global'])
+
+                # Download file(s)
+                if data_settings['algorithm']['flags']['downloading_mp']:
+                    cmr_download_mp(filename_list_url, filename_obj_source,
+                                    process_n=data_settings['algorithm']['ancillary']['process_mp'])
+                else:
+                    cmr_download_seq(filename_list_url, filename_obj_source)
+
+                # Process file(s)
+                process_cmr(filename_obj_source, fileroot_obj_source,
+                            filename_obj_ancillary_global,
+                            filename_obj_ancillary_domain, filename_obj_outcome,
+                            geo_proj, geo_geotrans, geo_data,
+                            geo_wide, geo_high, geo_min_x, geo_max_y, geo_max_x, geo_min_y,
+                            geo_mask_idx, template_vars_data_list)
+
+                # Clean files source and ancillary (if needed)
+                clean_data_tmp(filename_obj_source, filename_obj_ancillary_global,
+                               filename_obj_ancillary_domain, flag_cleaning_source=
+                               data_settings['algorithm']['flags'][
+                                   'cleaning_dynamic_data_source'],
+                               flag_cleaning_tmp=data_settings['algorithm']['flags']['cleaning_dynamic_data_tmp'])
+
+                # Ending info
+                logging.info(' ---> TIME STEP: ' + str(time_run_step) + ' ... DONE')
+
             else:
-                cmr_download_seq(filename_list_url, filename_obj_source)
 
-            # Process file(s)
-            process_cmr(filename_obj_source, fileroot_obj_source,
-                        filename_obj_ancillary_global,
-                        filename_obj_ancillary_domain, filename_obj_outcome,
-                        geo_proj, geo_geotrans, geo_data,
-                        geo_wide, geo_high, geo_min_x, geo_max_y, geo_max_x, geo_min_y,
-                        geo_mask_idx, template_vars_data_list)
+                # Ending info
+                logging.warning(' ===> Datasets for ' + str(time_run_step) + ' and version ' +
+                                version_step + ' are not available. Try with another product version.' )
 
-            # Clean files source and ancillary (if needed)
-            clean_data_tmp(filename_obj_source, filename_obj_ancillary_global,
-                           filename_obj_ancillary_domain, flag_cleaning_source=
-                           data_settings['algorithm']['flags'][
-                               'cleaning_dynamic_data_source'],
-                           flag_cleaning_tmp=data_settings['algorithm']['flags']['cleaning_dynamic_data_tmp'])
+                logging.info(' ---> TIME STEP: ' + str(time_run_step) + ' ... SKIPPED. Datasets are not available.')
 
-        # Ending info
-        logging.info(' ---> TIME STEP: ' + str(time_run_step) + ' ... DONE')
-
+    # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------
     # Info algorithm
@@ -1205,11 +1217,11 @@ def main():
     logging.info(' ==> TIME ELAPSED: ' + str(time_elapsed) + ' seconds')
     logging.info(' ==> ... END')
     logging.info(' ==> Bye, Bye')
-    logging.info(
-        ' ============================================================================ ')  # -------------------------------------------------------------------------------------
-
-
+    logging.info(' ============================================================================ ')
     # -------------------------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------------------------
 
 
 # ----------------------------------------------------------------------------

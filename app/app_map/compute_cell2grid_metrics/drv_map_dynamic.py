@@ -3,8 +3,8 @@ Class Features
 
 Name:          drv_map_dynamic
 Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:          '20230822'
-Version:       '1.0.0'
+Date:          '20241112'
+Version:       '1.1.0'
 """
 
 # -------------------------------------------------------------------------------------
@@ -16,8 +16,9 @@ from lib_utils_generic import make_folder, reset_folder, pad_list
 from lib_utils_datasets import organize_datasets_cell, organize_datasets_grid
 from lib_data_io_pickle import read_file_obj, write_file_obj
 from lib_data_io_nc import read_file_collection, write_file_collection, organize_file_nc, write_file_nc
+from lib_data_io_tiff import organize_file_tiff, write_file_tiff
 
-from lib_data_analysis import get_data, filter_data, resample_data_args, resample_data_fx, mask_data
+from lib_data_analysis import get_data, filter_data, interpolate_data, resample_data_args, resample_data_fx, mask_data
 
 # debug
 # import matplotlib.pylab as plt
@@ -42,7 +43,7 @@ class DrvMap:
         self.alg_info = alg_settings[tag_section_info]
         self.alg_parameters = alg_settings[tag_section_params]
 
-        # self.alg_time = alg_settings[tag_section_time]
+        self.alg_time = None
 
         self.alg_datasets_src = alg_settings[tag_section_datasets]['dynamic']['source']
         self.alg_datasets_anc_points = alg_settings[tag_section_datasets]['dynamic']['ancillary']['points']
@@ -55,6 +56,7 @@ class DrvMap:
         self.tag_file_name = 'file_name'
         self.tag_file_vars_in = 'variables_in'
         self.tag_file_vars_out = 'variables_out'
+        self.tag_format = 'format'
 
         self.alg_datasets_name = self.alg_info['datasets']
         self.alg_datasets_product = self.alg_info['product']
@@ -68,6 +70,10 @@ class DrvMap:
         self.file_name_src = self.alg_datasets_src[self.tag_file_name]
         self.variables_in_src = self.alg_datasets_src[self.tag_file_vars_in]
         self.variables_out_src = self.alg_datasets_src[self.tag_file_vars_out]
+        if self.tag_format in list(self.alg_datasets_src.keys()):
+            self.format_src = self.alg_datasets_src[self.tag_format]
+        else:
+            self.format_src = 'netcdf'
         self.file_path_src = os.path.join(self.folder_name_src, self.file_name_src)
 
         self.folder_name_anc_points = self.alg_datasets_anc_points[self.tag_folder_name]
@@ -80,6 +86,16 @@ class DrvMap:
 
         self.folder_name_dst = self.alg_datasets_dst[self.tag_folder_name]
         self.file_name_dst = self.alg_datasets_dst[self.tag_file_name]
+        if self.tag_file_vars_in in list(self.alg_datasets_dst.keys()) and \
+                self.tag_file_vars_out in list(self.alg_datasets_dst.keys()):
+            self.variables_in_dst = self.alg_datasets_dst[self.tag_file_vars_in]
+            self.variables_out_dst = self.alg_datasets_dst[self.tag_file_vars_out]
+        else:
+            self.variables_in_dst, self.variables_out_dst = None, None
+        if self.tag_format in list(self.alg_datasets_dst.keys()):
+            self.format_dst = self.alg_datasets_dst[self.tag_format]
+        else:
+            self.format_dst = 'netcdf'
         self.file_path_dst = os.path.join(self.folder_name_dst, self.file_name_dst)
 
         self._clean_ancillary_folders(self.alg_log,
@@ -153,32 +169,40 @@ class DrvMap:
         # check file point ancillary availability
         if not os.path.exists(file_path_anc_points):
 
-            # join cell object(s)
-            cell_obj_dict = organize_datasets_cell(
-                cell_list=grid_cells_product, cell_digits=4,
-                list_variable_in=variables_in_src, list_variable_out=variables_out_src,
-                folder_name_datasets=self.folder_name_src, file_name_datasets=self.file_name_src,
-                )
-            # filter cell object
-            cell_obj_dict = organize_datasets_grid(
-                cell_obj_dict, data_type=self.alg_datasets_name,
-                grid_dframe=grid_reference_product, file_name_grid=None)
+            # check source format
+            if self.format_src == 'netcdf':
 
-            # save cell obj in pickle format
-            #folder_name_anc_points, file_name_anc_points = os.path.split(file_path_anc_points)
-            #make_folder(folder_name_anc_points)
-            #write_file_obj(file_path_anc_points, cell_obj_dict)
+                # join cell object(s)
+                cell_obj_dict = organize_datasets_cell(
+                    cell_list=grid_cells_product, cell_digits=4,
+                    list_variable_in=variables_in_src, list_variable_out=variables_out_src,
+                    folder_name_datasets=self.folder_name_src, file_name_datasets=self.file_name_src,
+                    )
+                # filter cell object
+                cell_obj_dict = organize_datasets_grid(
+                    cell_obj_dict, data_type=self.alg_datasets_name,
+                    grid_dframe=grid_reference_product, file_name_grid=None)
 
-            # save cell obj in netcdf format
-            folder_name_anc_points, file_name_anc_points = os.path.split(file_path_anc_points)
-            make_folder(folder_name_anc_points)
-            write_file_collection(file_path_anc_points, cell_obj_dict)
+                # save cell obj in pickle format
+                # folder_name_anc_points, file_name_anc_points = os.path.split(file_path_anc_points)
+                # make_folder(folder_name_anc_points)
+                # write_file_obj(file_path_anc_points, cell_obj_dict)
 
-            # info end method
-            logging.info(' ---> Organize datasets ... DONE')
+                # save cell obj in netcdf format
+                folder_name_anc_points, file_name_anc_points = os.path.split(file_path_anc_points)
+                make_folder(folder_name_anc_points)
+                write_file_collection(file_path_anc_points, cell_obj_dict)
+
+                # info end method
+                logging.info(' ---> Organize datasets ... DONE')
+
+            else:
+                # info end method (failed)
+                logging.info(' ---> Organize datasets ... FAILED. Source format not allowed')
+                raise NotImplementedError('Source format not implemented yet')
 
         else:
-            # info end method
+            # info end method (skipped)
             logging.info(' ---> Organize datasets ... SKIPPED. Data points previously saved')
 
     # method to analyze data
@@ -214,51 +238,88 @@ class DrvMap:
                     file_path_anc_points, file_obj_grid=grid_reference_product, variable_list=variables_out_src)
 
                 # iterate over variable(s)
-                variable_collections = {}
+                variable_collections = None
                 for var_name, var_min_value, var_max_value in zip(res_var_name, res_var_min_value, res_var_max_value):
 
                     # debug
                     # var_name = 'xy_pr'
 
-                    # method to get data
-                    dframe_variable_in = get_data(dframe_product_in, variable_name=var_name)
-                    # method to filter data
-                    dframe_variable_filtered = filter_data(
-                        dframe_variable_in,
-                        variable_name=var_name, min_value=var_min_value, max_value=var_max_value)
+                    # info start variable
+                    logging.info(' ----> Variable "' + var_name + '" ... ')
 
-                    # method to create resampling argument(s)
-                    resample_kwargs = resample_data_args(
-                        grid_reference_domain,
-                        self.resampling_max_distance, self.resampling_grid_resolution)
+                    # get dframe variable(s)
+                    var_dframe = list(dframe_product_in.columns)
 
-                    # method to apply resampling data 1D to data 2D
-                    da_variable_resampled = resample_data_fx(
-                        dframe_variable_filtered, **resample_kwargs,
-                        var_name_data=var_name, var_name_geo_x='lon', var_name_geo_y='lat',
-                        coord_name_x='longitude', coord_name_y='latitude', dim_name_x='longitude', dim_name_y='latitude'
-                    )
-                    # method to mask data
-                    da_variable_masked = mask_data(da_variable_resampled, grid_reference_domain, var_name_data=var_name)
+                    # check if variable is available
+                    if var_name in var_dframe:
 
-                    # save variable in a common collection
-                    variable_collections[var_name] = da_variable_masked
+                        # method to get data
+                        dframe_variable_in = get_data(dframe_product_in, variable_name=var_name)
+                        # method to filter data
+                        dframe_variable_filtered = filter_data(
+                            dframe_variable_in,
+                            variable_name=var_name, min_value=var_min_value, max_value=var_max_value)
 
-                    ''' debug
-                    plt.figure()
-                    plt.imshow(da_variable_masked.values)
-                    plt.colorbar()
-                    plt.clim(-0.8, 0.8)
-                    plt.show()
-                    '''
+                        # method to create resampling argument(s)
+                        resample_kwargs = resample_data_args(
+                            grid_reference_domain,
+                            self.resampling_max_distance, self.resampling_grid_resolution)
 
-                # save variable collection in pickle format
-                folder_name_anc_grid, file_name_anc_grid = os.path.split(file_path_anc_grid)
-                make_folder(folder_name_anc_grid)
-                write_file_obj(file_path_anc_grid, variable_collections)
+                        # method to apply resampling data 1D to data 2D
+                        da_variable_resampled = resample_data_fx(
+                            dframe_variable_filtered, **resample_kwargs,
+                            var_name_data=var_name, var_name_geo_x='lon', var_name_geo_y='lat',
+                            coord_name_x='longitude', coord_name_y='latitude', dim_name_x='longitude', dim_name_y='latitude'
+                        )
 
-                # info end method
-                logging.info(' ---> Analyze data ... DONE')
+                        # method to interpolate data
+                        da_variable_interpolated = interpolate_data(da_variable_resampled, grid_reference_domain,
+                                                                    method='nearest')
+                        # method to mask data
+                        da_variable_masked = mask_data(
+                            da_variable_interpolated, grid_reference_domain,
+                            var_name_data=var_name, mask_value_no_land=0)
+
+                        # save variable in a common collection
+                        if variable_collections is None:
+                            variable_collections = {}
+                        variable_collections[var_name] = da_variable_masked
+
+                        ''' debug
+                        import matplotlib.pylab as plt
+                        plt.figure(1)
+                        plt.imshow(grid_reference_domain.values)
+                        plt.colorbar()
+                        plt.figure(2)
+                        plt.imshow(da_variable_masked.values)
+                        plt.colorbar()
+                        plt.clim(0, 1)
+                        plt.show()
+                        '''
+
+                        # info end variable
+                        logging.info(' ----> Variable "' + var_name + '" ... DONE')
+
+                    else:
+                        # info end variable
+                        logging.warning(' ===> Variable "' + var_name + '" not available in the dataset(s)')
+                        logging.info(' ----> Variable "' + var_name + '" ... SKIPPED.')
+
+                # check if variable collection is available
+                if variable_collections is not None:
+
+                    # save variable collection in pickle format
+                    folder_name_anc_grid, file_name_anc_grid = os.path.split(file_path_anc_grid)
+                    make_folder(folder_name_anc_grid)
+                    write_file_obj(file_path_anc_grid, variable_collections)
+
+                    # info end method
+                    logging.info(' ---> Analyze data ... DONE')
+                else:
+                    # info end method
+                    logging.info(' ---> Analyze data ... FAILED')
+                    logging.error(' ===> Variable collection is defined by NoneType. Check your datasets path(s)')
+                    raise RuntimeError('Variable collection is empty. Check the expected and the datasets variable(s)')
 
             else:
                 # info end method
@@ -283,13 +344,40 @@ class DrvMap:
 
                 # method to get data obj
                 variable_collection = read_file_obj(file_path_anc_grid)
-                # method to organize dataset
-                variable_dset = organize_file_nc(variable_collection)
 
-                # method to write dataset
-                folder_name_dst, file_name_dst = os.path.split(file_path_dst)
-                make_folder(folder_name_dst)
-                write_file_nc(file_path_dst, variable_dset)
+                # check destination format
+                if self.format_dst == 'netcdf':
+
+                    # method to organize dataset
+                    variable_dset = organize_file_nc(
+                        variable_collection,
+                        obj_time=self.alg_time,
+                        obj_variable_in=self.variables_in_dst['datasets'],
+                        obj_variable_out=self.variables_out_dst['datasets'])
+
+                    # method to write dataset
+                    folder_name_dst, file_name_dst = os.path.split(file_path_dst)
+                    make_folder(folder_name_dst)
+                    write_file_nc(file_path_dst, variable_dset)
+
+                elif self.format_dst == 'tiff' or self.format_dst == 'tif':
+
+                    # method to organize dataset
+                    variable_dset, attrs_dset = organize_file_tiff(
+                        variable_collection,
+                        obj_time=self.alg_time,
+                        obj_variable_in=self.variables_in_dst['datasets'],
+                        obj_variable_out=self.variables_out_dst['datasets'])
+
+                    # method to write dataset
+                    folder_name_dst, file_name_dst = os.path.split(file_path_dst)
+                    make_folder(folder_name_dst)
+                    write_file_tiff(file_path_dst, variable_dset, **attrs_dset)
+
+                else:
+                    # info end method
+                    logging.info(' ---> Dump datasets ... FAILED. Destination format not allowed')
+                    raise NotImplementedError('Destination format not implemented yet')
 
                 # info end method
                 logging.info(' ---> Dump datasets ... DONE')

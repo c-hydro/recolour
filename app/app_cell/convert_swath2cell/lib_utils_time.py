@@ -81,10 +81,9 @@ def set_time(time_run_args=None, time_run_file=None, time_format='%Y-%m-%d %H:$M
 
     elif (time_run_file_start is not None) and (time_run_file_end is not None):
 
-        if time_run_file_start == 'CONFIGURE_BY_TIME_NOW' and time_run_file_end == 'CONFIGURE_BY_TIME_NOW':
+        logging.info(' -----> Time info defined by "time_start" and "time_end" arguments ... ')
 
-            logging.info(' -----> Time info defined by "time_now" used to define the '
-                         '"time_start" and "time_end" arguments ... ')
+        if time_run_file_start == 'CONFIGURE_BY_TIME_NOW' and time_run_file_end == 'CONFIGURE_BY_TIME_NOW':
 
             if time_run_args is not None:
                 time_run = time_run_args
@@ -110,12 +109,7 @@ def set_time(time_run_args=None, time_run_file=None, time_format='%Y-%m-%d %H:$M
 
             time_chunks = {time_period_run: [time_period_start, time_period_end]}
 
-            logging.info(' -----> Time info defined by "time_now" used to define the '
-                         '"time_start" and "time_end" arguments ... DONE')
-
         else:
-
-            logging.info(' -----> Time info defined by "time_start" and "time_end" arguments ... ')
 
             # time_now = date.today()
             # time_run = time_now.strftime(time_format)

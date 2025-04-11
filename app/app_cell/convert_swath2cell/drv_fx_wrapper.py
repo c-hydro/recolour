@@ -96,9 +96,9 @@ class DrvFxWrapper:
         self.flag_initialize_workspace = self.alg_datasets_workspace[self.tag_flag_initialize]
         self.file_path_workspace = os.path.join(self.folder_name_workspace, self.file_name_workspace)
 
-        self._clean_ancillary_folders(self.alg_log,
-                                      dset_key_root=self.tag_folder_name, dset_key_sub=None,
-                                      dset_clean=self.reset_logs)
+        #self._clean_ancillary_folders(self.alg_log,
+        #                              dset_key_root=self.tag_folder_name, dset_key_sub=None,
+        #                              dset_clean=self.reset_logs)
 
         self.drv_fx_obj = None
 

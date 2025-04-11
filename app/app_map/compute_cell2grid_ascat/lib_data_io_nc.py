@@ -41,6 +41,7 @@ def organize_file_nc(obj_variable,
     variable_dset = None
     for variable_name, variable_da in obj_variable.items():
 
+
         if variable_dset is None:
 
             var_geo_x_1d = variable_da[var_name_geo_x].values

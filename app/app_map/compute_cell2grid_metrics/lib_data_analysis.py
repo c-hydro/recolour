@@ -68,8 +68,30 @@ def filter_data(dframe_obj_in,
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+# method to interpolate data
+def interpolate_data(da_data, da_reference,
+                     var_geo_x_data='longitude', var_geo_y_data='latitude',
+                     var_geo_x_ref='longitude', var_geo_y_ref='latitude', method='nearest'):
+
+    # get reference and data coordinates
+    var_lons_ref, var_lats_ref = da_reference[var_geo_x_ref].values, da_reference[var_geo_y_ref].values
+    var_lons_data, var_lats_data = da_data[var_geo_x_data].values, da_data[var_geo_y_data].values
+
+    # check reference and data dimensions
+    if var_lons_ref != var_lons_data or var_lats_ref != var_lats_data:
+        da_interpolated = da_data.interp({var_geo_x_data: var_lons_ref, var_geo_y_data: var_lats_ref}, method=method)
+    else:
+        da_interpolated = da_data.copy()
+
+    return da_interpolated
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
 # method to mask data
-def mask_data(da_obj_in, da_reference, mask_value_min=0, mask_value_max=None, mask_no_data=np.nan,
+def mask_data(da_obj_in, da_reference,
+              mask_value_min=0, mask_value_max=None, mask_value_no_land=0, mask_no_data=np.nan,
               var_name_data='variable', var_name_geo_x='longitude', var_name_geo_y='latitude',
               coord_name_x='longitude', coord_name_y='latitude', dim_name_x='longitude', dim_name_y='latitude',
               ):
@@ -83,6 +105,8 @@ def mask_data(da_obj_in, da_reference, mask_value_min=0, mask_value_max=None, ma
         data_values[mask_values < mask_value_min] = mask_no_data
     if mask_value_max is not None:
         data_values[mask_values > mask_value_max] = mask_no_data
+    if mask_value_no_land is not None:
+        data_values[mask_values == mask_value_no_land] = mask_no_data
 
     # method to create data array
     da_obj_out = create_darray_2d(

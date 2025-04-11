@@ -11,49 +11,7 @@ Version:       '1.0.0'
 # -------------------------------------------------------------------------------------
 # libraries
 import logging
-import time
-import base64
-import itertools
-import json
-import netrc
-import re
 import os
-import ssl
-import sys
-import math
-import h5py
-
-import pandas as pd
-import numpy as np
-import xarray as xr
-import pyresample
-import pyproj
-import rasterio
-from rasterio.crs import CRS
-
-import cartopy
-import matplotlib.cm as cm
-import matplotlib.colors as mcolors
-from cartopy.mpl.geoaxes import GeoAxes
-import cartopy.crs as ccrs
-from mpl_toolkits.axes_grid1 import AxesGrid
-from pygeogrids.grids import BasicGrid, genreg_grid
-
-# import matplotlib.pylab as plt
-import matplotlib.pyplot as plt
-
-from multiprocessing import Pool, cpu_count
-from contextlib import contextmanager
-from argparse import ArgumentParser
-from copy import deepcopy
-from datetime import datetime
-from osgeo import gdal, gdalconst
-from osgeo.gdal import osr
-
-from urllib.parse import urlparse
-from urllib.request import urlopen, Request, build_opener, HTTPCookieProcessor
-from urllib.error import HTTPError, URLError
-
 # -------------------------------------------------------------------------------------
 
 # -------------------------------------------------------------------------------------

@@ -13,6 +13,7 @@ General command line:
 python app_map_cell2grid_metrics.py -settings_file configuration.json
 
 Version(s):
+20241111 (1.1.0) --> Apply application to different domain
 20230821 (1.0.0) --> First development
 """
 
@@ -38,8 +39,8 @@ from drv_map_dynamic import DrvMap as DrvMapDynamic
 project_name = 'recolour'
 alg_name = 'Application for resampling points 2 grid'
 alg_type = 'Package'
-alg_version = '1.0.0'
-alg_release = '2023-08-22'
+alg_version = '1.1.0'
+alg_release = '2024-11-11'
 # -------------------------------------------------------------------------------------
 
 
@@ -49,7 +50,7 @@ def main():
 
     # -------------------------------------------------------------------------------------
     # get file settings
-    file_settings = get_args()
+    file_settings, time_settings = get_args()
     # read data settings
     alg_settings = get_data_settings(file_settings)
     # set logging
@@ -108,13 +109,16 @@ def get_args():
     # parser algorithm arg(s)
     parser_obj = argparse.ArgumentParser()
     parser_obj.add_argument('-settings_file', action="store", dest="settings_file")
+    parser_obj.add_argument('-time', action="store", dest="settings_time")
     parser_value = parser_obj.parse_args()
     # set algorithm arg(s)
-    settings_file = 'configuration.json'
+    settings_file, settings_time = 'configuration.json', None
     if parser_value.settings_file:
         settings_file = parser_value.settings_file
+    if parser_value.settings_time:
+        settings_time = parser_value.settings_time
 
-    return settings_file
+    return settings_file, settings_time
 
 # -------------------------------------------------------------------------------------
 

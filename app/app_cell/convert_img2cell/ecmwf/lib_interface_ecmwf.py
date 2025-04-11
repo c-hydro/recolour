@@ -59,8 +59,7 @@ class BaseImage(ImageBase):
     
     def __init__(self,
                  filename, mode='r', parameter='var40',
-                 grid_path=None, grid_orientation='north-south-west-east',
-                 subgrid=None, array_1D=False):
+                 grid_path=None, subgrid=None, array_1D=False):
 
         super(BaseImage, self).__init__(filename, mode=mode)
         
@@ -72,8 +71,6 @@ class BaseImage(ImageBase):
         self.fill_values = np.repeat(9999., 0)
         self.grid = cell_grid(self.grid_path) if not subgrid else subgrid
         self.array_1D = array_1D
-
-        self.grid_orientation = grid_orientation
 
     def read(self, timestamp=None):
         
@@ -121,12 +118,7 @@ class BaseImage(ImageBase):
                 np.ma.set_fill_value(param_data, 9999)
 
                 # reverse the data to be in the correct order
-                if self.grid_orientation == 'south-north-west-east':
-                    param_data = np.flipud(param_data)  # to adapt to the other products that used in the metrics procedure
-                elif self.grid_orientation == 'north-south-west-east':
-                    pass
-                else:
-                    raise NotImplementedError('grid orientation not implemented yet')
+                param_data = np.flipud(param_data)  # to adapt to the other products that used in the metrics procedure
 
                 ''' debug
                 data_tmp = param_data.copy()
@@ -184,13 +176,13 @@ class WrapImage(BaseImage):
     def __init__(
         self,
         filename, mode="r",
-        grid_path=None, parameter="var40", grid_orientation='north-south-west-east',
-        subgrid=None, array_1D=False
+        grid_path=None, parameter="var40",
+        subgrid=None, array_1D=False,
     ):
 
         super(WrapImage, self).__init__(
             filename=filename, mode=mode,
-            grid_path=grid_path,parameter=parameter, grid_orientation=grid_orientation,
+            grid_path=grid_path,parameter=parameter,
             subgrid=subgrid, array_1D=array_1D,
         )
 # -------------------------------------------------------------------------------------
@@ -218,7 +210,6 @@ class ecmwf_ds(MultiTemporalImageBase):
                  file_name_tmpl=None,
                  datetime_format=None,
                  parameter='var40',
-                 grid_orientation='north-south-west-east',  # 'south-north-west-east
                  grid_path=None, subgrid=None, array_1D=False,
                  start_step=0, end_step=0,
                  ):
@@ -227,8 +218,7 @@ class ecmwf_ds(MultiTemporalImageBase):
             'parameter': parameter,
             'array_1D': array_1D,
             'subgrid': subgrid,
-            "grid_path": grid_path,
-            "grid_orientation": grid_orientation
+            "grid_path": grid_path
         }
 
         if product == 'h14':

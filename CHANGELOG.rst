@@ -2,6 +2,23 @@
 Changelog
 =========
 
+Version 2.0.0 [2025-04-11]
+**************************
+- PROJECT: operational framework grid	
+	- TOOLS -- DOWNLOADER SMAP: smap_downloader_spl2smp_e.py
+		- refactor of all application methods and algorithm
+
+Version 1.9.0 [2025-02-27]
+**************************
+
+- PROJECT: operational framework soil moisture triple collocation
+	- APPS -- CELL: app_map_create_tc
+		- fix bugs
+	- TOOLS -- DOWNLOADER SMAP: smap_downloader_spl2smp_e.py
+		- fix bugs in managing time information
+	- TOOLS -- DOWNLOADER SMAP: smap_downloader_spl3smp_e.py
+		- fix bugs in managing time information
+
 Version 1.8.0 [2024-09-30]
 **************************
 - PROJECT: operational framework time-series
@@ -148,7 +165,7 @@ Version 1.1.0 [2023-11-28]
 
 Version 1.0.0 [2023-11-14]
 **************************
-- PROJECT: beta framework
+- PROJECT: beta frameworks
 	- APPS: maps and time-series
 	- TOOLS: validation, grid2ts, swath2ts, plotting, downloader, xml
 	- NOTEBOOKS: time-series

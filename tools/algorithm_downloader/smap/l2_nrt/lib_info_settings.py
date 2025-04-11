@@ -8,62 +8,43 @@ Date:          '20231110'
 Version:       '1.0.0'
 """
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # libraries
 import logging
-import time
-import base64
-import itertools
 import json
-import netrc
-import re
 import os
-import ssl
-import sys
-import math
-import h5py
 
-import pandas as pd
-import numpy as np
-import xarray as xr
-import pyresample
-import pyproj
-import rasterio
-from rasterio.crs import CRS
-
-import cartopy
-import matplotlib.cm as cm
-import matplotlib.colors as mcolors
-from cartopy.mpl.geoaxes import GeoAxes
-import cartopy.crs as ccrs
-from mpl_toolkits.axes_grid1 import AxesGrid
-from pygeogrids.grids import BasicGrid, genreg_grid
-
-# import matplotlib.pylab as plt
-import matplotlib.pyplot as plt
-
-from multiprocessing import Pool, cpu_count
-from contextlib import contextmanager
 from argparse import ArgumentParser
-from copy import deepcopy
-from datetime import datetime
-from osgeo import gdal, gdalconst
-from osgeo.gdal import osr
 
-from urllib.parse import urlparse
-from urllib.request import urlopen, Request, build_opener, HTTPCookieProcessor
-from urllib.error import HTTPError, URLError
+from lib_info_args import logger_name
 
-# -------------------------------------------------------------------------------------
+# logger stream
+logger_stream = logging.getLogger(logger_name)
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-# -------------------------------------------------------------------------------------
-# Method to read file json
-# json file contains a dict of relevant data for the execution of the script
-# such as all the product's characteristics
-# Path to the json file must be stored in the alg_settings argument from the
-# running script or configuration file
+# ----------------------------------------------------------------------------------------------------------------------
+# method to define the data structure
+def parse_file_json(json_dict):
 
+    log_dict = json_dict['data']['log']
+
+    alg_ancillary = json_dict['algorithm']['ancillary']
+    alg_template = json_dict['algorithm']['template']
+    alg_flags = json_dict['algorithm']['flags']
+
+    time_dict = json_dict['time']
+    product_dict = json_dict['product']
+    data_static_dict = json_dict['data']['static']
+    data_dynamic_dict = json_dict['data']['dynamic']
+
+    return (log_dict, time_dict, product_dict,
+            alg_ancillary, alg_template, alg_flags,
+            data_static_dict, data_dynamic_dict)
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to read file json
 def read_file_json(file_name):
     env_ws = {}
     for env_item, env_value in os.environ.items():
@@ -92,30 +73,24 @@ def read_file_json(file_name):
 
     return json_dict
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-# -------------------------------------------------------------------------------------
-# Method to get script argument(s)
-# Arguments and the execution of the script are defined in a bash file but
-# could also be defined in the configuration file (in Pycharm)
+# ----------------------------------------------------------------------------------------------------------------------
+# method to get script argument(s)
 def get_args():
+
     parser_handle = ArgumentParser()
     parser_handle.add_argument('-settings_file', action="store", dest="alg_settings")
     parser_handle.add_argument('-time', action="store", dest="alg_time")
     parser_values = parser_handle.parse_args()
 
+    alg_settings, alg_time = 'configuration.json', None
     if parser_values.alg_settings:
         alg_settings = parser_values.alg_settings
-    else:
-        alg_settings = 'configuration.json'
-
     if parser_values.alg_time:
         alg_time = parser_values.alg_time
-    else:
-        alg_time = None
 
     return alg_settings, alg_time
 
-# -------------------------------------------------------------------------------------
-
+# ----------------------------------------------------------------------------------------------------------------------

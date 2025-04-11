@@ -28,14 +28,25 @@ attrs_encoded = ["_FillValue", "dtype", "scale_factor", "add_offset", "grid_mapp
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to organize nc file
-def organize_file_nc(obj_variable,
+def organize_file_nc(obj_variable, obj_time=None, obj_variable_in=None, obj_variable_out=None,
                      var_name_geo_x='longitude', var_name_geo_y='latitude',
                      coord_name_x='longitude', coord_name_y='latitude',
                      dim_name_x='longitude', dim_name_y='latitude'):
 
+    if obj_variable_in is None:
+        obj_variable_in = []
+    if obj_variable_out is None:
+        obj_variable_out = []
+
     # iterate over variable(s)
     variable_dset = None
-    for variable_name, variable_da in obj_variable.items():
+    for variable_name_in, variable_da in obj_variable.items():
+
+        if variable_name_in in obj_variable_in:
+            variable_id = obj_variable_in.index(variable_name_in)
+            variable_name_out = obj_variable_out[variable_id]
+        else:
+            variable_name_out = variable_name_in
 
         if variable_dset is None:
 
@@ -47,7 +58,7 @@ def organize_file_nc(obj_variable,
                         coord_name_y: ([dim_name_y], var_geo_y_1d)})
                 # ,coord_name_time: ([dim_name_time], var_data_time)})
 
-        variable_dset[variable_name] = variable_da
+        variable_dset[variable_name_out] = variable_da
 
     return variable_dset
 # ----------------------------------------------------------------------------------------------------------------------

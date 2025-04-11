@@ -50,12 +50,6 @@ def parse_data_settings(data_settings):
         product_image_buffer = str(data_settings['product']['image_buffer'])
     else:
         product_image_buffer = str(4)
-    if 'orientation' in list(data_settings['product'].keys()):
-        product_orientation = str(data_settings['product']['orientation'])
-    else:
-        logging.error(' ===> Orientation not defined in settings. Impossible to set the grid orientation')
-        raise NotImplementedError(
-            'Set "orientation" parameter in settings file ["south-north-west-east", "north-south-west-east"]')
     # get flags
     reset_static = data_settings['flags']['reset_static']
     reset_ts = data_settings['flags']['reset_dynamic']
@@ -93,8 +87,8 @@ def parse_data_settings(data_settings):
         geo_bbox = ''
 
     # organize info
-    product_args, geo_args, im_buffer_args, orient_args, path_args, time_args, tmpl_args_src, tmpl_args_dst = (
-        [product_name], [geo_bbox], [product_image_buffer], [product_orientation],
+    product_args, geo_args, im_buffer_args, path_args, time_args, tmpl_args_src, tmpl_args_dst = (
+        [product_name], [geo_bbox], [product_image_buffer],
         [path_grid, path_ts, path_stack], [time_start, time_end, time_run],
         [file_name_src, datetime_src, sub_path_src],
         [file_name_dst, datetime_dst, sub_path_dst],
@@ -108,7 +102,6 @@ def parse_data_settings(data_settings):
     app_settings.extend(product_args)
     app_settings.extend(geo_args)
     app_settings.extend(im_buffer_args)
-    app_settings.extend(orient_args)
     app_settings.extend(flags_args)
     app_settings.extend(path_args)
     app_settings.extend(time_args)

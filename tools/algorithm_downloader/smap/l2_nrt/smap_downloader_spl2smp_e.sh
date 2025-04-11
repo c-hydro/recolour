@@ -2,7 +2,7 @@
 
 #-----------------------------------------------------------------------------------------
 # Script information
-script_name='RECOLOUR - DOWNLOADER - SOIL MOISTURE SMAP'
+script_name='RECOLOUR - DOWNLOADER - SOIL MOISTURE SMAP L2'
 script_version="1.0.0"
 script_date='2023/09/20'
 
@@ -18,11 +18,10 @@ virtual_env_folder='/home/hsaf/recolour/conda/bin/'
 virtual_env_name='recolour_libraries'
 
 # Time settings (-u to get gmt time)
-time=$(date +"%Y-%m-%d %H:00")
-#time="2023-10-11 23:00"
+time_now=$(date +"%Y-%m-%d %H:00")
 
-# # Time period execution (-u to get gmt time)
-time_period_days=40
+# Time period execution
+time_period_days=3
 #-----------------------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------------------
@@ -46,7 +45,7 @@ echo " ==> "$script_name" (Version: "$script_version" Release_Date: "$script_dat
 echo " ==> START ..."
 
 # Iterate over hours
-time_run=$(date -d "$time" +'%Y-%m-%d %H:00')
+time_run=$(date -d "$time_now" +'%Y-%m-%d %H:00')
 for time_period_step in $(seq 0 $time_period_days); do
     
     # Parse time information

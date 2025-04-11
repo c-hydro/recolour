@@ -17,7 +17,15 @@ import rasterio
 from rasterio.crs import CRS
 from osgeo import gdal, gdalconst
 
-from lib_utils_generic import create_darray_2d
+from lib_utils_io import create_darray_2d
+from lib_info_args import logger_name
+
+# logger stream
+logger_stream = logging.getLogger(logger_name)
+
+# add suppress warnings
+rio_stream = logging.getLogger('rasterio')
+rio_stream.setLevel(logging.ERROR)
 # -------------------------------------------------------------------------------------
 
 
@@ -42,15 +50,16 @@ def read_file_geo(file_name_geo):
             geo_mask_grid = np.where(geo_data == 1, 1, -9999) # in smap_grid no domain is defined, it is blank
             geo_mask_idx = np.where(geo_mask_grid.ravel() == -9999)
         else:
-            logging.error(' ===> Geographical file ' + file_name_geo + ' format unknown')
+            logger_stream.error(' ===> Geographical file ' + file_name_geo + ' format unknown')
             raise NotImplementedError('File type reader not implemented yet')
     else:
-        logging.error(' ===> Geographical file ' + file_name_geo + ' not found')
+        logger_stream.error(' ===> Geographical file ' + file_name_geo + ' not found')
         raise IOError('Geographical file location or name is wrong')
 
     return geo_proj, geo_geotrans, geo_data, \
            geo_wide, geo_high, geo_min_x, geo_max_y, geo_max_x, geo_min_y, geo_mask_idx
 # -------------------------------------------------------------------------------------
+
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -73,7 +82,7 @@ def read_grid_data(file_name, output_format='data_array', output_dtype='float32'
         if output_dtype == 'float32':
             values = np.float32(data[0, :, :])
         else:
-            logging.error(' ===> Data type is not allowed.')
+            logger_stream.error(' ===> Data type is not allowed.')
             raise NotImplementedError('Case not implemented yet')
 
         if var_limit_min is not None:
@@ -91,8 +100,9 @@ def read_grid_data(file_name, output_format='data_array', output_dtype='float32'
         center_bottom = bounds.bottom + (res[1] / 2)
 
         if center_bottom > center_top:
-            logging.warning(' ===> Coords "center_bottom": ' + str(center_bottom) + ' is greater than "center_top": '
-                            + str(center_top) + '. Try to inverse the bottom and top coords. ')
+            logger_stream.warning(
+                ' ===> Coords "center_bottom": ' + str(center_bottom) + ' is greater than "center_top": '
+                + str(center_top) + '. Try to inverse the bottom and top coords. ')
             center_tmp = center_top
             center_top = center_bottom
             center_bottom = center_tmp
@@ -143,14 +153,14 @@ def read_grid_data(file_name, output_format='data_array', output_dtype='float32'
             data_obj.attrs = data_attrs
         else:
 
-            logging.error(' ===> File static "' + file_name + '" output format not allowed')
+            logger_stream.error(' ===> File static "' + file_name + '" output format not allowed')
             raise NotImplementedError('Case not implemented yet')
 
     except IOError as io_error:
 
         data_obj, data_attrs = None, None
-        logging.warning(' ===> File static grid was not correctly open with error "' + str(io_error) + '"')
-        logging.warning(' ===> Filename "' + os.path.split(file_name)[1] + '"')
+        logger_stream.warning(' ===> File static grid was not correctly open with error "' + str(io_error) + '"')
+        logger_stream.warning(' ===> Filename "' + os.path.split(file_name)[1] + '"')
 
     return data_obj, data_attrs
 # ----------------------------------------------------------------------------------------------------------------------

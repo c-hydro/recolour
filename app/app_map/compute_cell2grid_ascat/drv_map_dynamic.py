@@ -17,7 +17,7 @@ from lib_utils_io import fill_path_with_tags
 from lib_utils_generic import make_folder, reset_folder, pad_list
 from lib_utils_datasets import organize_datasets_cell, organize_datasets_points
 from lib_data_io_pickle import read_file_obj, write_file_obj
-from lib_data_io_tiff import organize_file_tiff, write_file_tiff
+from app.app_map.compute_cell2grid_metrics.lib_data_io_tiff import organize_file_tiff, write_file_tiff
 from lib_data_io_nc import read_file_collection, write_file_collection, organize_file_nc, write_file_nc
 
 from lib_data_analysis import (add_data, get_data, filter_data,

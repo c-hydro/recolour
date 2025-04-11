@@ -1,22 +1,21 @@
 {
   "algorithm":{
     "flags": {
-      "downloading_mp": false,
-      "cleaning_dynamic_data_source": false,
-      "cleaning_dynamic_data_ancillary_global": false,
-      "cleaning_dynamic_data_ancillary_domain": false,
-      "cleaning_dynamic_data_outcome": true,
-      "cleaning_dynamic_data_tmp": false
+      "remove_data_out_of_domain": false,
+      "remove_dynamic_data_source": true,
+      "remove_dynamic_data_ancillary_global": false,
+      "remove_dynamic_data_ancillary_domain": false,
+      "remove_dynamic_data_destination": true,
+      "remove_dynamic_data_tmp": false
     },
     "ancillary": {
-      "domain" : "italy",
-      "process_mp": 4
+      "domain" : "italy"
     },
     "general": {
       "title": "Satellite SMAP - Downloading tool",
       "web-site": "",
       "source": "Python library developed by CIMA Research Foundation",
-      "history": "1.1.0 [20230929]",
+      "history": "1.5.0 [20250410]",
       "project-info": "Hydrological Data Engines - HyDE Library/Project",
       "algorithm": "Downloading tool developed by CIMA Research Foundation"
     },
@@ -25,28 +24,30 @@
       "group_name": "string_group",
       "file_name": "string_filename",
       "domain": "string_domain",
-      "source_sub_path_time": "%Y/%m/%d/",
-      "orbit": "int_orbit",
-      "direction": "string_direction",
-      "source_datetime": "%Y%m%dT%H%M%S",
       "release_id": "int_releaseid",
       "version": "int_version",
+      "orbit": "int_orbit",
+      "direction": "string_direction",
+      "run_datetime": "%Y%m%d",
+      "remote_sub_path_time": "%Y.%m.%d",
+      "source_sub_path_time": "%Y/%m/%d/",
+      "source_datetime": "%Y%m%dT%H%M%S",
       "ancillary_sub_path_time": "%Y/%m/%d/",
       "ancillary_datetime": "%Y%m%d%H%M",
-      "outcome_sub_path_time": "%Y/%m/%d/",
-      "outcome_datetime": "%Y%m%d_%H00",
-      "run_datetime": "%Y%m%d"
+      "destination_sub_path_time": "%Y/%m/%d/",
+      "destination_datetime": "%Y%m%d_%H00"
     }
   },
   "product": {
     "short_name": ["SPL2SMP_E"],
-    "version": ["005"],
-    "template_root": ["HDF5:{file_name}://Soil_Moisture_Retrieval_Data/{var_name}"],
+    "version": ["006"],
+    "template_root": [
+      "HDF5:{file_name}://Soil_Moisture_Retrieval_Data/{var_name}"],
     "template_vars_data": [
-      ["soil_moisture"]
+      ["soil_moisture", "surface_temperature"]
     ],
     "template_group_data": [
-      ["soil_moisture"]
+      ["soil_moisture", "surface_temperature"]
     ]
   },
   "data": {
@@ -58,7 +59,7 @@
         "lat_top": 47.74309
       },
       "geo_file" : {
-        "folder": "/home/hsaf/share/recolour/domain/",
+        "folder": "/home/fabio/Desktop/Recolour_Workspace/ws/smap_auxiliary/domain/",
         "filename": "italy_sm_smap.tiff"
       }
     },
@@ -66,57 +67,43 @@
       "time": {
         "time_forecast_period": 0,
         "time_forecast_frequency": "H",
-        "time_observed_period": 24,
+        "time_observed_period": 5,
         "time_observed_frequency": "H",
         "time_rounding": "H",
         "time_format" : "%Y-%m-%dT%H:%M:%SZ"
       },
       "url": {
-        "cmr_url": ["https://cmr.earthdata.nasa.gov"],
-        "urs_url": ["https://urs.earthdata.nasa.gov"],
-        "cmr_page_size" : [2000],
-        "url_list" : [[]],
-        "polygon" : [""],
-        "filename_filter": [""],
-        "cmr_file_url": ["{0}/search/granules.json?provider=NSIDC_ECS&sort_key[]=start_date&sort_key[]=producer_granule_id&scroll=true&page_size={1}"]
+        "remote_url": "https://n5eil01u.ecs.nsidc.org",
+        "remote_folder":  "/SMAP/SPL2SMP_E.006/{remote_sub_path_time}/"
       },
-
       "source": {
-        "filename": ["SMAP_L2_SM_P{orbit}{direction}{source_datetime}_R{release_id}_{version}"],
-        "folder": ["/home/hsaf/share/recolour/smap_ancillary/grid/spl2smp_e/raw/"]
+        "filename": ["SMAP_L2_SM_P{orbit}{direction}{source_datetime}{release_id}{version}"],
+        "folder": ["/home/fabio/Desktop/Recolour_Workspace/ws/smap_ancillary/grid/spl2smp_e/raw/{source_sub_path_time}"]
       },
       "ancillary": {
         "global" : {
           "filename": ["smap_ancillary_{ancillary_datetime}_{var_name}_global.tiff"],
-          "folder": ["/home/hsaf/share/recolour/smap_ancillary/grid/spl2smp_e/global/{ancillary_sub_path_time}"]
+          "folder": ["/home/fabio/Desktop/Recolour_Workspace/ws/smap_ancillary/grid/spl2smp_e/global/{ancillary_sub_path_time}"]
         },
         "domain" : {
           "filename": ["smap_ancillary_{ancillary_datetime}_{var_name}_{domain}.tiff"],
-          "folder": ["/home/hsaf/share/recolour/smap_ancillary/grid/spl2smp_e/domain/{ancillary_sub_path_time}"]
+          "folder": ["/home/fabio/Desktop/Recolour_Workspace/ws/smap_ancillary/grid/spl2smp_e/domain/{ancillary_sub_path_time}"]
         }
       },
-      "outcome": {
-        "filename": ["smap_{outcome_datetime}_{var_name}.tiff"],
-        "folder": ["/home/hsaf/share/recolour/smap_grid/spl2smp_e/multilayer/{outcome_sub_path_time}"]
+      "destination": {
+        "filename": ["smap_{destination_datetime}_{var_name}.tiff"],
+        "folder": ["/home/fabio/Desktop/Recolour_Workspace/ws/smap_map/spl2smp_e/spl2smp_e/multilayer/{destination_sub_path_time}"]
       }
     },
     "log": {
         "filename": "smap_downloader_spl2smp_e_log.txt",
-        "folder": "/home/hsaf/share/recolour/log/smap_downloader/"
-      },
-    "library": {
-      "filename": "",
-      "folder": ""
-    },
-    "bin": {
-      "filename": "",
-      "folder": ""
+        "folder": "/home/fabio/Desktop/Recolour_Workspace/log/smap_downloader/"
     }
   },
   "time": {
     "time_now": null,
-    "time_period": 1,
-    "time_frequency": "D",
-    "time_rounding": "H"
+    "time_period": 10,
+    "time_frequency": "h",
+    "time_rounding": "h"
   }
 }

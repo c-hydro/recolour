@@ -90,16 +90,16 @@
 
       "source": {
         "filename": ["SMAP_L3_SM_P_E_{source_datetime}_R18290_001.h5"],
-        "folder": ["/home/hsaf/share/recolour/smap_grid_ancillary/spl3smp_e/"]
+        "folder": ["/home/hsaf/share/recolour/smap_ancillary/grid/spl3smp_e/raw/"]
       },
       "ancillary": {
         "global" : {
           "filename": ["smap_ancillary_{ancillary_datetime}_{var_name}_global.tiff"],
-          "folder": ["/home/hsaf/share/recolour/smap_grid_ancillary/spl3smp_e/multilayer/global/{ancillary_sub_path_time}"]
+          "folder": ["/home/hsaf/share/recolour/smap_ancillary/grid/spl3smp_e/multilayer/global/{ancillary_sub_path_time}"]
         },
         "domain" : {
           "filename": ["smap_ancillary_{ancillary_datetime}_{var_name}_{domain}.tiff"],
-          "folder": ["/home/hsaf/share/recolour/smap_grid_ancillary/spl3smp_e/multilayer/domain/{ancillary_sub_path_time}"]
+          "folder": ["/home/hsaf/share/recolour/smap_ancillary/grid/spl3smp_e/multilayer/domain/{ancillary_sub_path_time}"]
         }
       },
       "outcome": {
@@ -108,8 +108,8 @@
       }
     },
     "log": {
-        "filename": "smap_downloader_spl3smp_e_local_log.txt",
-        "folder": "/home/hsaf/share/recolour/smap_grid_ancillary/multilayer/"
+        "filename": "smap_downloader_spl3smp_e_log.txt",
+        "folder": "/home/hsaf/share/recolour/log/smap_downloader/"
       },
     "library": {
       "filename": "",
@@ -121,8 +121,9 @@
     }
   },
   "time": {
-    "time_start": "2016-01-01",
-    "time_end": "2020-07-31",
-    "time_frequency": "D"
+    "time_now": null,
+    "time_period": 1,
+    "time_frequency": "D",
+    "time_rounding": "H"
   }
 }

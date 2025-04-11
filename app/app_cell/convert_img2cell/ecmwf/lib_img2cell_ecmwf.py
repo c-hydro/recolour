@@ -154,8 +154,7 @@ class Img2Ts(object):
     """
 
     def __init__(self, input_dataset, outputpath, startdate, enddate,
-                 input_kwargs={}, input_grid=None, target_grid=None, orientation_grid='north-south-west-east',
-                 imgbuffer=100, variable_rename=None,
+                 input_kwargs={}, input_grid=None, target_grid=None, imgbuffer=100, variable_rename=None,
                  unlim_chunksize=100, cellsize_lat=5.0, cellsize_lon=5.0,
                  r_methods='nn', r_weightf=None, r_min_n=1, r_radius=18000,
                  r_neigh=8, r_fill_values=None, filename_templ='{cell_n}.nc', cell_templ='%04d',
@@ -228,8 +227,6 @@ class Img2Ts(object):
         self.ts_dtypes = ts_dtypes
         self.time_units = time_units
         self.non_ortho_time_units = "days since 1858-11-17 00:00:00"
-
-        self.orientation_grid = orientation_grid
 
     def calc(self):
         """

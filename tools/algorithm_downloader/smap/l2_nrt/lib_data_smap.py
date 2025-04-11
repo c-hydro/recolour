@@ -11,49 +11,16 @@ Version:       '1.0.0'
 # -------------------------------------------------------------------------------------
 # libraries
 import logging
-import time
-import base64
-import itertools
-import json
-import netrc
-import re
-import os
-import ssl
-import sys
-import math
 import h5py
 
-import pandas as pd
 import numpy as np
-import xarray as xr
 import pyresample
 import pyproj
-import rasterio
-from rasterio.crs import CRS
 
-import cartopy
-import matplotlib.cm as cm
-import matplotlib.colors as mcolors
-from cartopy.mpl.geoaxes import GeoAxes
-import cartopy.crs as ccrs
-from mpl_toolkits.axes_grid1 import AxesGrid
-from pygeogrids.grids import BasicGrid, genreg_grid
+from lib_info_args import logger_name
 
-# import matplotlib.pylab as plt
-import matplotlib.pyplot as plt
-
-from multiprocessing import Pool, cpu_count
-from contextlib import contextmanager
-from argparse import ArgumentParser
-from copy import deepcopy
-from datetime import datetime
-from osgeo import gdal, gdalconst
-from osgeo.gdal import osr
-
-from urllib.parse import urlparse
-from urllib.request import urlopen, Request, build_opener, HTTPCookieProcessor
-from urllib.error import HTTPError, URLError
-
+# logger stream
+logger_stream = logging.getLogger(logger_name)
 # -------------------------------------------------------------------------------------
 
 
@@ -167,7 +134,7 @@ def process_smap_l2(file_data, file_geo_x, file_geo_y, file_col, file_row, grid_
     file_obj = pyresample.geometry.SwathDefinition(lons=lons_finite, lats=lats_finite)
 
     # if there are no finite values, use raw data (will be empy band)
-    if len(values_finite) < 1:
+    if len(values_finite)<1:
         return np.full_like(grid_sm_2d, -9999.)
 
     # join point index to grid index
@@ -175,7 +142,7 @@ def process_smap_l2(file_data, file_geo_x, file_geo_y, file_col, file_row, grid_
         pyresample.kd_tree.resample_nearest(
         source_geo_def=file_obj, data=values_finite, target_geo_def=grid_obj, radius_of_influence=9000, fill_value=np.nan)
 
-    return values_finite_resampled
 
+    return values_finite_resampled
 
 # -------------------------------------------------------------------------------------

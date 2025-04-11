@@ -22,8 +22,8 @@ time_format_algorithm = '%Y-%m-%d %H:%M'
 time_machine = pd.Timestamp.now
 
 # log information
-logger_name = 'sm_tc_logger'
-logger_file = 'sm_tc_log.txt'
+logger_name = 'smap_downloader'
+logger_file = 'smap_downloader.txt'
 logger_handle = 'file'  # 'file' or 'stream'
 logger_format = '%(asctime)s %(name)-12s %(levelname)-8s ' \
                 '%(message)-80s %(filename)s:[%(lineno)-6s - %(funcName)-20s()] '

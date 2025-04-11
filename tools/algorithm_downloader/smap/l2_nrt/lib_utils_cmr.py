@@ -25,8 +25,10 @@ from urllib.parse import urlparse
 from urllib.request import urlopen, Request, build_opener, HTTPCookieProcessor
 from urllib.error import HTTPError, URLError
 
-from lib_utils_generic import make_folder
+from lib_info_args import logger_name
 
+# logger stream
+logger_stream = logging.getLogger(logger_name)
 # -------------------------------------------------------------------------------------
 
 
@@ -38,9 +40,9 @@ def get_credentials(url, urs_url='https://urs.earthdata.nasa.gov'):
     try:
         info = netrc.netrc()
         username, account, password = info.authenticators(urlparse(urs_url).hostname)
-        errprefix = 'File netrc error: '
+        errprefix = 'File netrc error: '; print(username, account, password)
     except Exception as e:
-        logging.error(' ===> File netrc error: {0}'.format(str(e)))
+        logger_stream.error(' ===> File netrc error: {0}'.format(str(e)))
         raise RuntimeError('Credentials are not available on netrc file')
 
     while not credentials:
@@ -54,7 +56,7 @@ def get_credentials(url, urs_url='https://urs.earthdata.nasa.gov'):
                 opener = build_opener(HTTPCookieProcessor())
                 opener.open(req)
             except HTTPError:
-                logging.error(' ===> ' + errprefix + 'Incorrect username or password')
+                logger_stream.error(' ===> ' + errprefix + 'Incorrect username or password [' + url + ']')
                 raise RuntimeError('Credentials are not available on netrc file')
 
     return credentials
@@ -66,7 +68,7 @@ def get_credentials(url, urs_url='https://urs.earthdata.nasa.gov'):
 def build_version_query_params(version):
     desired_pad_length = 3
     if len(version) > desired_pad_length:
-        logging.error(' ===> Version string too long: "{0}"'.format(version))
+        logger_stream.error(' ===> Version string too long: "{0}"'.format(version))
         raise RuntimeError('String is not allowed in this format')
 
     version = str(int(version))  # Strip off any leading zeros
@@ -169,7 +171,7 @@ def cmr_download_mp(urls, dests, process_n=4, process_max=None):
         if isinstance(dest_file, list):
             dest_file = dest_file[0]
         path_name, file_name = os.path.split(dest_file)
-        make_folder(path_name)
+        os.makedirs(path_name, exist_ok=True)
 
         if not credentials and urlparse(url).scheme == 'https':
             credentials = get_credentials(url)
@@ -214,7 +216,7 @@ def cmr_download_seq(urls, dests):
             dest_file = dest_file[0]
 
         path_name, file_name = os.path.split(dest_file)
-        make_folder(path_name)
+        os.makedirs(path_name, exist_ok=True)
 
         logging.info(' -----> {0}/{1}: {2} ... '.format(str(index).zfill(len(str(url_count))), url_count, file_name))
 
@@ -256,7 +258,6 @@ def cmr_filter_urls(search_results):
         if 'rel' in link and 'data#' not in link['rel']:
             # Exclude links which are not classified by CMR as "data" or "metadata"
             continue
-
         if 'title' in link and 'opendap' in link['title'].lower():
             # Exclude OPeNDAP links--they are responsible for many duplicates
             # This is a hack; when the metadata is updated to properly identify
@@ -284,6 +285,7 @@ def cmr_search(short_name, version, time_start, time_end,
     cmr_file_url = (cmr_file_url.format(cmr_url, cmr_page_size))
 
     """Perform a scrolling CMR query for files matching input criteria."""
+    """Take a look at lib_utils_generic also for setting query of orbit, dir, version, etc..."""
     cmr_query_url = build_cmr_query_url(short_name=short_name,
                                         version=version,
                                         time_start=time_start, time_end=time_end,
@@ -291,7 +293,9 @@ def cmr_search(short_name, version, time_start, time_end,
                                         polygon=polygon, filename_filter=filename_filter,
                                         cmr_file_url=cmr_file_url)
 
-    logging.info(' ----> Querying for data:\n\t{0}\n'.format(cmr_query_url))
+   # logging.info(' ----> Querying for data:\n\t{0}\n'.format(cmr_query_url))
+
+    logging.info(' ----> Querying for data:\n' + str(cmr_query_url))
 
     cmr_scroll_id = None
     ctx = ssl.create_default_context()
@@ -304,7 +308,17 @@ def cmr_search(short_name, version, time_start, time_end,
             req = Request(cmr_query_url)
             if cmr_scroll_id:
                 req.add_header('cmr-scroll-id', cmr_scroll_id)
-            response = urlopen(req, context=ctx)
+
+            try:
+                response = urlopen(req, context=ctx)
+            except HTTPError as e:
+                logging.warning(' ===> HTTP error {0}, {1}'.format(e.code, e.reason))
+                if e.code == 429:
+                    logging.warning(' ===> No data found for the specified time period.')
+                    return []
+                else:
+                    raise RuntimeError(' ===> HTTP error {0}, {1}'.format(e.code, e.reason))
+
             if not cmr_scroll_id:
                 # Python 2 and 3 have different case for the http headers
                 headers = {k.lower(): v for k, v in dict(response.info()).items()}

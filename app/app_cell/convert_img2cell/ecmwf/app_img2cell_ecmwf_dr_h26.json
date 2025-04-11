@@ -1,11 +1,9 @@
 {
   "product": {
-        "__comment_bbox__" : "bbox format (example italy) :: [6, 35, 18.5, 47] or null",
-    "__comment_orientation__" : "(1) south-north-west-east :: hsaf_validation (2) north-south-west-east :: map tc",
+    "__comment__" : "bbox format (example italy) :: [6, 35, 18.5, 47] or null",
     "name": "h26",
-    "bbox": [6, 35, 18.5, 47],
-    "image_buffer": 5,
-    "orientation": "north-south-west-east"
+    "bbox": [6, 35, 18.5, 47] ,
+    "image_buffer": 5
   },
   "flags": {
     "reset_static": true,

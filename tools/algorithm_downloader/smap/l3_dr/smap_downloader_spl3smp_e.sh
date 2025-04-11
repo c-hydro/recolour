@@ -2,14 +2,14 @@
 
 #-----------------------------------------------------------------------------------------
 # Script information
-script_name='SMAP DOWNLOADER'
+script_name='RECOLOUR - DOWNLOADER - SOIL MOISTURE SMAP L3'
 script_version="1.0.0"
 script_date='2023/09/20'
 
 # Script settings
-script_folder_app='/home/hsaf/recolour/tools/algorithm_downloader/smap/'
+script_folder_app='/home/hsaf/recolour/tools/algorithm_downloader/smap/l3_dr/'
 script_file_app='smap_downloader_spl3smp_e.py'
-script_folder_settings='/home/hsaf/recolour/tools/algorithm_downloader/smap/'
+script_folder_settings='/home/hsaf/recolour/tools/algorithm_downloader/smap/l3_dr/'
 
 script_file_settings='smap_downloader_spl3smp_e.json'
 
@@ -17,11 +17,11 @@ script_file_settings='smap_downloader_spl3smp_e.json'
 virtual_env_folder='/home/hsaf/recolour/conda/bin/'
 virtual_env_name='recolour_libraries'
 
-# Time period execution
-time_period_hour=0 # fixed on zero to provide actual time only
-
 # Time settings (-u to get gmt time)
 time_now=$(date +"%Y-%m-%d %H:00")
+
+# Time period execution
+time_period_days=3
 #-----------------------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------------------
@@ -46,10 +46,10 @@ echo " ==> START ..."
 
 # Iterate over hours
 time_run=$(date -d "$time_now" +'%Y-%m-%d %H:00')
-for time_period_step in $(seq 0 $time_period_hour); do
+for time_period_step in $(seq 0 $time_period_days); do
     
     # Parse time information
-    time_step=$(date -d "$time_run ${time_period_step} hour ago" +'%Y-%m-%d %H:00')
+    time_step=$(date -d "$time_run ${time_period_step} days ago" +'%Y-%m-%d %H:00')
 
 	# Run python script (using setting and time)
 	echo -n " ===> COMMAND LINE: "

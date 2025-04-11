@@ -41,6 +41,9 @@ def organize_file_tiff(obj_data, obj_time=None, obj_variable_in=None, obj_variab
         string_time = obj_time.strftime(time_format_datasets)
     elif isinstance(obj_time, str):
         string_time = deepcopy(obj_time)
+    elif obj_time is None:
+        alg_logger.warning(' ===> Time obj format is defined by NoneType')
+        string_time = 'NAT'
     else:
         alg_logger.error(' ===> Time obj format is not supported')
         raise NotImplemented('Case not implemented yet')

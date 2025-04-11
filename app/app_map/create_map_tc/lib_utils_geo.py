@@ -111,101 +111,112 @@ def resample_grid_to_points(obj_map, obj_cell, geo_mask, geo_x_2d, geo_y_2d,
             geo_x_1d_finite = var_dframe['lon'].values
             geo_y_1d_finite = var_dframe['lat'].values
 
-            # resample data 2d values into grid dimension(s)
-            var_map_obj = resample_to_grid(
-                {'data': var_map_data_1d_finite},
-                geo_x_1d_finite, geo_y_1d_finite, var_cell_x_2d, var_cell_y_2d,
-                search_rad=search_rad, fill_values=fill_values,
-                min_neighbours=min_neighbours, neighbours=neighbours)
-            var_map_data_2d_resampled = np.flipud(var_map_obj['data'])
+            # check finite values available
+            if var_map_data_1d_finite.__len__() > 0:
 
-            mask_map_obj = resample_to_grid(
-                {'data': geo_mask.ravel()},
-                geo_x_1d_in, geo_y_1d_in, var_cell_x_2d, var_cell_y_2d,
-                search_rad=search_rad, fill_values=fill_values,
-                min_neighbours=min_neighbours, neighbours=neighbours)
-            var_map_mask_2d_resampled = np.flipud(mask_map_obj['data'])
-
-            # resample data 2d values into grid dimension(s)
-            var_map_obj = resample_to_grid(
-                {'data': var_map_tmp_1d_in},
-                geo_x_1d_in, geo_y_1d_in, var_cell_x_2d, var_cell_y_2d,
-                search_rad=search_rad, fill_values=fill_values,
-                min_neighbours=min_neighbours, neighbours=neighbours)
-            var_map_tmp_2d_resampled = np.flipud(var_map_obj['data'])
-            var_map_tmp_2d_resampled[var_map_tmp_2d_resampled < var_min] = var_no_data
-            var_map_tmp_2d_resampled[var_map_tmp_2d_resampled < var_min] = var_no_data
-
-            # resample cell 2d values into grid dimension(s)
-            var_cell_obj = resample_to_grid(
-                {'data': var_cell_data_1d_in},
-                var_cell_x_1d, var_cell_y_1d, var_cell_x_2d, var_cell_y_2d,
-                search_rad=search_rad, fill_values=fill_values,
-                min_neighbours=min_neighbours, neighbours=neighbours)
-            var_cell_data_2d_resampled = np.flipud(var_cell_obj['data'])
-
-            # define geometry definition(s)
-            map_obj = pyresample.geometry.GridDefinition(lons=var_cell_x_2d, lats=np.flipud(var_cell_y_2d))
-            cell_obj = pyresample.geometry.SwathDefinition(lons=var_cell_x_1d, lats=var_cell_y_1d)
-
-            # determine nearest (w.r.t. great circle distance) neighbour in the grid.
-            _, _, index_array_1d, distance_array_1d = pyresample.kd_tree.get_neighbour_info(
-                source_geo_def=map_obj, target_geo_def=cell_obj, radius_of_influence=search_rad,
-                neighbours=neighbours)
-            index_array_2d = np.unravel_index(index_array_1d, map_obj.shape)
-
-            # apply map condition(s)
-            idx_map_nodata_2d_tmp = np.argwhere(var_map_tmp_2d_resampled == var_no_data)
-            var_map_tmp_2d_resampled[idx_map_nodata_2d_tmp[:, 0], idx_map_nodata_2d_tmp[:, 1]] = var_map_data_2d_resampled[
-                idx_map_nodata_2d_tmp[:, 0], idx_map_nodata_2d_tmp[:, 1]]
-
-            # organize data 2d in data 1d (using index array)
-            var_map_data_1d_resampled = var_map_tmp_2d_resampled[index_array_2d[0], index_array_2d[1]]
-
-            # check variable boundaries (if defined)
-            if var_min is not None:
-                var_map_data_1d_resampled[var_map_data_1d_resampled < var_min] = np.nan
-            if var_max is not None:
-                var_map_data_1d_resampled[var_map_data_1d_resampled > var_max] = np.nan
-
-            # store data 1d in object
-            obj_cell[var_name_data] = var_map_data_1d_resampled
-            if 'mask' not in list(obj_mask.keys()):
-                obj_mask['mask'] = var_map_mask_2d_resampled
-
-            # active debug (to check the resampled variable)
-            if debug:
-                alg_logger.debug(' ===> Check resampled variable ... START')
-
-                var_debug_data_1d = obj_cell[var_name_data].values
-                var_debug_x_1d = obj_cell[var_name_geo_x].values
-                var_debug_y_1d = obj_cell[var_name_geo_y].values
-                var_debug_x_2d, var_debug_y_2d = np.meshgrid(np.unique(var_debug_x_1d), np.unique(var_debug_y_1d))
-
-                var_debug_obj = resample_to_grid(
-                    {'data': var_debug_data_1d},
-                    var_debug_x_1d, var_debug_y_1d, var_debug_x_2d, var_debug_y_2d,
+                # resample data 2d values into grid dimension(s)
+                var_map_obj = resample_to_grid(
+                    {'data': var_map_data_1d_finite},
+                    geo_x_1d_finite, geo_y_1d_finite, var_cell_x_2d, var_cell_y_2d,
                     search_rad=search_rad, fill_values=fill_values,
                     min_neighbours=min_neighbours, neighbours=neighbours)
-                var_debug_data_2d = np.flipud(var_debug_obj['data'])
+                var_map_data_2d_resampled = np.flipud(var_map_obj['data'])
 
-                mask_debug_obj = resample_to_grid(
+                mask_map_obj = resample_to_grid(
                     {'data': geo_mask.ravel()},
-                    geo_x_2d.ravel(), geo_y_2d.ravel(), var_debug_x_2d, var_debug_y_2d,
+                    geo_x_1d_in, geo_y_1d_in, var_cell_x_2d, var_cell_y_2d,
                     search_rad=search_rad, fill_values=fill_values,
                     min_neighbours=min_neighbours, neighbours=neighbours)
-                mask_debug_2d = np.flipud(mask_debug_obj['data'])
+                var_map_mask_2d_resampled = np.flipud(mask_map_obj['data'])
 
-                var_debug_data_2d[mask_debug_2d == 0] = np.nan
+                # resample data 2d values into grid dimension(s)
+                var_map_obj = resample_to_grid(
+                    {'data': var_map_tmp_1d_in},
+                    geo_x_1d_in, geo_y_1d_in, var_cell_x_2d, var_cell_y_2d,
+                    search_rad=search_rad, fill_values=fill_values,
+                    min_neighbours=min_neighbours, neighbours=neighbours)
+                var_map_tmp_2d_resampled = np.flipud(var_map_obj['data'])
+                var_map_tmp_2d_resampled[var_map_tmp_2d_resampled < var_min] = var_no_data
+                var_map_tmp_2d_resampled[var_map_tmp_2d_resampled < var_min] = var_no_data
 
-                # check data
-                plot_data_2d(var_map_data_2d_in, geo_x_2d, geo_y_2d)
-                plot_data_2d(var_map_tmp_2d_resampled, geo_x_2d, geo_y_2d)
-                plot_data_2d(var_map_data_2d_resampled, geo_x_2d, geo_y_2d)
-                plot_data_2d(var_cell_data_2d_resampled, geo_x_2d, geo_y_2d)
-                plot_data_2d(var_debug_data_2d, var_cell_x_2d, var_cell_y_2d)
+                # resample cell 2d values into grid dimension(s)
+                var_cell_obj = resample_to_grid(
+                    {'data': var_cell_data_1d_in},
+                    var_cell_x_1d, var_cell_y_1d, var_cell_x_2d, var_cell_y_2d,
+                    search_rad=search_rad, fill_values=fill_values,
+                    min_neighbours=min_neighbours, neighbours=neighbours)
+                var_cell_data_2d_resampled = np.flipud(var_cell_obj['data'])
 
-                alg_logger.debug(' ===> Check resampled variable ... END')
+                # define geometry definition(s)
+                map_obj = pyresample.geometry.GridDefinition(lons=var_cell_x_2d, lats=np.flipud(var_cell_y_2d))
+                cell_obj = pyresample.geometry.SwathDefinition(lons=var_cell_x_1d, lats=var_cell_y_1d)
+
+                # determine nearest (w.r.t. great circle distance) neighbour in the grid.
+                _, _, index_array_1d, distance_array_1d = pyresample.kd_tree.get_neighbour_info(
+                    source_geo_def=map_obj, target_geo_def=cell_obj, radius_of_influence=search_rad,
+                    neighbours=neighbours)
+                index_array_2d = np.unravel_index(index_array_1d, map_obj.shape)
+
+                # apply map condition(s)
+                idx_map_nodata_2d_tmp = np.argwhere(var_map_tmp_2d_resampled == var_no_data)
+                var_map_tmp_2d_resampled[idx_map_nodata_2d_tmp[:, 0], idx_map_nodata_2d_tmp[:, 1]] = var_map_data_2d_resampled[
+                    idx_map_nodata_2d_tmp[:, 0], idx_map_nodata_2d_tmp[:, 1]]
+
+                # organize data 2d in data 1d (using index array)
+                var_map_data_1d_resampled = var_map_tmp_2d_resampled[index_array_2d[0], index_array_2d[1]]
+
+                # check variable boundaries (if defined)
+                if var_min is not None:
+                    var_map_data_1d_resampled[var_map_data_1d_resampled < var_min] = np.nan
+                if var_max is not None:
+                    var_map_data_1d_resampled[var_map_data_1d_resampled > var_max] = np.nan
+
+                # store data 1d in object
+                obj_cell[var_name_data] = var_map_data_1d_resampled
+                if 'mask' not in list(obj_mask.keys()):
+                    obj_mask['mask'] = var_map_mask_2d_resampled
+
+                # active debug (to check the resampled variable)
+                if debug:
+                    alg_logger.debug(' ===> Check resampled variable ... START')
+
+                    var_debug_data_1d = obj_cell[var_name_data].values
+                    var_debug_x_1d = obj_cell[var_name_geo_x].values
+                    var_debug_y_1d = obj_cell[var_name_geo_y].values
+                    var_debug_x_2d, var_debug_y_2d = np.meshgrid(np.unique(var_debug_x_1d), np.unique(var_debug_y_1d))
+
+                    var_debug_obj = resample_to_grid(
+                        {'data': var_debug_data_1d},
+                        var_debug_x_1d, var_debug_y_1d, var_debug_x_2d, var_debug_y_2d,
+                        search_rad=search_rad, fill_values=fill_values,
+                        min_neighbours=min_neighbours, neighbours=neighbours)
+                    var_debug_data_2d = np.flipud(var_debug_obj['data'])
+
+                    mask_debug_obj = resample_to_grid(
+                        {'data': geo_mask.ravel()},
+                        geo_x_2d.ravel(), geo_y_2d.ravel(), var_debug_x_2d, var_debug_y_2d,
+                        search_rad=search_rad, fill_values=fill_values,
+                        min_neighbours=min_neighbours, neighbours=neighbours)
+                    mask_debug_2d = np.flipud(mask_debug_obj['data'])
+
+                    var_debug_data_2d[mask_debug_2d == 0] = np.nan
+
+                    # check data
+                    plot_data_2d(var_map_data_2d_in, geo_x_2d, geo_y_2d)
+                    plot_data_2d(var_map_tmp_2d_resampled, geo_x_2d, geo_y_2d)
+                    plot_data_2d(var_map_data_2d_resampled, geo_x_2d, geo_y_2d)
+                    plot_data_2d(var_cell_data_2d_resampled, geo_x_2d, geo_y_2d)
+                    plot_data_2d(var_debug_data_2d, var_cell_x_2d, var_cell_y_2d)
+
+                    alg_logger.debug(' ===> Check resampled variable ... END')
+
+            else:
+                # dataset name is not available in the object
+                alg_logger.warning(' ===> Dataset name "' + var_name_dset + '" is defined by Nan values')
+                # initialize empty variable (to avoid issues in the no data case)
+                var_map_data_1d_resampled = np.zeros(shape=(var_cell_data_1d_in.shape[0]))
+                var_map_data_1d_resampled[:] = var_filled
+                obj_cell[var_name_data] = var_map_data_1d_resampled
 
         else:
             # dataset name is not available in the object

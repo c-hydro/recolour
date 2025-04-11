@@ -1,0 +1,85 @@
+{
+  "flags": {
+    "reset_ancillary_datasets_points": true,
+    "reset_ancillary_datasets_grid": true,
+    "reset_destination_datasets": true,
+    "reset_logs": true
+  },
+  "info": {
+    "datasets": "ASCAT",
+    "product": "H119"
+  },
+  "cells": {
+    "__comment__": "cell_start=0, cell_end=2591",
+    "name": "liguria",
+    "cell_start": 1394,
+    "cell_end": 1398,
+    "cell_list": [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430, 1431]
+  },
+  "parameters": {
+    "__comment__": "grid_resolution: 0.05 --> errors because change reference grid",
+    "resampling_max_distance": 45000,
+    "resampling_grid_resolution": null,
+    "resampling_min_neighbours": 1,
+    "resampling_neighbours": 8,
+    "resampling_variable": {
+      "name": ["mean", "min", "max", "var", "snr"],
+      "min_value": [null, null, null, null],
+      "max_value": [null, null, null, null]
+    }
+  },
+  "datasets": {
+    "static": {
+      "grid_product": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_static/",
+        "file_name": "TUW_WARP5_grid_info_2_3.nc"
+      },
+      "grid_reference" : {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/domain/",
+        "file_name": "grid_reference_250m_liguria.tiff"
+      }
+    },
+    "dynamic" : {
+      "source": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_hsaf/results/2024_ascat_gldas_cci_italy/",
+        "file_name": "{cell}.nc",
+        "variables_in": [
+          "gpi", "lon", "lat", "ALL_n_obs",
+          "ref_ALL_snr", "ref_ALL_mean", "ref_ALL_min", "ref_ALL_max", "ref_ALL_var"
+        ],
+        "variables_out": [
+          "gpi", "lon", "lat", "n",
+          "snr", "mean", "min", "max", "var"
+        ]
+      },
+      "ancillary": {
+        "points" : {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_ancillary/cell2grid/metrics/",
+          "file_name": "ascat_metrics_cell_liguria.nc"
+        },
+        "grid": {
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_ancillary/cell2grid/metrics/",
+          "file_name": "ascat_metrics_grid_liguria.workspace"
+        },
+        "format": "netcdf"
+      },
+      "destination": {
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_map/metrics/",
+        "file_name": "ascat_metrics_grid_liguria.tiff",
+        "variables_in": {
+          "datasets": ["mean", "min", "max", "var"],
+          "registry": ["longitude", "latitude"]
+        },
+        "variables_out": {
+          "datasets": ["sm_mean", "sm_min", "sm_max", "sm_var"],
+          "registry": ["longitude", "latitude"]
+        },
+        "format": "tiff"
+      }
+    }
+  },
+  "log": {
+    "path_log" : "/home/fabio/Desktop/Recolour_Workspace/ws/log/cell2grid/metrics/",
+    "file_log": "app_map_cell2grid_ascat_metrics_liguria.txt"
+  }
+}

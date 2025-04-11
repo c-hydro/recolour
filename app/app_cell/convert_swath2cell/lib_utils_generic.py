@@ -117,7 +117,8 @@ def make_folder(path):
 def reset_folder(folder_name, folder_reset=False, folder_make=True):
     if folder_reset:
         if os.path.exists(folder_name):
-            shutil.rmtree(folder_name)
+            os.remove(folder_name)
+            #shutil.rmtree(folder_name)
     if folder_make:
         os.makedirs(folder_name, exist_ok=True)
 # ----------------------------------------------------------------------------------------------------------------------
