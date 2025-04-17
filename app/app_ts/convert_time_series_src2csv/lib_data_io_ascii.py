@@ -6,6 +6,7 @@ Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
 Date:          '20231010'
 Version:       '1.0.0'
 """
+import glob
 
 # ----------------------------------------------------------------------------------------------------------------------
 # libraries
@@ -56,6 +57,13 @@ def wrap_datasets_ascii(file_path_template,
         time_range_start = replace_time_part(time_range_start, time_rounding=time_rounding, time_value=0)
         time_range_end = pd.date_range(time_start, time_end, freq='Y')
         time_range_end = replace_time_part(time_range_end, time_rounding=time_rounding, time_value=23)
+
+    elif time_frequency == 'h' or time_frequency == 'H':
+
+        time_step_stamp = pd.Timestamp(time_end)
+        time_step_stamp = time_step_stamp.round(time_frequency.lower())
+        time_range_start, time_range_end = ['*'], pd.DatetimeIndex([time_step_stamp])
+
     else:
         log_stream.error(' ===> Time frequency "' + time_frequency + '" is not expected')
         raise NotImplementedError('Case not implemented yet')
@@ -73,9 +81,17 @@ def wrap_datasets_ascii(file_path_template,
         fields_data_collections = None
         for time_step_start, time_step_end in zip(time_range_start, time_range_end):
 
+            # define time period tag
+            if time_step_start is not None and time_step_end is not None:
+                time_period_tag = 'from "' +str(time_step_start) + '" to "' + str(time_step_end) + '"'
+            elif time_step_start is None and time_step_end is not None:
+                time_period_tag = str(time_step_end)
+            else:
+                log_stream.error(' ===> Time period case is not expected')
+                raise NotImplementedError('Case not implemented yet')
+
             # info time period start
-            log_stream.info(' -------> Time Period "' + str(time_step_start) + '" :: "' + str(time_step_end) +
-                            '" ... ')
+            log_stream.info(' -------> Get datasets for time reference ' + time_period_tag + ' ... ')
 
             # fill time tags
             template_time_values = fill_tags_time(
@@ -91,12 +107,22 @@ def wrap_datasets_ascii(file_path_template,
             file_path_defined = fill_tags2string(
                 file_path_template, tags_format=template_generic_tags, tags_filling=template_generic_values)[0]
 
+            # search for undefined time start or time end file(s)
+            if '*' in file_path_defined:
+                file_path_list = glob.glob(file_path_defined)
+                if not file_path_list:
+                    file_path_selected = None
+                else:
+                    file_path_selected = file_path_list[0]
+            else:
+                file_path_selected = file_path_defined
+
             # check file availability
-            if os.path.exists(file_path_defined):
+            if (file_path_selected is not None) and (os.path.exists(file_path_selected)):
 
                 # get file fields
                 fields_data_raw = pd.read_table(
-                    file_path_defined, sep=file_sep, decimal=file_decimal)
+                    file_path_selected, sep=file_sep, decimal=file_decimal)
                 fields_data_raw.columns = fields_data_raw.columns.str.strip()
                 # map file fields
                 fields_data_map = map_vars_dframe(fields_data_raw, file_fields)
@@ -121,34 +147,52 @@ def wrap_datasets_ascii(file_path_template,
                 else:
                     fields_data_collections = pd.concat([fields_data_collections, fields_data_map])
 
-                # info time period end
-                log_stream.info(' -------> Time Period "' + str(time_step_start) + '" :: "' + str(time_step_end) +
-                                '" ... DONE')
-            else:
-                log_stream.info(' -------> Time Period "' + str(time_step_start) + '" :: "' + str(time_step_end) +
-                                '" ... SKIPPED. File "' + file_path_defined + '" does not exists.')
+                # info time period end (done)
+                log_stream.info(' -------> Get datasets for time reference  ' + time_period_tag + ' ... DONE')
 
-        if section_time_start is None:
-            section_time_start = fields_data_collections.index[0]
-        else:
-            assert section_time_start == fields_data_collections.index[0], 'time start are not equal'
-        if section_time_end is None:
-            section_time_end = fields_data_collections.index[-1]
-        else:
-            assert section_time_end == fields_data_collections.index[-1], 'time end are not equal'
-
-        # sort index
-        if sort_index:
-            if ascending_index:
-                fields_data_collections = fields_data_collections.sort_index(ascending=True)
             else:
-                fields_data_collections = fields_data_collections.sort_index(ascending=False)
+                # info time period end (skipped - file is not available)
+                log_stream.info(' -------> Get datasets for time reference  ' + time_period_tag +
+                                ' ... SKIPPED. File "' + file_path_defined + '" does not exists.')
+
+        # info organize dataset start
+        log_stream.info(' -------> Organize datasets ... ')
+
+        # check if data is available
+        if fields_data_collections is not None:
+            if section_time_start is None:
+                section_time_start = fields_data_collections.index[0]
+            else:
+                assert section_time_start == fields_data_collections.index[0], 'time start are not equal'
+            if section_time_end is None:
+                section_time_end = fields_data_collections.index[-1]
+            else:
+                assert section_time_end == fields_data_collections.index[-1], 'time end are not equal'
+
+            # sort index
+            if sort_index:
+                if ascending_index:
+                    fields_data_collections = fields_data_collections.sort_index(ascending=True)
+                else:
+                    fields_data_collections = fields_data_collections.sort_index(ascending=False)
+
+            # info organize dataset end (done)
+            log_stream.info(' -------> Organize datasets ... DONE')
+
+        else:
+            # info organize dataset end (skipped - dataset are not available)
+            log_stream.info(' -------> Organize datasets ... SKIPPED. No data available for the selected time period')
 
         # store section data to common workspace
         section_data_collections[registry_tag] = fields_data_collections
 
         # info point end
         log_stream.info(' ------> Point (1) Code "' + registry_code + '" (2) Tag "' + registry_tag + '" ... DONE')
+
+    # check collections
+    section_elements = list(section_data_collections.values())
+    if all(element is None for element in section_elements):
+        section_data_collections = None
 
     return section_data_collections, section_time_start, section_time_end
 # ----------------------------------------------------------------------------------------------------------------------

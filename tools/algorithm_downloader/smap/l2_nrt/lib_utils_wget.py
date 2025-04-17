@@ -75,8 +75,11 @@ def search_file_url(remote_url: str, file_ext: str ='.h5',
         soup = BeautifulSoup(response.text, 'html.parser')
 
         remote_files = [remote_url + '/' + node.get('href') for node in soup.find_all('a') if node.get('href').endswith(file_ext)]
-        remote_files = list(set(remote_files))  # Remove duplicates
+        remote_files = list(set(remote_files))  # remove duplicates
+        remote_files = sorted(remote_files)     # sort by name
 
+        folder_lock, _ = os.path.split(file_lock)
+        os.makedirs(folder_lock, exist_ok=True)
         write_obj(file_lock, remote_files)
 
     else:
@@ -91,7 +94,7 @@ def search_file_url(remote_url: str, file_ext: str ='.h5',
 # define the command to download files
 def create_file_wget(user: str, password: str, save_path: str):
 
-    wget_cmd = 'wget --user {user} --password {password} -P {save_path} -nH --cut-dirs 4 --load-cookies ~/.urs_cookies --save-cookies ~/.urs_cookies --keep-session-cookies --no-check-certificate --auth-no-challenge=on -r --reject "index.html*" -np -e robots=off'
+    wget_cmd = 'wget --user "{user}" --password "{password}" -P {save_path} -nH --cut-dirs 4 --load-cookies ~/.urs_cookies --save-cookies ~/.urs_cookies --keep-session-cookies --no-check-certificate --auth-no-challenge=on -r --reject "index.html*" -np -e robots=off'
     wget_cmd = wget_cmd.format(user=user, password=password, save_path=save_path)
 
     return wget_cmd

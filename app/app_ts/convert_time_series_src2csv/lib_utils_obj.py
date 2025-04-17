@@ -115,11 +115,17 @@ def fill_tags_time(template_time_tags,
     for template_key, template_value in template_time_tags.items():
         if 'start' in template_key:
             if time_start is not None:
-                time_string = time_start.to_pydatetime()
+                if time_start == '*':
+                    time_string = '*'
+                else:
+                    time_string = time_start.to_pydatetime()
                 template_time_values[template_key] = time_string
         elif 'end' in template_key:
             if time_end is not None:
-                time_string = time_end.to_pydatetime()
+                if time_end == '*':
+                    time_string = '*'
+                else:
+                    time_string = time_end.to_pydatetime()
                 template_time_values[template_key] = time_string
         else:
             if time_reference is not None:

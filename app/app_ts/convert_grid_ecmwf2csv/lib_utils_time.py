@@ -108,7 +108,7 @@ def set_time(time_ref_args=None, time_ref_file=None, time_format='%Y-%m-%d %H:$M
             log_stream.error(' ===> TimePeriod "' + str(time_period) + '" type is not supported')
             raise NotImplementedError('Case not implemented yet')
 
-        logging.info(' -----> Time info defined by "time_run" argument ... DONE')
+        log_stream.info(' -----> Time info defined by "time_run" argument ... DONE')
 
     elif (time_ref_file_start is not None) and (time_ref_file_end is not None):
 

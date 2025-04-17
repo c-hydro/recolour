@@ -141,19 +141,40 @@ class DriverData:
             log_stream.error(' ===> File format "' + self.format_datasets + '" is not supported')
             raise NotImplemented('Case not implemented yet')
 
-        # method to range data point
-        time_frequency_expected, time_start_expected, time_end_expected = range_data_point(
-            fields_dframe_obj, time_run_reference=self.time_reference,
-            time_start_reference=self.time_start, time_end_reference=self.time_end)
+        #  check dataframe object
+        if fields_dframe_obj is not None:
 
-        # method to combine data point to the expected time range
-        fields_dframe_obj = combine_data_point_by_time(
-            fields_dframe_obj, registry_fields,
-            time_start_expected=time_start_expected, time_end_expected=time_end_expected,
-            time_frequency_expected=time_frequency_expected, time_reverse=True)
+            # check time start and time end
+            if self.time_start is None:
+                log_stream.warning(' ===> Time start is defined by NoneType. '
+                                   'The algorithm will use the time start "' + str(fields_time_start) + '"'
+                                   'get from the datasets file.')
+                self.time_start = fields_time_start
+            if self.time_end is None:
+                log_stream.warning(' ===> Time end is defined by NoneType. '
+                                   'The algorithm will use the time end "' + str(fields_time_end) + '"'
+                                   'get from the datasets file.')
+                self.time_end = fields_time_end
 
-        # info end method
-        log_stream.info(' -----> Read file datasets ... DONE')
+            # method to range data point
+            time_frequency_expected, time_start_expected, time_end_expected = range_data_point(
+                fields_dframe_obj, time_run_reference=self.time_reference,
+                time_start_reference=self.time_start, time_end_reference=self.time_end)
+
+            # method to combine data point to the expected time range
+            fields_dframe_obj = combine_data_point_by_time(
+                fields_dframe_obj, registry_fields,
+                time_start_expected=time_start_expected, time_end_expected=time_end_expected,
+                time_frequency_expected=time_frequency_expected, time_reverse=True)
+
+            # info end method
+            log_stream.info(' -----> Read file datasets ... DONE')
+
+        else:
+
+            # info end method
+            fields_dframe_obj, time_start_expected, time_end_expected = None, None, None
+            log_stream.info(' -----> Read file datasets ... SKIPPED. All dynamic datasets are not defined.')
 
         return fields_dframe_obj, time_start_expected, time_end_expected
     # -------------------------------------------------------------------------------------
@@ -213,23 +234,36 @@ class DriverData:
             dframe_datasets, dframe_time_start, dframe_time_end = self.get_obj_datasets(
                 file_path_datasets, self.fields_datasets, dframe_registry)
 
-            # organize dframe obj
-            dframe_obj = {
-                'registry': dframe_registry, 'datasets': dframe_datasets,
-                'time_start': dframe_time_start, 'time_end': dframe_time_end
-            }
+            # check dframe datasets
+            if dframe_datasets is not None:
 
-            # dump dframe obj
-            folder_name_ancillary, file_name_ancillary = os.path.split(file_path_ancillary)
-            make_folder(folder_name_ancillary)
-            write_obj(file_path_ancillary, dframe_obj)
+                # organize dframe obj
+                dframe_obj = {
+                    'registry': dframe_registry, 'datasets': dframe_datasets,
+                    'time_start': dframe_time_start, 'time_end': dframe_time_end
+                }
+
+                # dump dframe obj
+                folder_name_ancillary, file_name_ancillary = os.path.split(file_path_ancillary)
+                make_folder(folder_name_ancillary)
+                write_obj(file_path_ancillary, dframe_obj)
+
+                # method end info
+                log_stream.info(' ----> Organize source object(s) ... DONE')
+
+            else:
+                # info end method
+                dframe_obj = None
+                log_stream.info(' ----> Organize source object(s) ... SKIPPED. '
+                                'All dynamic datasets are not defined.')
 
         else:
             # read source obj
             dframe_obj = read_obj(file_path_ancillary)
 
-        # method end info
-        log_stream.info(' ----> Organize source object(s) ... DONE')
+            # method end info
+            log_stream.info(' ----> Organize source object(s) ... DONE. '
+                            'Datasets are read from file "' + str(file_path_ancillary) + '"')
 
         return dframe_obj
 

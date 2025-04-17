@@ -28,6 +28,7 @@ logger_stream = logging.getLogger(logger_name)
 def parse_file_json(json_dict):
 
     log_dict = json_dict['data']['log']
+    lock_dict = json_dict['data']['lock']
 
     alg_ancillary = json_dict['algorithm']['ancillary']
     alg_template = json_dict['algorithm']['template']
@@ -38,7 +39,7 @@ def parse_file_json(json_dict):
     data_static_dict = json_dict['data']['static']
     data_dynamic_dict = json_dict['data']['dynamic']
 
-    return (log_dict, time_dict, product_dict,
+    return (log_dict, lock_dict, time_dict, product_dict,
             alg_ancillary, alg_template, alg_flags,
             data_static_dict, data_dynamic_dict)
 # ----------------------------------------------------------------------------------------------------------------------

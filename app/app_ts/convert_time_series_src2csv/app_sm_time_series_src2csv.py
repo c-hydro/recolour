@@ -3,8 +3,8 @@
 """
 RECOLOUR APP - TIME-SERIES POINT SOURCE 2 CSV  - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20231120'
-__version__ = '1.5.0'
+__date__ = '20250419'
+__version__ = '1.6.0'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)'
 __library__ = 'recolour'
@@ -13,12 +13,13 @@ General command line:
 python app_sm_time_series_src2csv.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
+20250419 (1.6.0) --> Upgrade codes to nrt file to consider different time period and no data availability
 20231120 (1.5.0) --> Upgrade codes to ascii file, add time information; upgrade codes and fix bugs
 20231010 (1.0.0) --> First development
 """
 
-# -------------------------------------------------------------------------------------
-# Complete library
+# ----------------------------------------------------------------------------------------------------------------------
+# libraries
 import logging
 import time
 import os
@@ -33,25 +34,25 @@ from lib_utils_time import set_time
 from lib_utils_logging import set_logging_file
 from lib_info_args import logger_name, time_format_algorithm
 
-# Logging
+# logger
 log_stream = logging.getLogger(logger_name)
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # algorithm information
 project_name = 'recolour'
 alg_name = 'Application for making time-series point source 2 csv'
 alg_type = 'Package'
-alg_version = '1.5.0'
-alg_release = '2023-11-20'
-# -------------------------------------------------------------------------------------
+alg_version = '1.6.0'
+alg_release = '2025-04-19'
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # Script Main
 def main():
 
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # Get algorithm settings
     alg_settings, alg_time = get_args()
 

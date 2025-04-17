@@ -2,9 +2,13 @@
 Changelog
 =========
 
-Version 2.0.0 [2025-04-11]
+Version 2.0.0 [2025-04-17]
 **************************
 - PROJECT: operational framework grid	
+	- APPS -- merge_grid2ref
+		- first release to megre partial grid to the reference one
+	- APPS -- convert_time_step_src2csv
+		- extend settings to the operational mode run
 	- TOOLS -- DOWNLOADER SMAP: smap_downloader_spl2smp_e.py
 		- refactor of all application methods and algorithm
 

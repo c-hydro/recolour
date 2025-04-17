@@ -7,13 +7,13 @@ script_version="1.2.0"
 script_date='2024/02/29'
 
 # Script settings
-script_folder_app='/share/home/idrologia/package/package_recolour/app/app_ts/convert_grid_ecmwf2csv/'
+script_folder_app='/home/cfmi.arpal.org/satsuolo/library/package_recolour/app/app_ts/convert_grid_ecmwf2csv/'
 script_file_app='app_sm_grid_ecmwf2csv.py'
-script_folder_settings='/share/home/idrologia/project/sm_ts/algorithm_runner/'
-script_file_settings='app_sm_grid_ecmwf2csv_liguria_realtime_previous_month.json'
+script_folder_settings='/home/cfmi.arpal.org/satsuolo/Umidita_suolo/algorithm_runner_ts/ecmwf/algorithm_runner_ts/ecmwf/'
+script_file_settings='app_sm_grid_ecmwf2csv_nrt_previous_month.json'
 
 # Venv settings
-virtual_env_folder='/home/idrologia/library/conda_recolour/bin/'
+virtual_env_folder='/home/cfmi.arpal.org/satsuolo/library/conda_recolour/bin/'
 virtual_env_name='recolour_runner_libraries'
 
 # Time settings (-u to get gmt time)

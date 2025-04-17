@@ -251,12 +251,17 @@ class DriverData:
                     folder_name, file_name = os.path.split(file_path_defined)
                     make_folder(folder_name)
 
+                    # info write file start
+                    log_stream.info(' ------> Write file datasets variable "' + file_path_defined + '" ... ')
+
                     # dump datasets dframe
                     write_file_csv(
                         file_path_defined, file_dframe_selected,
                         dframe_index_label='time', dframe_index_format='%Y-%m-%d %H:%M',
                         dframe_sep=';', dframe_decimal='.', dframe_float_format='%.1f',
                         dframe_index=True, dframe_header=True)
+                    # info write file end
+                    log_stream.info(' ------> Write file datasets variable "' + file_path_defined + '" ... DONE')
 
                     # info type start
                     log_stream.info(' ------> Datasets "' + self.type_datasets + '" ... DONE')
@@ -306,11 +311,15 @@ class DriverData:
                         folder_name, file_name = os.path.split(file_path_defined)
                         make_folder(folder_name)
 
+                        # info write file start
+                        log_stream.info(' -------> Write file datasets point "' + file_path_defined + '" ... ')
                         # dump datasets dframe
                         write_file_csv(
                             file_path_defined, point_dframe_selected,
                             dframe_sep=',', dframe_decimal='.', dframe_float_format='%.2f',
                             dframe_index=True, dframe_header=True)
+                        # info write file end
+                        log_stream.info(' -------> Write file datasets point "' + file_path_defined + '" ... DONE')
 
                         # info point end
                         log_stream.info(' -------> Point "' + point_name + '" ... DONE')
@@ -343,7 +352,7 @@ class DriverData:
         file_path_defined = self.define_file_name(file_path_template)
 
         # info start method
-        log_stream.info(' -----> Dump file registry "' + file_path_defined + '" ... ')
+        log_stream.info(' -----> Dump file registry ... ')
 
         # reset destination file(s)
         if self.reset_destination:
@@ -366,6 +375,9 @@ class DriverData:
                 folder_name, file_name = os.path.split(file_path_defined)
                 make_folder(folder_name)
 
+                # info write file start
+                log_stream.info(' ------> Write file registry "' + file_path_defined + '" ... ')
+
                 # dump registry dframe
                 write_file_csv(
                     file_path_defined, file_dframe_map,
@@ -373,19 +385,20 @@ class DriverData:
                     dframe_sep=';', dframe_decimal='.', dframe_float_format='%.3f',
                     dframe_index=False, dframe_header=True)
 
+                # info write file start
+                log_stream.info(' ------> Write file registry "' + file_path_defined + '" ... DONE')
+
                 # info end method
-                log_stream.info(' -----> Dump file registry "' + file_path_defined +
-                                '" ... DONE')
+                log_stream.info(' -----> Dump file registry ... DONE')
 
             else:
-                log_stream.info(' -----> Dump file registry "' + file_path_defined +
-                                '" ... FAILED')
+                log_stream.info(' -----> Dump file registry ... FAILED')
                 log_stream.error(' ===> File format is not supported')
                 raise NotImplemented('Case not implemented yet')
 
         else:
-            log_stream.info(' -----> Dump file registry "' + file_path_defined +
-                            '" ... SKIPPED. File previously dumped.')
+            log_stream.info(' -----> Dump file registry ... SKIPPED. '
+                            'File "' + file_path_defined + '" previously dumped.')
 
     # -------------------------------------------------------------------------------------
 
@@ -399,34 +412,41 @@ class DriverData:
         # get path(s)
         file_path_registry, file_path_datasets = self.file_path_registry, self.file_path_datasets
 
-        # get source registry and datasets
-        dframe_registry, dframe_datasets = data_source_obj['registry'], data_source_obj['datasets']
+        # check data source obj
+        if data_source_obj is not None:
 
-        # get source time start and end
-        time_start_src, time_end_src = data_source_obj['time_start'], data_source_obj['time_end']
-        time_start_dst, time_end_dst = self.time_start_datasets, self.time_end_datasets
-        if self.time_range is not None:
-            time_start_user, time_end_user = sorted(self.time_range)[0], sorted(self.time_range)[-1]
+            # get source registry and datasets
+            dframe_registry, dframe_datasets = data_source_obj['registry'], data_source_obj['datasets']
+
+            # get source time start and end
+            time_start_src, time_end_src = data_source_obj['time_start'], data_source_obj['time_end']
+            time_start_dst, time_end_dst = self.time_start_datasets, self.time_end_datasets
+            if self.time_range is not None:
+                time_start_user, time_end_user = sorted(self.time_range)[0], sorted(self.time_range)[-1]
+            else:
+                time_start_user, time_end_user = None, None
+
+            # select time range (based on multiple selection)
+            time_range_selection = self.select_time_boundaries(
+                time_start_user, time_end_user,
+                time_start_src, time_end_src,
+                time_start_dst, time_end_dst,
+                time_rounding=self.time_rounding_datasets, time_frequency=self.time_frequency_datasets)
+
+            # dump registry dframe
+            self.dump_obj_registry(file_path_registry, dframe_registry, self.fields_registry)
+            # dump datasets dframe
+            self.dump_obj_datasets(
+                file_path_datasets, dframe_datasets,
+                file_time=time_range_selection, file_fields=self.fields_datasets,
+                file_var_in=self.var_name_in, file_var_out=self.var_name_out)
+
+            # method end info (done)
+            log_stream.info(' ----> Organize destination object(s) ... DONE')
+
         else:
-            time_start_user, time_end_user = None, None
-
-        # select time range (based on multiple selection)
-        time_range_selection = self.select_time_boundaries(
-            time_start_user, time_end_user,
-            time_start_src, time_end_src,
-            time_start_dst, time_end_dst,
-            time_rounding=self.time_rounding_datasets, time_frequency=self.time_frequency_datasets)
-
-        # dump registry dframe
-        self.dump_obj_registry(file_path_registry, dframe_registry, self.fields_registry)
-        # dump datasets dframe
-        self.dump_obj_datasets(
-            file_path_datasets, dframe_datasets,
-            file_time=time_range_selection, file_fields=self.fields_datasets,
-            file_var_in=self.var_name_in, file_var_out=self.var_name_out)
-
-        # method start info
-        log_stream.info(' ----> Organize destination object(s) ... DONE')
+            # method end info (skipped - no datasets available)
+            log_stream.info(' ----> Organize destination object(s) ... SKIPPED. All dynamic datasets are not defined')
 
     # -------------------------------------------------------------------------------------
 

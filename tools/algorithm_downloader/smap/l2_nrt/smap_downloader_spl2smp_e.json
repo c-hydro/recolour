@@ -98,12 +98,16 @@
     "log": {
         "filename": "smap_downloader_spl2smp_e_log.txt",
         "folder": "/home/fabio/Desktop/Recolour_Workspace/log/smap_downloader/"
+    },
+    "lock": {
+        "filename": "smap_files_downloader_spl2smp_e.lock",
+        "folder": "/home/fabio/Desktop/Recolour_Workspace/tmp/"
     }
   },
   "time": {
     "time_now": null,
     "time_period": 10,
-    "time_frequency": "h",
+    "time_frequency": "d",
     "time_rounding": "h"
   }
 }

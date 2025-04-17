@@ -49,7 +49,7 @@ def check_obj_data(data_file_name, data_obj=None, data_attrs=None, data_mandator
 # ----------------------------------------------------------------------------------------------------------------------
 # method to read point data
 def read_point_data(file_name,
-                    file_delimiter=',', file_header=0, file_columns_remap=None,
+                    file_delimiter=';', file_header=0, file_columns_remap=None,
                     file_units_default='%', file_description_default='NA',
                     file_location_default='NA', file_tag_default='NA',
                     file_amm_level_1_default='NA', file_amm_level_2_default='NA'):
@@ -135,7 +135,21 @@ def read_grid_data(file_name, output_format='data_array', output_dtype='float32'
 
         # open file
         file_dset_def = xr.open_dataset(file_name)
-        file_dset_def = file_dset_def.rename({'var40': 'values', 'lon': geo_coord_name_x, 'lat': geo_coord_name_y})
+
+        # two type of grids
+        if 'var40' in list(file_dset_def.data_vars):
+            # version 1
+            var_file = 'var40'
+            var_geo_x, var_geo_y = 'lon', 'lat'
+        elif 'soil_moisture' in list(file_dset_def.data_vars):
+            # version 2
+            var_file = 'soil_moisture'
+            var_geo_x, var_geo_y = 'longitude', 'latitude'
+        else:
+            alg_logger.error(' ===> File static "' + file_name + '" variable (var40 or soil_moisture) not allowed')
+            raise NotImplementedError('Case not implemented yet')
+        file_dset_def = file_dset_def.rename(
+            {var_file: 'values', var_geo_x: geo_coord_name_x, var_geo_y: geo_coord_name_y})
 
         file_geo_x_max = np.nanmax(file_dset_def.coords[var_name_geo_x])
         if file_geo_x_max > 180:

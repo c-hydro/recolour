@@ -74,7 +74,7 @@ def main():
     # read algorithm settings
     data_settings = read_file_json(alg_settings)
     # parse algorithm settings
-    (log_settings, time_settings, product_settings,
+    (log_settings, lock_settings, time_settings, product_settings,
      alg_ancillary_settings, alg_template_settings, alg_flags_settings,
      data_static_settings, data_dynamic_settings) = parse_file_json(data_settings)
 
@@ -131,13 +131,16 @@ def main():
         # define remote url
         remote_url = create_file_url(remote_url=remote_url, remote_folder=remote_folder)
         # search remote file
-        remote_file_found = search_file_url(remote_url, remove_lock=True)
+        remote_file_found = search_file_url(
+            remote_url,
+            file_lock=os.path.join(lock_settings['folder'], lock_settings['filename']),
+            remove_lock=True)
 
         # iterate over product ids
         for product_id, (short_name_step, version_step) in enumerate(zip(short_name_list, version_list)):
 
             # info product start
-            logger_stream.info(' -----> PRODUCT "' + str(short_name_step) + ' ' + str(short_name_step) + '" ... ')
+            logger_stream.info(' -----> PRODUCT "' + str(short_name_step) + ' ' + str(version_step) + '" ... ')
 
             # iterate over file urls
             for remote_file_url in remote_file_found:
@@ -193,7 +196,7 @@ def main():
                 logger_stream.info(' ------> FILE URL "' + str(remote_file_url) + '" ... DONE')
 
             # info product end
-            logger_stream.info(' -----> PRODUCT "' + str(short_name_step) + ' ' + str(short_name_step) + '" ... DONE')
+            logger_stream.info(' -----> PRODUCT "' + str(short_name_step) + ' ' + str(version_step) + '" ... DONE')
 
         # info time end
         logger_stream.info(' ----> TIME RUN: "' + str(time_run) + '" TIME STEP: "' + str(time_step) + '" ... DONE')
