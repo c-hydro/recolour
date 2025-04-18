@@ -109,6 +109,8 @@
     }
   },
   "time" : {
+    "__comment__": "time_period: [0, 1, 2 ...]; CURRENT_MONTH, PREVIOUS_MONTH, null",
+    "__test__": "2023-06-20 00:00, 2023-08-01 00:00",
     "time_reference": null,
     "time_frequency": "H",
     "time_rounding": "H",

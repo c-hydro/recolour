@@ -208,7 +208,7 @@ class DriverData:
 
     # -------------------------------------------------------------------------------------
     # method to dump datasets object
-    def dump_obj_datasets(self, file_path_template, file_dframe_raw, file_time,
+    def dump_obj_datasets(self, file_path_template, file_dframe_raw, file_time_ref, file_time_range,
                           file_fields=None, file_var_in='vwc_10_cm', file_var_out='vwc_10_cm'):
 
         # info start method
@@ -227,7 +227,7 @@ class DriverData:
                 # define file name
                 file_path_defined = self.define_file_name(
                     file_path_template,
-                    time_reference=self.time_reference, time_start=None, time_end=None,
+                    time_reference=file_time_ref, time_start=None, time_end=None,
                     template_time_tags=self.template_time_tags, template_datasets_tags=self.template_datasets_tags,
                     template_datasets_values={'point_name': 'all', "variable_name": file_var_out})
 
@@ -245,7 +245,7 @@ class DriverData:
                     # merge dframe datasets
                     file_dframe_merged = merge_points_to_table(file_dframe_raw, file_var_in)
                     # select dframe datasets
-                    file_dframe_selected = select_table_by_times(file_dframe_merged, file_time, time_reverse=False)
+                    file_dframe_selected = select_table_by_times(file_dframe_merged, file_time_range, time_reverse=False)
 
                     # create datasets folder
                     folder_name, file_name = os.path.split(file_path_defined)
@@ -289,7 +289,7 @@ class DriverData:
                     # define file name
                     file_path_defined = self.define_file_name(
                         file_path_template,
-                        time_reference=self.time_reference, time_start=None, time_end=None,
+                        time_reference=file_time_ref, time_start=None, time_end=None,
                         template_time_tags=self.template_time_tags, template_datasets_tags=self.template_datasets_tags,
                         template_datasets_values={'point_name': point_name, "variable_name": 'all'})
 
@@ -305,7 +305,7 @@ class DriverData:
                         point_dframe_defined = map_vars_dframe(point_dframe_raw, file_fields, inverse_map=True)
 
                         # select dframe datasets
-                        point_dframe_selected = select_table_by_times(point_dframe_defined, file_time)
+                        point_dframe_selected = select_table_by_times(point_dframe_defined, file_time_range)
 
                         # create datasets folder
                         folder_name, file_name = os.path.split(file_path_defined)
@@ -420,6 +420,9 @@ class DriverData:
 
             # get source time start and end
             time_start_src, time_end_src = data_source_obj['time_start'], data_source_obj['time_end']
+            time_file = data_source_obj['time_file']
+
+            # get source time frequency and rounding
             time_start_dst, time_end_dst = self.time_start_datasets, self.time_end_datasets
             if self.time_range is not None:
                 time_start_user, time_end_user = sorted(self.time_range)[0], sorted(self.time_range)[-1]
@@ -438,7 +441,8 @@ class DriverData:
             # dump datasets dframe
             self.dump_obj_datasets(
                 file_path_datasets, dframe_datasets,
-                file_time=time_range_selection, file_fields=self.fields_datasets,
+                file_time_ref=time_file, file_time_range=time_range_selection,
+                file_fields=self.fields_datasets,
                 file_var_in=self.var_name_in, file_var_out=self.var_name_out)
 
             # method end info (done)

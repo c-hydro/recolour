@@ -35,11 +35,12 @@ class DriverData:
 
     # -------------------------------------------------------------------------------------
     # initialize class
-    def __init__(self, time_reference, registry_dict, datasets_dict, ancillary_dict,
+    def __init__(self, time_reference, time_range, registry_dict, datasets_dict, ancillary_dict,
                  flags_dict=None, template_dict=None, tmp_dict=None):
 
         # set time reference
         self.time_reference = time_reference
+        self.time_range = time_range
         # set registry, ancillary and datasets dictionary
         self.registry_dict = registry_dict
         self.ancillary_dict = ancillary_dict
@@ -123,13 +124,15 @@ class DriverData:
                 file_path_generic,
                 file_fields=file_fields,
                 registry_fields=registry_fields, folder_tmp=self.folder_name_tmp)
+            fields_time_file = self.time_reference
 
         elif self.format_datasets == 'ascii':
 
             # get datasets in ascii format
-            fields_dframe_obj, fields_time_start, fields_time_end = wrap_datasets_ascii(
+            fields_dframe_obj, fields_time_start, fields_time_end, fields_time_file = wrap_datasets_ascii(
                 file_path_generic,
                 time_reference=self.time_reference, time_start=self.time_start, time_end=self.time_end,
+                time_range=self.time_range,
                 file_fields=file_fields, registry_fields=registry_fields,
                 template_time_tags=self.template_dict_time, template_datasets_tags=self.template_dict_datasets,
                 time_rounding=self.time_rounding, time_frequency=self.time_frequency,
@@ -144,28 +147,18 @@ class DriverData:
         #  check dataframe object
         if fields_dframe_obj is not None:
 
-            # check time start and time end
-            if self.time_start is None:
-                log_stream.warning(' ===> Time start is defined by NoneType. '
-                                   'The algorithm will use the time start "' + str(fields_time_start) + '"'
-                                   'get from the datasets file.')
-                self.time_start = fields_time_start
-            if self.time_end is None:
-                log_stream.warning(' ===> Time end is defined by NoneType. '
-                                   'The algorithm will use the time end "' + str(fields_time_end) + '"'
-                                   'get from the datasets file.')
-                self.time_end = fields_time_end
-
             # method to range data point
             time_frequency_expected, time_start_expected, time_end_expected = range_data_point(
-                fields_dframe_obj, time_run_reference=self.time_reference,
-                time_start_reference=self.time_start, time_end_reference=self.time_end)
+                fields_dframe_obj, time_run_reference=fields_time_file,
+                time_start_reference=fields_time_start, time_end_reference=fields_time_end)
 
             # method to combine data point to the expected time range
             fields_dframe_obj = combine_data_point_by_time(
                 fields_dframe_obj, registry_fields,
                 time_start_expected=time_start_expected, time_end_expected=time_end_expected,
                 time_frequency_expected=time_frequency_expected, time_reverse=True)
+
+            time_file_expected = fields_time_file
 
             # info end method
             log_stream.info(' -----> Read file datasets ... DONE')
@@ -176,7 +169,7 @@ class DriverData:
             fields_dframe_obj, time_start_expected, time_end_expected = None, None, None
             log_stream.info(' -----> Read file datasets ... SKIPPED. All dynamic datasets are not defined.')
 
-        return fields_dframe_obj, time_start_expected, time_end_expected
+        return fields_dframe_obj, time_start_expected, time_end_expected, time_file_expected
     # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------
@@ -231,7 +224,7 @@ class DriverData:
             # get registry dframe
             dframe_registry = self.get_obj_registry(file_path_registry, self.fields_registry)
             # get datasets dframe
-            dframe_datasets, dframe_time_start, dframe_time_end = self.get_obj_datasets(
+            dframe_datasets, dframe_time_start, dframe_time_end, dframe_time_file = self.get_obj_datasets(
                 file_path_datasets, self.fields_datasets, dframe_registry)
 
             # check dframe datasets
@@ -240,7 +233,8 @@ class DriverData:
                 # organize dframe obj
                 dframe_obj = {
                     'registry': dframe_registry, 'datasets': dframe_datasets,
-                    'time_start': dframe_time_start, 'time_end': dframe_time_end
+                    'time_start': dframe_time_start, 'time_end': dframe_time_end,
+                    'time_file': dframe_time_file,
                 }
 
                 # dump dframe obj

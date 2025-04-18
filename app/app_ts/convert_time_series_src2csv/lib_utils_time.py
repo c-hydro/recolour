@@ -13,6 +13,7 @@ import logging
 import re
 import pandas as pd
 from datetime import date
+from copy import deepcopy
 
 from lib_info_args import logger_name
 
@@ -91,12 +92,45 @@ def set_time(time_ref_args=None, time_ref_file=None, time_format='%Y-%m-%d %H:$M
         time_tmp = pd.Timestamp(time_ref)
         time_ref = time_tmp.floor(time_rounding)
 
-        if time_period is not None:
+        if isinstance(time_period, int):
+
             if time_period > 0:
                 time_range = pd.date_range(end=time_ref, periods=time_period, freq=time_frequency)
             else:
                 log_stream.warning(' ===> TimePeriod must be greater then 0. TimePeriod is set automatically to 1')
                 time_range = pd.DatetimeIndex([time_ref], freq=time_frequency)
+
+        elif isinstance(time_period, str):
+
+            if time_period == 'CURRENT_MONTH':
+
+                time_current_first = time_ref.replace(day=1, hour=0)
+                time_current_end = deepcopy(time_ref)
+                time_range = pd.date_range(start=time_current_first, end=time_current_end, freq=time_frequency)
+
+            elif time_period == 'PREVIOUS_MONTH':
+
+                # actual reference time
+                time_current_first = time_ref.replace(day=1)
+
+                # et the previous month
+                previous_month = (time_current_first - pd.offsets.MonthBegin(1)).to_period("M")
+
+                # Get the first and last day of the previous month
+                time_previous_start = previous_month.start_time
+                time_previous_end = previous_month.end_time
+
+                # compute the first day and the last day of the month
+                if time_frequency == 'H':
+                    time_previous_end = time_previous_end.replace(hour=23, minute=0)
+                    time_previous_start = time_previous_start.replace(hour=0, minute=0)
+
+                time_range = pd.date_range(start=time_previous_start, end=time_previous_end, freq=time_frequency)
+
+            else:
+                log_stream.error(' ===> TimePeriod "' + time_period + '" expression is not supported')
+                raise NotImplementedError('Case not implemented yet')
+
         else:
             time_range = None
 

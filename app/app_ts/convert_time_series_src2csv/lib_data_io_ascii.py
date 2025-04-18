@@ -32,7 +32,7 @@ log_stream = logging.getLogger(logger_name)
 # method to wrap datasets in ascii format
 def wrap_datasets_ascii(file_path_template,
                         file_fields, registry_fields,
-                        time_reference, time_start, time_end,
+                        time_reference, time_start, time_end, time_range=None,
                         time_rounding='H', time_frequency='Y', time_format='%Y%m%d%H%M',
                         template_time_tags=None, template_datasets_tags=None,
                         file_sep=' ', file_decimal='.',
@@ -53,23 +53,23 @@ def wrap_datasets_ascii(file_path_template,
 
             time_end = time_end_stamp.strftime(time_format)
 
-        time_range_start = pd.date_range(time_start, time_end, freq='AS')
-        time_range_start = replace_time_part(time_range_start, time_rounding=time_rounding, time_value=0)
-        time_range_end = pd.date_range(time_start, time_end, freq='Y')
-        time_range_end = replace_time_part(time_range_end, time_rounding=time_rounding, time_value=23)
+        time_file_start = pd.date_range(time_start, time_end, freq='AS')
+        time_file_start = replace_time_part(time_file_start, time_rounding=time_rounding, time_value=0)
+        time_file_end = pd.date_range(time_start, time_end, freq='Y')
+        time_file_end = replace_time_part(time_file_end, time_rounding=time_rounding, time_value=23)
 
     elif time_frequency == 'h' or time_frequency == 'H':
 
         time_step_stamp = pd.Timestamp(time_end)
         time_step_stamp = time_step_stamp.round(time_frequency.lower())
-        time_range_start, time_range_end = ['*'], pd.DatetimeIndex([time_step_stamp])
+        time_file_start, time_file_end = ['*'], pd.DatetimeIndex([time_step_stamp])
 
     else:
         log_stream.error(' ===> Time frequency "' + time_frequency + '" is not expected')
         raise NotImplementedError('Case not implemented yet')
 
     # iterate over registry fields
-    section_data_collections, section_time_start, section_time_end = {}, None, None
+    section_data_collections, time_start_collections, time_end_collections = {}, None, None
     for registry_row in registry_fields.iterrows():
         # get point information
         registry_code, registry_tag = registry_row[1]['code'], registry_row[1]['tag']
@@ -79,7 +79,7 @@ def wrap_datasets_ascii(file_path_template,
 
         # iterate over times
         fields_data_collections = None
-        for time_step_start, time_step_end in zip(time_range_start, time_range_end):
+        for time_step_start, time_step_end in zip(time_file_start, time_file_end):
 
             # define time period tag
             if time_step_start is not None and time_step_end is not None:
@@ -160,31 +160,45 @@ def wrap_datasets_ascii(file_path_template,
 
         # check if data is available
         if fields_data_collections is not None:
-            if section_time_start is None:
-                section_time_start = fields_data_collections.index[0]
+
+            # check time range
+            if time_range is not None:
+                # Create an empty DataFrame with the time index
+                fields_data_expected = pd.DataFrame(index=time_range)
+                fields_data_expected.index.name = "time"
+                # join data to the expected time index
+                fields_data_expected = fields_data_expected.join(fields_data_collections)
             else:
-                assert section_time_start == fields_data_collections.index[0], 'time start are not equal'
-            if section_time_end is None:
-                section_time_end = fields_data_collections.index[-1]
-            else:
-                assert section_time_end == fields_data_collections.index[-1], 'time end are not equal'
+                # get datasets
+                fields_data_expected = deepcopy(fields_data_collections)
 
             # sort index
             if sort_index:
                 if ascending_index:
-                    fields_data_collections = fields_data_collections.sort_index(ascending=True)
+                    fields_data_expected = fields_data_expected.sort_index(ascending=True)
+                    section_time_start, section_time_end = fields_data_expected.index[0], fields_data_expected.index[-1]
                 else:
-                    fields_data_collections = fields_data_collections.sort_index(ascending=False)
+                    fields_data_expected = fields_data_expected.sort_index(ascending=False)
+                    section_time_start, section_time_end = fields_data_expected.index[-1], fields_data_expected.index[0]
+            else:
+                section_time_start, section_time_end = fields_data_expected.index[0], fields_data_expected.index[-1]
+
+            # store time start and end
+            if time_start_collections is None: time_start_collections = []
+            time_start_collections.append(section_time_start)
+            if time_end_collections is None: time_end_collections = []
+            time_end_collections.append(section_time_end)
 
             # info organize dataset end (done)
             log_stream.info(' -------> Organize datasets ... DONE')
 
         else:
             # info organize dataset end (skipped - dataset are not available)
+            fields_data_expected = None
             log_stream.info(' -------> Organize datasets ... SKIPPED. No data available for the selected time period')
 
         # store section data to common workspace
-        section_data_collections[registry_tag] = fields_data_collections
+        section_data_collections[registry_tag] = fields_data_expected
 
         # info point end
         log_stream.info(' ------> Point (1) Code "' + registry_code + '" (2) Tag "' + registry_tag + '" ... DONE')
@@ -193,6 +207,33 @@ def wrap_datasets_ascii(file_path_template,
     section_elements = list(section_data_collections.values())
     if all(element is None for element in section_elements):
         section_data_collections = None
+        section_time_start, section_time_end, section_time_file = None, None, None
+    else:
+        section_time_start, section_time_end = list(set(time_start_collections)), list(set(time_end_collections))
+        if len(section_time_start) > 1:
+            log_stream.error(' ===> Time start is not the same for all datasets')
+            raise RuntimeError('Check your settings file and set the "time" field')
+        elif len(section_time_start) == 1:
+            section_time_start = section_time_start[0]
+        else:
+            log_stream.error(' ===> Time start is not defined')
+            raise RuntimeError('Check your settings file and set the "time" field')
+        if len(section_time_end) > 1:
+            log_stream.error(' ===> Time end is not the same for all datasets')
+            raise RuntimeError('Check your settings file and set the "time" field')
+        elif len(section_time_end) == 1:
+            section_time_end = section_time_end[0]
+        else:
+            log_stream.error(' ===> Time end is not defined')
+            raise RuntimeError('Check your settings file and set the "time" field')
 
-    return section_data_collections, section_time_start, section_time_end
+        if time_range is not None:
+            if time_reference not in time_range:
+                section_time_file = section_time_end
+            else:
+                section_time_file = time_reference
+        else:
+            section_time_file = time_reference
+
+    return section_data_collections, section_time_start, section_time_end, section_time_file
 # ----------------------------------------------------------------------------------------------------------------------
