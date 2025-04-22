@@ -166,7 +166,7 @@ class DriverData:
         else:
 
             # info end method
-            fields_dframe_obj, time_start_expected, time_end_expected = None, None, None
+            fields_dframe_obj, time_start_expected, time_end_expected, time_file_expected = None, None, None, None
             log_stream.info(' -----> Read file datasets ... SKIPPED. All dynamic datasets are not defined.')
 
         return fields_dframe_obj, time_start_expected, time_end_expected, time_file_expected

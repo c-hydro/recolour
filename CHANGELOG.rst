@@ -2,7 +2,7 @@
 Changelog
 =========
 
-Version 2.0.0 [2025-04-17]
+Version 2.0.0 [2025-04-22]
 **************************
 - PROJECT: operational framework grid	
 	- APPS -- merge_grid2ref

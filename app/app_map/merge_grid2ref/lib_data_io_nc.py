@@ -280,7 +280,7 @@ def read_data_nc(file_name, geo_ref_x=None, geo_ref_y=None, geo_ref_attrs=None, 
                     geo_cellsize = np.float32(round(geo_ref_attrs['cellsize'], decimal_round) / 2)
                     if (not geo_check_start_x == geo_data_start_x) or (not geo_check_end_x == geo_data_end_x):
                         geo_diff_start_x = np.float32(
-                            round(np.abs(geo_check_x[0, 0] - geo_data_x[0, 0]), decimal_round))
+                            round(np.abs(geo_check_x[0, 0] - geo_data_x[0, 0]), decimal_round));
                         geo_diff_end_x = np.float32(
                             round(np.abs(geo_check_x[-1, -1] - geo_data_x[-1, -1]), decimal_round))
                         log_stream.warning(

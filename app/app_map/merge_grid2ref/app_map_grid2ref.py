@@ -124,6 +124,7 @@ def main():
             dst_dict=data_settings['data']['dynamic']['destination'],
             alg_ancillary=data_settings['algorithm']['ancillary'],
             alg_template_tags=data_settings['algorithm']['template'],
+            alg_tmp=data_settings['tmp'],
             flag_cleaning_dynamic_data=data_settings['algorithm']['flags']['cleaning_dynamic_data'],
             flag_cleaning_dynamic_ancillary=data_settings['algorithm']['flags']['cleaning_dynamic_ancillary'],
             flag_cleaning_dynamic_tmp=data_settings['algorithm']['flags']['cleaning_dynamic_tmp'])

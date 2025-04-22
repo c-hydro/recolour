@@ -9,7 +9,7 @@
       "algorithm": "Processing tools by CIMA Research Foundation"
     },
     "flags":{
-      "cleaning_static": false,
+      "cleaning_static": true,
       "cleaning_dynamic_ancillary": true,
       "cleaning_dynamic_data": true,
       "cleaning_dynamic_tmp": false
@@ -17,7 +17,7 @@
     "ancillary": {
       "__comment__": "layer_nc_format: continuum, null; layer_method_merging: nearest, sample; layer_method_masking: watermark, null",
       "domain_name" : [
-        "EntellaDomain","MagraDomain", "RoiaDomain", "TanaroDomain", "AvetoTrebbiaDomain",
+        "MagraDomain", "EntellaDomain", "RoiaDomain", "TanaroDomain", "AvetoTrebbiaDomain",
         "CentaDomain", "BormidaSDomain", "BormidaMDomain",
         "LevanteGenoveseDomain", "PonenteGenoveseDomain", "CentroPonenteDomain", "PonenteDomain",
         "ScriviaDomain", "OrbaSturaDomain", "ErroDomain", "FinaleseDomain", "ImperieseDomain", "SavoneseDomain"],
@@ -80,13 +80,11 @@
       },
       "destination": {
         "terrain_variable": {
-          "xll_corner": 7.3402,
-          "yll_corner": 43.7587,
-          "rows": 600,
-          "cols": 1625,
-          "cell_size": 0.001801,
-          "file_type": "grid",
-          "file_domain": {"flag": false, "value": "liguria"},
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/hmc_auxiliary/domain/",
+          "file_name": "LiguriaDomain.dem.txt",
+          "file_compression": false,
+          "file_type": "ascii",
+          "file_domain": {"flag": true, "value": null},
           "file_layer": null,
           "file_coords": {"x": null, "y": null}
         }
@@ -187,5 +185,9 @@
   "log": {
     "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/log/",
     "file_name": "app_map_grid2ref_log.txt"
+  },
+  "tmp": {
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/tmp/",
+    "file_name": null
   }
 }

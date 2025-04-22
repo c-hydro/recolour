@@ -23,7 +23,7 @@ from lib_data_io_remap import create_dset_continuum
 from lib_utils_method_interpolate import active_var_interpolate, apply_var_interpolate, apply_var_sample
 from lib_utils_method_mask import active_var_mask, apply_var_mask
 from lib_utils_io import read_obj, write_obj, write_dset_nc, write_dset_tiff, filter_dset_vars, adjust_dset_vars
-from lib_utils_gzip import unzip_filename, zip_filename
+from lib_utils_gzip import unzip_filename, zip_filename, id_generator
 from lib_utils_system import fill_tags2string, make_folder, intersect_dicts, find_folder
 from lib_info_args import logger_name, time_format_algorithm, zip_extension
 
@@ -45,6 +45,7 @@ class DriverDynamic:
                  src_dict, anc_dict=None, dst_dict=None,
                  static_data_collection=None,
                  alg_ancillary=None, alg_template_tags=None, alg_datasets_type='generic',
+                 alg_tmp=None,
                  tag_terrain_data='Terrain', tag_grid_data='Grid',
                  tag_static_source='source', tag_static_destination='destination',
                  tag_dynamic_source='source', tag_dynamic_destination='destination',
@@ -193,6 +194,12 @@ class DriverDynamic:
                 self.file_check_destination = False
                 log_stream.warning(' ===> Cleaning ancillary datasets is active. '
                                    'By constants the cleaning of destination datasets will be activated.')
+
+        # temporary settings
+        self.alg_tmp_folder_name = alg_tmp['folder_name']
+        self.alg_tmp_file_name = alg_tmp['file_name']
+
+        os.makedirs(self.alg_tmp_folder_name, exist_ok=True)
 
         # -------------------------------------------------------------------------------------
 
@@ -789,14 +796,7 @@ class DriverDynamic:
                                     plt.figure()
                                     plt.imshow(var_dset_remap['SM'].values)
                                     plt.colorbar()
-                                    
-                                    plt.figure()
-                                    plt.imshow(var_dset_remap['TQ'].values[:, :, 0])
-                                    plt.colorbar()
-                                    plt.figure()
-                                    plt.imshow(var_dset_remap['terrain'].values)
-                                    plt.colorbar()
-                                    
+
                                     plt.show()
                                     '''
 
@@ -849,10 +849,17 @@ class DriverDynamic:
 
                                     '''
                                     # DEBUG
-                                    var_values = var_dset_masked['SM'].values
                                     plt.figure()
-                                    plt.imshow(var_values[:,:,0])
+                                    plt.imshow(var_dset_anc['SM'].values[:, :, 0])
                                     plt.colorbar()
+                                    plt.figure()
+                                    plt.imshow(var_dset_dst['SM'].values[:, :, 0])
+                                    plt.colorbar()
+                                    plt.figure()
+                                    plt.imshow(var_dset_masked['SM'].values[:, :, 0])
+                                    plt.colorbar()
+
+                                    plt.show()
                                     '''
 
                                     # check variable file are defined or not
@@ -988,7 +995,7 @@ class DriverDynamic:
                                 geo_file_obj = None
                                 if file_geo_reference_src is not None:
                                     if file_geo_reference_src in list(self.static_data_src.keys()):
-                                        geo_file_obj = self.static_data_src[file_geo_reference_src]
+                                        geo_file_obj = self.static_data_src[file_geo_reference_src];
                                     else:
                                         log_stream.error(' ===> Geographical info must be defined in the static object')
                                         raise RuntimeError('Algorithm will produce unexpected errors.')
@@ -1008,7 +1015,7 @@ class DriverDynamic:
                                 if var_domain_name_src in list(geo_file_obj.keys()):
                                     geo_file_name = geo_file_obj[var_domain_name_src]
                                     if os.path.exists(geo_file_name):
-                                        geo_file_data = read_obj(geo_file_name)
+                                        geo_file_data = read_obj(geo_file_name);
                                         geo_file_values, geo_file_x, geo_file_y, geo_file_attrs,\
                                             i_cols_ref, j_rows_ref, i_cols_dom, j_rows_dom = \
                                             self.set_geo_attributes(geo_file_data)
@@ -1041,7 +1048,18 @@ class DriverDynamic:
                                         dset_collection_tmp[var_name_tmp] = {}
 
                                     if file_compression_src:
-                                        var_file_path_tmp = self.define_file_name_unzip(var_file_path_src)
+
+                                        # manage tmp file (to avoid permission errors)
+                                        var_folder_name_tmp = self.alg_tmp_folder_name
+                                        var_id = id_generator()
+                                        if var_folder_name_tmp is not None:
+                                            var_file_name_tmp = os.path.basename(var_file_path_src)
+                                            var_file_name_tmp = var_id + '_' + var_file_name_tmp
+                                            var_file_name_tmp = os.path.join(var_folder_name_tmp, var_file_name_tmp)
+                                        else:
+                                            var_file_name_tmp = var_file_path_src
+
+                                        var_file_path_tmp = self.define_file_name_unzip(var_file_name_tmp)
                                         unzip_filename(var_file_path_src, var_file_path_tmp)
                                     else:
                                         var_file_path_tmp = deepcopy(var_file_path_src)
@@ -1109,9 +1127,6 @@ class DriverDynamic:
                                         plt.figure()
                                         plt.imshow(var_dset_src['SM'].values[:, :, 0])
                                         plt.colorbar()
-                                        plt.figure()
-                                        plt.imshow(var_dset_src['LST'].values[:, :, 0])
-                                        plt.colorbar()
                                         plt.show()
                                         '''
 
@@ -1146,9 +1161,6 @@ class DriverDynamic:
                                         # DEBUG
                                         plt.figure()
                                         plt.imshow(var_dset_anc['SM'].values[:, :, 0])
-                                        plt.colorbar()
-                                        plt.figure()
-                                        plt.imshow(var_dset_anc['LST'].values[:, :, 0])
                                         plt.colorbar()
                                         plt.show()
                                         '''

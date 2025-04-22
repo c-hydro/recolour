@@ -86,13 +86,18 @@ def read_data_tiff(file_name, var_scale_factor=1, var_type='float32', var_name=N
         pass
     elif isinstance(var_no_data, list) and var_no_data.__len__() == 1:
         var_no_data = var_no_data[0]
+    elif isinstance(var_no_data, (int, np.int32, np.int64)) or isinstance(var_no_data, (float, np.float32, np.float64)):
+        pass
     else:
         log_stream.error(' ===> The arguments "var_no_data" must be a string or a list with length equal to 1')
         raise NotImplemented('Case not implemented yet')
+
     if isinstance(var_name, str):
         pass
     elif isinstance(var_name, list) and var_name.__len__() == 1:
         var_name = var_name[0]
+    elif var_name is None:
+        var_name = 'data'
     else:
         log_stream.error(' ===> The arguments "var_name" must be a string or a list with length equal to 1')
         raise NotImplemented('Case not implemented yet')
@@ -107,10 +112,13 @@ def read_data_tiff(file_name, var_scale_factor=1, var_type='float32', var_name=N
         pass
     elif isinstance(var_scale_factor, list) and var_scale_factor.__len__() == 1:
         var_scale_factor = var_scale_factor[0]
+    elif isinstance(var_scale_factor, (int, np.int32, np.int64)) or isinstance(var_scale_factor, (float, np.float32, np.float64)):
+        pass
     else:
         log_stream.error(' ===> The arguments "var_scale_factor" must be a string or a list with length equal to 1')
         raise NotImplemented('Case not implemented yet')
 
+    # check if the file exists
     if os.path.exists(file_name):
         # Open file tiff
         file_handle = rasterio.open(file_name)
@@ -276,8 +284,27 @@ def read_data_tiff(file_name, var_scale_factor=1, var_type='float32', var_name=N
                 var_obj.attrs = obj_attrs
 
         elif var_time is None:
-            log_stream.error(' ===> Time must be defined by DateTimeIndex format and not by NoneType')
-            raise RuntimeError('Case not implemented yet')
+            if flag_obj_type == 'DataArray':
+
+                var_obj = xr.DataArray(var_data, name=var_name, dims=dims_order,
+                                       coords={coord_name_geo_x: ([dim_name_geo_x], var_geo_x_2d[0, :]),
+                                               coord_name_geo_y: ([dim_name_geo_y], var_geo_y_2d[:, 0])})
+
+                if file_attrs and geo_attrs:
+                    obj_attrs = {**file_attrs, **geo_attrs}
+                elif (not file_attrs) and geo_attrs:
+                    obj_attrs = deepcopy(geo_attrs)
+                elif file_attrs and (not geo_attrs):
+                    obj_attrs = deepcopy(file_attrs)
+                else:
+                    obj_attrs = None
+
+                if obj_attrs is not None:
+                    var_obj.attrs = obj_attrs
+
+            else:
+                log_stream.error(' ===> DataObj type must be "DataArray"')
+                raise NotImplemented('Case not implemented yet')
         else:
             log_stream.error(' ===> Error in creating time information for dataset object')
             raise RuntimeError('Unknown error in creating dataset. Check the procedure.')
