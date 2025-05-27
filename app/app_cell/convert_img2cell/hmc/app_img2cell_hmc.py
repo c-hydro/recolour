@@ -32,7 +32,7 @@ from argparse import ArgumentParser
 from lib_info_args import time_format_datasets as time_format
 from lib_utils_time import set_time_info, update_time_info
 from lib_info_settings import get_data_settings, parse_data_settings, get_data_by_tag
-from lib_utils_hmc import create_file_grid
+from lib_utils_hmc import create_file_grid, select_origin_grid
 
 from lib_reshuffle_hmc import main as main_runner
 # -------------------------------------------------------------------------------------
@@ -95,11 +95,14 @@ def main_wrapper():
     # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------
-    # create data grid
+    # define origin grid
+    data_ext = select_origin_grid(
+        data_path=data_settings['data']['path_grid'], data_origin=data_settings['grid'].get("derived_by"))
+    # create file grid
     create_file_grid(
         grid_path=os.path.join(data_settings['grid']['folder_name'], data_settings['grid']['file_name']),
         data_path=data_settings['data']['path_grid'],
-        data_ext='.nc', grid_update=data_settings['flags']['reset_static'])
+        data_ext=data_ext, grid_update=data_settings['flags']['reset_static'])
     # -------------------------------------------------------------------------------------
 
     # ----------------------------------------------------------------------------------------------------------------------

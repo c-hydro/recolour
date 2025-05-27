@@ -46,6 +46,10 @@ def parse_data_settings(data_settings):
     # get product
     product_name = data_settings['product']['name']
     product_bbox = data_settings['product']['bbox']
+    product_img_buffer = str(data_settings['product'].get('image_buffer', 50))
+    product_img_time_freq = data_settings['product'].get('time_frequency', 'D')
+    product_img_time_round = data_settings['product'].get('time_rounding', 'H')
+
     # get flags
     reset_static = data_settings['flags']['reset_static']
     reset_ts = data_settings['flags']['reset_dynamic']
@@ -86,8 +90,8 @@ def parse_data_settings(data_settings):
         geo_bbox = ''
 
     # organize info
-    product_args, geo_args, path_args, time_args, tmpl_args_src, tmpl_args_dst = (
-        [product_name], [geo_bbox],
+    product_args, geo_args, product_im_buffer, product_im_time, path_args, time_args, tmpl_args_src, tmpl_args_dst = (
+        [product_name], [geo_bbox], [product_img_buffer], [product_img_time_freq, product_img_time_round],
         [path_grid, path_ts, path_stack], [time_start, time_end, time_run],
         [file_name_src, datetime_src, sub_path_src],
         [file_name_dst, datetime_dst, sub_path_dst]
@@ -101,6 +105,8 @@ def parse_data_settings(data_settings):
     app_settings.extend(product_args)
     app_settings.extend(flags_args)
     app_settings.extend(geo_args)
+    app_settings.extend(product_im_buffer)
+    app_settings.extend(product_im_time)
     app_settings.extend(path_args)
     app_settings.extend(time_args)
     app_settings.extend(grid_args)

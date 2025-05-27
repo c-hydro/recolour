@@ -110,7 +110,7 @@ class AscatResamplerConfigure:
                 subfolder_template=subfolder_template)
 
             self.ascat_time_stamps, self.ascat_time_intervals = np.array(
-                self.ascat_io_swath.tstamps_for_daterange(self.time_start, self.time_end))
+                self.ascat_io_swath.tstamps_for_daterange(self.time_start, self.time_end, frequency, rounding))
             ascat_file_names = self.ascat_io_swath.search_period(self.time_start, self.time_end)
 
             self.dt_delta = timedelta(minutes=3)

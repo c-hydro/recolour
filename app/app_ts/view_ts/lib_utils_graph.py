@@ -183,11 +183,11 @@ def view_time_series(file_name, point_ts_data,
                      fig_title='figure', fig_label_axis_x='time', fig_label_axis_y='value',
                      fig_legend=None, fig_style=None,
                      fig_spacing_x=None,
-                     fig_cbar='coolwarm', fig_dpi=120):
+                     fig_cbar='coolwarm', fig_dpi=None, fig_size=(18, 10)):
 
     # ------------------------------------------------------------------------------------------------------------------
-    # figure style
-    fig_style_ts, fig_style_hm = None, None
+    # figure style time-series
+    fig_style_generic, fig_style_ts, fig_style_hm = None, None, None
     if 'time_series' in list(fig_style.keys()):
         fig_style_ts = fig_style['time_series']
         for fig_key, fig_value in fig_legend.items():
@@ -195,12 +195,30 @@ def view_time_series(file_name, point_ts_data,
                 fig_style_ts[fig_value] = fig_style_ts[fig_key]
                 fig_style_ts.pop(fig_key)
 
+    # figure style heatmap
     if 'heatmap' in list(fig_style.keys()):
         fig_style_hm = fig_style['heatmap']
     else:
         fig_style_hm = {
             "line_width": 0.2, "line_color": "black", "line_weight": "bold",
-            "cmap": fig_cbar, "cbar_label": "variable [-]"}
+            "cmap": fig_cbar, "cbar_label": "variable [-]",
+            "text_color": "black", "text_weight": "bold", "text_size": 6, "text_format": ".1f",
+            "label_axis_x": "time [days]", "label_size_x": 8, "label_size_y": 8}
+
+    # figure style heatmap
+    if 'table' in list(fig_style.keys()):
+        fig_style_table = fig_style['table']
+    else:
+        fig_style_table = {
+            "text_size": 10}
+
+    # figure style generic
+    if 'generic' in list(fig_style.keys()):
+        file_style_generic = fig_style['generic']
+    else:
+        file_style_generic = {"time_format_title": "%Y-%m-%d %H:%M"}
+
+    time_format_title = file_style_generic['time_format_title']
     # ------------------------------------------------------------------------------------------------------------------
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -224,6 +242,11 @@ def view_time_series(file_name, point_ts_data,
         time_sub_period = file_groups_time['time_sub_period']
         time_sub_n = file_groups_time['time_sub_name']
 
+        if 'time_sub_rounding' in list(file_groups_time.keys()):
+            time_sub_rounding = file_groups_time['time_sub_rounding']
+        else:
+            time_sub_rounding = 'H'
+
         time_sub_period_start = deepcopy(time_start)
         time_sub_period_end = deepcopy(time_end)
 
@@ -234,6 +257,17 @@ def view_time_series(file_name, point_ts_data,
             time_sub_period_tmp = time_sub_period_tmp + DateOffset(**time_sub_period)
             time_sub_period_upper = deepcopy(time_sub_period_tmp)
 
+            # round to hour or month
+            if time_sub_rounding == 'H':
+                time_sub_period_lower = time_sub_period_lower.floor('H')
+                time_sub_period_upper = time_sub_period_upper.ceil('H')
+            elif time_sub_rounding == 'M':
+                time_sub_period_upper = time_sub_period_upper + pd.offsets.MonthEnd(0)
+                time_sub_period_lower = time_sub_period_lower - pd.offsets.MonthBegin(1)
+            else:
+                log_stream.error(' ===> Time rounding "' + time_sub_rounding + '" not expected')
+                raise RuntimeError('Case not implemented yet')
+
             time_period_collections[time_period_id] = [time_sub_period_lower, time_sub_period_upper]
 
             time_period_id += 1
@@ -241,7 +275,8 @@ def view_time_series(file_name, point_ts_data,
         time_period_max = np.max(list(time_period_collections.keys()))
 
         if time_period_collections[time_period_max][1] > time_sub_period_end:
-            time_period_collections[time_period_max][1] = time_sub_period_end
+            if time_sub_rounding == 'H':
+                time_period_collections[time_period_max][1] = time_sub_period_end
 
     else:
         time_sub_n = '{:02d}'
@@ -252,23 +287,36 @@ def view_time_series(file_name, point_ts_data,
     for time_period_id, time_period_range in time_period_collections.items():
 
         # select time start and time end
-        time_start_string, time_start_stamp = time_period_range[0].strftime('%Y%m%d%H%M'), time_period_range[0]
-        time_end_string, time_end_stamp = time_period_range[1].strftime('%Y%m%d%H%M'), time_period_range[1]
+        time_start_string, time_start_stamp = time_period_range[0].strftime(time_format_title), time_period_range[0]
+        time_end_string, time_end_stamp = time_period_range[1].strftime(time_format_title), time_period_range[1]
 
         # get time-series data for selected period
         point_ts_string = time_sub_n.format(time_period_id)
-        point_ts_period = point_ts_data.loc[time_start_stamp:time_end_stamp]
+
+        # create expected dataframe
+        frequency_expected = point_ts_data.index.inferred_freq
+        time_expected = pd.date_range(start=time_start_string, end=time_end_string, freq=frequency_expected)
+        point_ts_expected = pd.DataFrame(index=time_expected)
+
+        # match time-series data with expected dataframe
+        point_ts_tmp = point_ts_expected.join(point_ts_data, how='left')
+        point_ts_period = point_ts_tmp.loc[time_start_stamp:time_end_stamp]
 
         # adjust time period information  (for heatmap)
         point_ts_period['day'] = pd.to_datetime(point_ts_period.index).date
         point_ts_period = point_ts_period.rename(columns=fig_legend)
-        pivot_ts_period = point_ts_period.pivot_table(columns='day', aggfunc='mean')
+        pivot_ts_period = point_ts_period.pivot_table(columns='day', aggfunc='mean', dropna=False)
         pivot_ts_period.index.name = None
 
+        # adjust table and time-series data (remove unnecessary column and row)
+        pivot_ts_period = pivot_ts_period.reindex(list(point_ts_period.columns))
+        pivot_ts_period = pivot_ts_period.drop(index='day', errors='ignore')
         point_ts_period = point_ts_period.drop(['day'], axis=1)
 
+        # compute time range for x-axis
         time_range = pd.date_range(start=time_start_stamp, end=time_end_stamp, freq='12H')
 
+        # try to define axis x spacing
         day_space = 1
         if fig_spacing_x is not None:
             if fig_spacing_x['type'] == 'days':
@@ -315,7 +363,7 @@ def view_time_series(file_name, point_ts_data,
         metrics_arr[metrics_arr == -9998] = np.nan
 
         # open figure
-        fig = plt.figure(figsize=(18, 10))
+        fig = plt.figure(figsize=fig_size)
         fig.autofmt_xdate()
 
         # super title
@@ -332,7 +380,7 @@ def view_time_series(file_name, point_ts_data,
 
         # create heatmap
         ax1 = sns.heatmap(data=pivot_ts_period, vmin=min_ts, vmax=max_ts,
-                          annot=True, fmt='.1f', center=None,
+                          annot=True, fmt=fig_style_hm['text_format'], center=None,
                           linewidths=fig_style_hm['line_width'],
                           linecolor=fig_style_hm['line_color'],
                           cbar=True, square=True,
@@ -348,7 +396,9 @@ def view_time_series(file_name, point_ts_data,
                           ax=ax1, cmap=fig_style_hm['cmap'])
 
         # rotate the tick labels and set their alignment
-        ax1.set_xticklabels(ax1.get_xticklabels(), rotation=90, fontsize=6) # ha="right", rotation_mode="anchor"
+        ax1.set_xticklabels(ax1.get_xticklabels(), rotation=90, fontsize=fig_style_hm['label_size_x']) # ha="right", rotation_mode="anchor"
+        ax1.set_yticklabels(ax1.get_yticklabels(), fontsize=fig_style_hm['label_size_y'])
+        ax1.set_xlabel(fig_style_hm['label_axis_x'], color='#000000')
         # ------------------------------------------------------------------------------------------------------------------
 
         # ------------------------------------------------------------------------------------------------------------------
@@ -374,7 +424,7 @@ def view_time_series(file_name, point_ts_data,
 
         for (row, col), cell in table.get_celld().items():
             if (row == 0) or (col == -1):
-                cell.set_text_props(fontproperties=FontProperties(weight='bold'))
+                cell.set_text_props(fontproperties=FontProperties(weight='bold', size=fig_style_table['text_size']))
 
         # Adjust layout to make room for the table:
         plt.subplots_adjust(left=0.2, bottom=0.2)

@@ -18,7 +18,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from tools.processing_tool_datasets_merger.lib_info_args import logger_name
+from lib_info_args import logger_name
+from lib_info_args import proj_epsg, proj_wkt
 
 # Logging
 log_stream = logging.getLogger(logger_name)
@@ -42,6 +43,22 @@ def read_data_binary(file_name, var_geo_x, var_geo_y, var_geo_attrs=None,
 
     if os.path.exists(file_name):
 
+        if isinstance(var_name, str):
+            pass
+        elif isinstance(var_name, list) and var_name.__len__() == 1:
+            var_name = var_name[0]
+        elif var_name is None:
+            var_name = 'data'
+        else:
+            log_stream.error(' ===> The arguments "var_name" must be a string or a list with length equal to 1')
+            raise NotImplemented('Case not implemented yet')
+
+        if isinstance(var_scale_factor, list) and var_name.__len__() == 1:
+            var_scale_factor = var_scale_factor[0]
+        else:
+            log_stream.error(' ===> The arguments "var_scale_factor" must be a scalar or list with length equal to 1')
+            raise NotImplemented('Case not implemented yet')
+
         # Shape values 1d
         rows = var_geo_y.shape[0]
         cols = var_geo_x.shape[0]
@@ -53,6 +70,8 @@ def read_data_binary(file_name, var_geo_x, var_geo_y, var_geo_attrs=None,
         data_stream = file_handle.read(-1)
         var_data_1d = struct.unpack(data_format, data_stream)
         file_handle.close()
+
+        file_attrs = {}
 
         var_data_1d = np.asarray(var_data_1d, dtype=np.float32)
         var_data_1d = np.float32(var_data_1d / var_scale_factor)
@@ -75,6 +94,23 @@ def read_data_binary(file_name, var_geo_x, var_geo_y, var_geo_attrs=None,
         var_dims = var_data_3d.shape
         var_high = var_dims[0]
         var_wide = var_dims[1]
+
+        if var_geo_attrs is not None:
+
+            nodata_value = var_geo_attrs.get('nodata_value', -9999)
+            xll_corner = var_geo_attrs.get('xllcorner', None)
+            yll_corner = var_geo_attrs.get('yllcorner', None)
+            proj = var_geo_attrs.get('proj', proj_epsg)
+            transform = var_geo_attrs.get('transform', proj_wkt)
+            cellsize = var_geo_attrs.get('cellsize', None)
+
+            geo_attrs = {'nrows': var_geo_y_2d.shape[0], 'ncols': var_geo_x_2d.shape[1],
+                         'nodata_value': nodata_value,
+                         'xllcorner': xll_corner,
+                         'yllcorner': yll_corner, 'cellsize': abs(cellsize),
+                         'proj': proj, 'transform': transform}
+        else:
+            geo_attrs = {}
 
         if var_time_steps_cmp == var_time_steps_expected:
 
@@ -108,29 +144,66 @@ def read_data_binary(file_name, var_geo_x, var_geo_y, var_geo_attrs=None,
 
     if var_data is not None:
 
-        if isinstance(var_time, pd.Timestamp):
+        if var_time is not None:
 
-            if var_time_steps_cmp == 1:
-                var_time = pd.DatetimeIndex([var_time])
-            elif var_time_steps_cmp > 1:
-                var_time = pd.date_range(end=var_time, freq=var_time_freq, periods=var_time_steps_cmp)
+            if isinstance(var_time, pd.Timestamp):
+                var_data_time = pd.DatetimeIndex([var_time])
+            elif isinstance(var_time, pd.DatetimeIndex):
+                var_data_time = deepcopy(var_time)
+            else:
+                log_stream.error(' ===> Time format is not allowed. Expected Timestamp or Datetimeindex')
+                raise NotImplemented('Case not implemented yet')
 
-        elif isinstance(var_time, pd.DatetimeIndex):
-            pass
+            var_dset = xr.Dataset(coords={coord_name_time: ([dim_name_time], var_data_time)})
+            var_dset.coords[coord_name_time] = var_dset.coords[coord_name_time].astype('datetime64[ns]')
+
+            var_da = xr.DataArray(var_data, name=var_name, dims=dims_order,
+                                  coords={coord_name_time: ([dim_name_time], var_data_time),
+                                          coord_name_geo_x: ([dim_name_geo_x], var_geo_x_2d[0, :]),
+                                          coord_name_geo_y: ([dim_name_geo_y], var_geo_y_2d[:, 0])})
+
+            if file_attrs and geo_attrs:
+                obj_attrs = {**file_attrs, **geo_attrs}
+            elif (not file_attrs) and geo_attrs:
+                obj_attrs = deepcopy(geo_attrs)
+            elif file_attrs and (not geo_attrs):
+                obj_attrs = deepcopy(file_attrs)
+            else:
+                obj_attrs = None
+
+            if obj_attrs is not None:
+                var_dset.attrs = obj_attrs
+
+            var_dset[var_name] = var_da
+
+        elif var_time is None:
+
+            var_dset = xr.Dataset()
+            var_da = xr.DataArray(var_data, name=var_name, dims=dims_order,
+                                  coords={coord_name_geo_x: ([dim_name_geo_x], var_geo_x_2d[0, :]),
+                                          coord_name_geo_y: ([dim_name_geo_y], var_geo_y_2d[:, 0])})
+
+            if file_attrs and geo_attrs:
+                obj_attrs = {**file_attrs, **geo_attrs}
+            elif (not file_attrs) and geo_attrs:
+                obj_attrs = deepcopy(geo_attrs)
+            elif file_attrs and (not geo_attrs):
+                obj_attrs = deepcopy(file_attrs)
+            else:
+                obj_attrs = None
+
+            if obj_attrs is not None:
+                var_dset.attrs = obj_attrs
+
+            var_dset[var_name] = var_da
+
         else:
-            log_stream.error(' ===> Time format is not allowed. Expected Timestamp or Datetimeindex')
-            raise NotImplemented('Case not implemented yet')
-
-        var_da = xr.DataArray(var_data, name=var_name, dims=dims_order,
-                              coords={coord_name_time: ([dim_name_time], var_time),
-                                      coord_name_geo_x: ([dim_name_geo_x], var_geo_x_2d[0, :]),
-                                      coord_name_geo_y: ([dim_name_geo_y], var_geo_y_2d[:, 0])})
-        if var_geo_attrs is not None:
-            var_da.attrs = var_geo_attrs
+            log_stream.error(' ===> Error in creating time information for dataset object')
+            raise RuntimeError('Unknown error in creating dataset. Check the procedure.')
 
     else:
         log_stream.warning(' ===> All filenames in the selected period are not available')
-        var_da = None
+        var_dset = None
 
-    return var_da
+    return var_dset
 # -------------------------------------------------------------------------------------

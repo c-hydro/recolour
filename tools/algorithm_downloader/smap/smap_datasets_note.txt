@@ -1,0 +1,13 @@
+# SMAP DATASETS PERIOD
+# from 2015-03-31 to 2023-12-02
+https://n5eil01u.ecs.nsidc.org/DP4/SMAP/SPL3SMP_E.005/
+
+# no data: 2023-12-03
+
+# from 2023-12-04 to now
+https://n5eil01u.ecs.nsidc.org/DP4/SMAP/SPL3SMP_E.006/
+
+# sellonlatbox,lon1,lon2,lat1,lat2
+domain_bb='-30,62,-40,60'
+
+

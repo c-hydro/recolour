@@ -44,7 +44,7 @@ class DriverData:
         self.flags_dict = flags_dict
 
         self.file_name_tag, self.folder_name_tag = 'file_name', 'folder_name'
-        self.fields_tag = 'fields'
+        self.fields_tag, self.delimiter_tag = 'fields', 'delimiter'
 
         self.reset_static = flags_dict['reset_static']
 
@@ -53,6 +53,11 @@ class DriverData:
         file_name_src = self.src_dict[self.file_name_tag]
         self.file_path_src = os.path.join(folder_name_src, file_name_src)
         self.fields_src = self.src_dict[self.fields_tag]
+
+        if self.delimiter_tag in list(self.src_dict.keys()):
+            self.delimiter_src = self.src_dict[self.delimiter_tag]
+        else:
+            self.delimiter_src = ','
 
         # destination object(s)
         folder_name_dst = self.dst_dict[self.folder_name_tag]
@@ -72,7 +77,8 @@ class DriverData:
         log_stream.info(' -----> Read file point "' + file_name + '" ... ')
 
         if file_name.endswith('csv') or file_name.endswith('txt'):
-            point_obj = read_point_data(file_name, file_columns_remap=self.fields_src)
+            point_obj = read_point_data(
+                file_name, file_delimiter=self.delimiter_src, file_columns_remap=self.fields_src)
             log_stream.info(' -----> Read file point "' + file_name + '" ... DONE')
         else:
             log_stream.info(' -----> Read file point "' + file_name + '" ... FAILED')

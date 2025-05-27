@@ -15,6 +15,7 @@ General command line:
 python app_map_grid2ref.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
+20250521 (2.3.0) --> Add codes to manage binary format (old format in operational continuum chains)
 20250419 (2.2.0) --> Fork application to recolour package
 20221013 (2.1.0) --> Add codes to manage tiff format and fix bug in output variable(s)
 20220412 (2.0.3) --> Add codes to manage interpolating (nearest, linear, sample) and masking (watermark) method(s)
@@ -49,8 +50,8 @@ log_stream = logging.getLogger(logger_name)
 project_name = 'recolour'
 alg_name = 'Application for merging partial grids to the reference grid'
 alg_type = 'Package'
-alg_version = '2.1.0'
-alg_release = '2022-10-13'
+alg_version = '2.2.0'
+alg_release = '2025-04-19'
 # -------------------------------------------------------------------------------------
 
 # -------------------------------------------------------------------------------------

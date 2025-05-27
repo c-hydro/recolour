@@ -12,7 +12,7 @@ Version:       '1.0.0'
 import logging
 import os
 
-from lib_info_args import logger_name
+from lib_info_args import logger_name, time_format_algorithm
 from lib_utils_io import fill_path_with_tags
 from lib_utils_generic import make_folder, reset_folder, pad_list
 from lib_utils_datasets import organize_datasets_cell, organize_datasets_points
@@ -232,13 +232,18 @@ class DrvMap:
                     # write_file_obj(file_path_anc_points, cell_obj_dict)
 
                     # save cell obj in netcdf format
-                    folder_name_anc_points, file_name_anc_points = os.path.split(file_path_anc_points_def)
-                    make_folder(folder_name_anc_points)
-                    write_file_collection(file_path_anc_points_def, points_dframe, file_tag_location='location')
+                    if points_dframe is not None:
+                        folder_name_anc_points, file_name_anc_points = os.path.split(file_path_anc_points_def)
+                        make_folder(folder_name_anc_points)
+                        write_file_collection(file_path_anc_points_def, points_dframe, file_tag_location='location')
 
-                    # info end get datasets cell
-                    alg_logger.info(' -----> Get cell "' + str(grid_cells_name) +
-                                    '" ... DONE')
+                        # info end get datasets cell
+                        alg_logger.info(' -----> Get cell "' + str(grid_cells_name) +
+                                        '" ... DONE')
+                    else:
+                        alg_logger.info(' -----> Get cell "' + str(grid_cells_name) +
+                                        '" ... SKIPPED. Time "' + file_time.strftime(time_format_algorithm) +
+                                        '" is not available in the points collections')
 
                 else:
                     # info end get datasets cell

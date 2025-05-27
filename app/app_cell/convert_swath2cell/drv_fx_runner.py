@@ -189,7 +189,7 @@ class DrvFxRunner:
                 subfolder_template=product_sub_folder_tmpl)
 
             product_time_stamps, product_time_intervals = np.array(
-                product_class_driver.tstamps_for_daterange(time_start, time_end, dt_delta=timedelta(days=1)))
+                product_class_driver.tstamps_for_daterange(time_start, time_end, frequency, rounding))
             product_file_names = product_class_driver.search_period(time_start, time_end)
 
             product_dt_delta = timedelta(minutes=3)
@@ -207,7 +207,7 @@ class DrvFxRunner:
                 subfolder_template=product_sub_folder_tmpl)
 
             product_time_stamps, product_time_intervals = np.array(
-                product_class_driver.tstamps_for_daterange(time_start, time_end))
+                product_class_driver.tstamps_for_daterange(time_start, time_end, frequency, rounding))
 
             product_dt_delta = timedelta(minutes=100)
             product_dt_buffer = timedelta(hours=0)
@@ -227,7 +227,7 @@ class DrvFxRunner:
                 subfolder_template=product_sub_folder_tmpl)
 
             product_time_stamps, product_time_intervals = np.array(
-                product_class_driver.tstamps_for_daterange(time_start, time_end))
+                product_class_driver.tstamps_for_daterange(time_start, time_end, frequency, rounding))
 
             product_dt_delta = timedelta(minutes=100)
             product_dt_buffer = timedelta(hours=0)

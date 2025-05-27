@@ -23,7 +23,7 @@ from lib_data_io_generic import parse_data_grid, extract_data_grid
 from lib_utils_io import read_obj, write_obj
 from lib_utils_system import fill_tags2string, make_folder
 from lib_utils_gzip import unzip_filename
-from lib_utils_geo import create_idx_partial2global
+from lib_utils_geo import compute_volume_max
 
 from lib_info_args import logger_name, zip_extension
 
@@ -261,6 +261,7 @@ class DriverStatic:
     # Method to get collections fields
     def get_collections_fields(self, obj_ref, obj_anc):
 
+        # iterate over datasets
         obj_collections_fields = {}
         for obj_key, obj_collections_ref in obj_ref.items():
 
@@ -274,6 +275,24 @@ class DriverStatic:
             else:
                 log_stream.error(' ===> Source format for variable "' + obj_key + '" is badly defined.')
                 raise IOError('Only "file_obj" and "grid_obj" are allowed as flag format')
+
+            # get layer definition
+            obj_layer = None
+            if 'layer' in list(obj_collections_ref.keys()):
+                obj_layer = obj_collections_ref['layer']
+                if obj_layer is not None:
+                    if isinstance(obj_layer, list):
+                        if len(obj_layer) == 1:
+                            obj_layer = obj_layer[0]
+                        else:
+                            log_stream.error(' ===> Datasets layer must be defined by one element')
+                            raise NotImplemented('Case not implemented yet')
+                    elif isinstance(obj_layer, str):
+                        pass
+
+                    else:
+                        log_stream.error(' ===> Datasets layer must be defined by string or list')
+                        raise NotImplemented('Case not implemented yet')
 
             if obj_data_ref_raw is None:
                 log_stream.error(' ===> Source datasets for variable "' + obj_key + '" is not defined.')
@@ -313,8 +332,12 @@ class DriverStatic:
             if obj_key not in list(obj_collections_fields.keys()):
                 obj_collections_fields[obj_key] = {}
 
+            # iterate over domains
             for (data_key, data_ref), data_anc in zip(
                     alg_data_ref_obj.items(), alg_data_anc_obj.values()):
+
+                # Info domain
+                log_stream.info(' -----> Domain "' + data_key + '"  ... DONE')
 
                 if data_key not in list(obj_collections_fields[obj_key].keys()):
                     obj_collections_fields[obj_key][data_key] = {}
@@ -338,6 +361,10 @@ class DriverStatic:
 
                         if obj_type_ref == 'ascii':
                             obj_data_tmp = read_data_grid(file_path_tmp, output_format='dictionary')
+
+                            if obj_layer is not None:
+                                if obj_layer == 'cn' or obj_layer == 'CN':
+                                    obj_data_tmp['values'] = compute_volume_max(obj_data_tmp['values'])
 
                             if obj_data_tmp is not None:
 
@@ -412,6 +439,9 @@ class DriverStatic:
 
                 else:
                     obj_collections_fields[obj_key][data_key] = file_path_anc
+
+                # Info domain
+                log_stream.info(' -----> Domain "' + data_key + '"  ... DONE')
 
             # Info ending
             log_stream.info(' ----> Get "' + obj_key + '" datasets ... DONE')

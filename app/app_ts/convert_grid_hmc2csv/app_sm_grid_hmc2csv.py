@@ -3,8 +3,8 @@
 """
 RECOLOUR APP - TIME-SERIES GRID HMC 2 CSV  - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20240624'
-__version__ = '1.3.0'
+__date__ = '20250423'
+__version__ = '1.4.0'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)'
 __library__ = 'recolour'
@@ -13,6 +13,7 @@ General command line:
 python app_sm_grid_hmc2csv.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
+20250423 (1.4.0) --> Fix bugs for operational realtime case
 20240702 (1.3.0) --> Add different format to read hmc static and dynamic data
 20240229 (1.2.0) --> Update the time and data management
     (1) month periods (previous months or current month time selection)
@@ -48,8 +49,8 @@ log_stream = logging.getLogger(logger_name)
 project_name = 'recolour'
 alg_name = 'Application for making time-series grid hmc 2 csv'
 alg_type = 'Package'
-alg_version = '1.3.0'
-alg_release = '2024-07-02'
+alg_version = '1.4.0'
+alg_release = '2025-04-23'
 # -------------------------------------------------------------------------------------
 
 

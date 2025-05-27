@@ -9,6 +9,7 @@ Version:       '1.0.0'
 # -------------------------------------------------------------------------------------
 # libraries
 import logging
+import pandas as pd
 import rasterio
 import numpy as np
 import os
@@ -234,7 +235,7 @@ class hmc_ds(MultiTemporalImageBase):
             ioclass_kws=ioclass_kws,
         )
 
-    def tstamps_for_daterange(self, start_date, end_date):
+    def tstamps_for_daterange(self, start_date, end_date, frequency='D', rounding='H'):
         """
         return timestamps for daterange,
 
@@ -250,8 +251,11 @@ class hmc_ds(MultiTemporalImageBase):
         timestamps : list
             list of datetime objects of each available image between
             start_date and end_date
+            :param frequency:
+            :param rounding:
         """
 
+        ## old approach start
         start_step = self.start_step
         end_step = self.end_step
 
@@ -262,8 +266,22 @@ class hmc_ds(MultiTemporalImageBase):
         for i in range(diff.days + 1):
             daily_dates = start_date + timedelta(days=i) + img_offsets
             timestamps.extend(daily_dates.tolist())
+        ## old approach end
 
-        return timestamps
+        ## new approach start
+        start_ts, end_ts = pd.Timestamp(start_date), pd.Timestamp(end_date)
+        period_ts = pd.date_range(start=start_ts, end=end_ts, freq=frequency)
+
+        # check datetime format
+        if self.datetime_format is not None:
+            # apply datetime format
+            period_ts = period_ts.strftime(self.datetime_format)
+            # remove duplicates
+            period_ts = pd.DatetimeIndex(pd.Series(period_ts).unique())
+
+        period_dates = list(period_ts.to_pydatetime())
+
+        return period_dates
 # -------------------------------------------------------------------------------------
 
 

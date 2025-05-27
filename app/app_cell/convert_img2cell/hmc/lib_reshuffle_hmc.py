@@ -171,6 +171,7 @@ def reshuffle(product,
               start_date, end_date, run_date,
               grid_path,
               parameters,
+              frequency_date='D', rounding_date='H',
               file_name_tmpl_grid="SoilMoistureItaly_{datetime}.tif",
               datetime_format_grid="%Y%m%d%H0000",
               data_sub_path_grid=None,
@@ -224,6 +225,12 @@ def reshuffle(product,
 
     if get_filetype(dataset_grid_root) == "tiff":
         if input_grid is not None:
+
+            if frequency_date == 'H' or frequency_date == 'h':
+                start_step, end_step = 0,23
+            else:
+                start_step, end_step = 23, 23
+
             logging.warning(" ===> Land Grid is fit to HMC grid netCDF data")
             dataset_grid_driver = hmc_ds(
                 data_path=dataset_grid_root,
@@ -231,7 +238,7 @@ def reshuffle(product,
                 data_sub_path=data_sub_path_grid,
                 file_name_tmpl=file_name_tmpl_grid, datetime_format=datetime_format_grid,
                 parameter=parameters, subgrid=input_grid, array_1D=True,
-                start_step=23, end_step=23
+                start_step=start_step, end_step=end_step
             )
             logging.info(' -----> 1) Define file type and format ... DONE')
         else:
@@ -253,7 +260,8 @@ def reshuffle(product,
 
     # iterate over selected time stamps
     data = None
-    tstamp_list = dataset_grid_driver.tstamps_for_daterange(start_date, end_date)
+    tstamp_list = dataset_grid_driver.tstamps_for_daterange(
+        start_date, end_date, frequency=frequency_date, rounding=rounding_date)
     for tstamp in tstamp_list:
         logging.info(' -------> Analyze time "' + tstamp.isoformat() + '" ... ')
 
@@ -308,6 +316,7 @@ def reshuffle(product,
         outputpath=dataset_ts_root,
         startdate=start_date,
         enddate=end_date,
+        fdate=frequency_date, rdate=rounding_date,
         input_grid=input_grid,
         target_grid=target_grid,
         imgbuffer=img_buffer,
@@ -433,7 +442,28 @@ def parse_args(args):
         "bbox",
         type=str,
         default='',
-        help="Boundary box 'lon_min, lat_min, lon_max, lat_max]' "
+        help="Boundary box 'lon_min, lat_min, lon_max, lat_max' "
+    )
+
+    parser.add_argument(
+        'image_buffer',
+        type=str,
+        default=50,
+        help="Image buffer parameters"
+    )
+
+    parser.add_argument(
+        "img_time_freq",
+        #type=str,
+        default='D',
+        help="Image time frequency parameters"
+    )
+
+    parser.add_argument(
+        "img_time_round",
+        #type=str,
+        default='H',
+        help="Image time rounding parameters"
     )
 
     parser.add_argument(
@@ -592,8 +622,9 @@ def main(args):
         args.run,
         args.grid_path,
         args.parameters,
+        frequency_date=args.img_time_freq, rounding_date=args.img_time_round,
         input_grid=input_grid,
-        img_buffer=args.imgbuffer,
+        img_buffer=int(args.image_buffer),
         file_name_tmpl_grid=args.templates_src[0],
         datetime_format_grid=args.templates_src[1],
         data_sub_path_grid=args.templates_src[2],

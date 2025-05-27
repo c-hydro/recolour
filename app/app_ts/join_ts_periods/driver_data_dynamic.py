@@ -72,6 +72,7 @@ class DriverData:
         file_name_src = self.source_dict[self.file_name_tag]
         self.file_path_src = os.path.join(folder_name_src, file_name_src)
         self.type_src = self.source_dict[self.type_tag]
+        self.delimiter_src = self.source_dict[self.delimiter_tag]
         # ancillary object(s)
         folder_name_anc = ancillary_dict[self.folder_name_tag]
         file_name_anc = ancillary_dict[self.file_name_tag]
@@ -225,7 +226,8 @@ class DriverData:
                     if self.type_src == 'csv':
 
                         # method to get data
-                        point_dynamic_data = read_file_csv(file_path_src_step)
+                        point_dynamic_data = read_file_csv(
+                            file_path_src_step, dframe_sep=self.delimiter_src)
                         # method to join data
                         point_dynamic_collections = join_data_point(
                             point_dynamic_data, point_dynamic_collections,
@@ -272,15 +274,19 @@ class DriverData:
             log_stream.info(' -----> Get datasets ... SKIPPED. Datasets were previously saved')
 
         # method to range data point
+        log_stream.info(' -----> Define the time-series period ... ')
         time_frequency, time_start, time_end = range_data_point(
             point_dynamic_collections, time_run_reference=self.time_reference,
             time_start_reference=self.time_start, time_end_reference=self.time_end)
+        log_stream.info(' -----> Define the time-series period ... DONE')
 
         # method to combine data point to the expected time range
+        log_stream.info(' -----> Combine the time-series period ... ')
         point_dynamic_collections = combine_data_point_by_time(
             point_dynamic_collections, point_static_collections,
             time_start_expected=time_start, time_end_expected=time_end,
             time_frequency_expected=time_frequency, time_reverse=True)
+        log_stream.info(' -----> Combine the time-series period ... DONE')
 
         # method end info
         log_stream.info(' ----> Organize dynamic object(s) ... DONE')

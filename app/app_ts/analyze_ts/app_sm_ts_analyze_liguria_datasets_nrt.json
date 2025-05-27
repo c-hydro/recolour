@@ -4,7 +4,7 @@
       "title": "Analyzing tool for soil moisture time-series",
       "web-site": "",
       "source": "Python library developed by CIMA Research Foundation",
-      "history": "1.2.0 [20240705]",
+      "history": "1.3.0 [20250425]",
       "project-info": "recolour",
       "algorithm": "Algorithm developed by CIMA Research Foundation"
     },
@@ -64,7 +64,8 @@
           "code": "code",
           "longitude": "longitude", "latitude": "latitude",
           "name": "name", "valid": "valid", "units": "units", "tag": "tag"
-        }
+        },
+        "delimiter": ";"
       },
       "destination": {
         "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/registry/liguria/",

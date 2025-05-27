@@ -13,6 +13,8 @@ import pandas as pd
 import xarray as xr
 import numpy as np
 
+from copy import deepcopy
+
 from lib_info_args import logger_name
 
 # Logging
@@ -29,6 +31,10 @@ def active_var_interpolate(var_attrs, geo_attrs, fields_included=None):
 
     if fields_included is None:
         fields_included = ['ncols', 'nrows', 'cellsize']
+
+    if not var_attrs:
+        log_stream.error(' ===> Variable attributes are not defined. Try to use the terrain attributes')
+        raise RuntimeError('Attributes must be defined to check the flag related to the interpolation method')
 
     active_interp = False
     for field_step in fields_included:

@@ -18,6 +18,9 @@ from lib_data_io_csv import wrap_registry_csv
 from lib_data_io_mat import wrap_registry_mat, wrap_datasets_mat
 from lib_data_io_pickle import read_obj, write_obj
 
+from lib_utils_system import fill_tags2string
+from lib_utils_obj import fill_tags_time
+
 from lib_utils_system import make_folder
 
 from lib_info_args import logger_name, time_format_algorithm, time_format_datasets
@@ -107,6 +110,25 @@ class DriverData:
         self.folder_name_tmp = tmp_dict[self.folder_name_tag]
         self.file_name_tmp = tmp_dict[self.file_name_tag]
 
+    # -------------------------------------------------------------------------------------
+
+    # -------------------------------------------------------------------------------------
+    # method to get ancillary object
+    def get_obj_ancillary(self, file_path_template):
+
+        # get template tags
+        template_time_tags = self.template_dict_time
+
+        # fill time tags
+        template_time_values = fill_tags_time(
+            template_time_tags,
+            time_reference=self.time_reference, time_start=self.time_start, time_end=self.time_end)
+
+        # define file path
+        file_path_defined = fill_tags2string(
+            file_path_template, tags_format=template_time_tags, tags_filling=template_time_values)[0]
+
+        return file_path_defined
     # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------
@@ -209,6 +231,9 @@ class DriverData:
         # get path(s)
         file_path_registry, file_path_datasets = self.file_path_registry, self.file_path_datasets
         file_path_ancillary = self.file_path_ancillary
+
+        # define ancillary file path
+        file_path_ancillary = self.get_obj_ancillary(file_path_ancillary)
 
         # get flag(s)
         reset_source = self.reset_source

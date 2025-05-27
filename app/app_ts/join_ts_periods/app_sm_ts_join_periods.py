@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 """
 RECOLOUR APP - TIME-SERIES JOIN PERIODS  - REprocess paCkage for sOiL mOistUre pRoducts
-__date__ = '20240301'
-__version__ = '1.0.0'
+__date__ = '20250423'
+__version__ = '1.1.0'
 __author__ = 'Fabio Delogu (fabio.delogu@cimafoundation.org',
 __library__ = 'recolour'
 
@@ -10,6 +10,7 @@ General command line:
 python3 app_sm_ts_join_products.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
+20250423 (1.1.0) --> Fix bugs for operational realtime case
 20240301 (1.0.0) --> Beta release
 """
 
@@ -39,8 +40,8 @@ log_stream = logging.getLogger(logger_name)
 project_name = 'recolour'
 alg_name = 'Application for joining time-series by periods'
 alg_type = 'Package'
-alg_version = '1.0.0'
-alg_release = '2024-03-01'
+alg_version = '1.1.0'
+alg_release = '2025-04-23'
 # ----------------------------------------------------------------------------------------------------------------------
 
 

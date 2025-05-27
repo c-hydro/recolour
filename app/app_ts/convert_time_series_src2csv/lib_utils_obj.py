@@ -13,6 +13,8 @@ Version:       '1.0.0'
 import logging
 import unicodedata
 import re
+import pandas as pd
+
 from copy import deepcopy
 
 from lib_info_args import logger_name
@@ -118,6 +120,8 @@ def fill_tags_time(template_time_tags,
                 if time_start == '*':
                     time_string = '*'
                 else:
+                    if isinstance(time_start, str):
+                        time_start = pd.Timestamp(time_start)
                     time_string = time_start.to_pydatetime()
                 template_time_values[template_key] = time_string
         elif 'end' in template_key:
@@ -125,6 +129,8 @@ def fill_tags_time(template_time_tags,
                 if time_end == '*':
                     time_string = '*'
                 else:
+                    if isinstance(time_end, str):
+                        time_end = pd.Timestamp(time_end)
                     time_string = time_end.to_pydatetime()
                 template_time_values[template_key] = time_string
         else:

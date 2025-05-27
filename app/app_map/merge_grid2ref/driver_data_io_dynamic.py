@@ -18,6 +18,7 @@ from copy import deepcopy
 
 from lib_data_io_nc import read_data_nc
 from lib_data_io_tiff import read_data_tiff
+from lib_data_io_binary import read_data_binary
 from lib_data_io_remap import create_dset_continuum
 
 from lib_utils_method_interpolate import active_var_interpolate, apply_var_interpolate, apply_var_sample
@@ -26,6 +27,8 @@ from lib_utils_io import read_obj, write_obj, write_dset_nc, write_dset_tiff, fi
 from lib_utils_gzip import unzip_filename, zip_filename, id_generator
 from lib_utils_system import fill_tags2string, make_folder, intersect_dicts, find_folder
 from lib_info_args import logger_name, time_format_algorithm, zip_extension
+
+import lib_utils_method_fx as lib_fx
 
 # Logging
 log_stream = logging.getLogger(logger_name)
@@ -116,6 +119,7 @@ class DriverDynamic:
         self.file_compression_tag = 'file_compression'
         self.file_geo_reference_tag = 'file_geo_reference'
         self.file_geo_mask_tag = 'file_geo_mask'
+        self.file_geo_scale_tag = 'file_geo_scale'
         self.file_type_tag = 'file_type'
         self.file_coords_tag = 'file_coords'
         self.file_frequency_tag = 'file_frequency'
@@ -172,6 +176,10 @@ class DriverDynamic:
         self.method_mask_destination = None
         if 'layer_method_mask_destination' in list(alg_ancillary.keys()):
             self.method_mask_destination = alg_ancillary['layer_method_mask_destination']
+
+        self.method_apply_to_variable = None
+        if 'layer_method_apply_to_variable' in list(alg_ancillary.keys()):
+            self.method_apply_to_variable = alg_ancillary['layer_method_apply_to_variable']
 
         self.nc_compression_level = 9
         self.nc_type_file = 'NETCDF4'
@@ -394,8 +402,8 @@ class DriverDynamic:
                                  + '"; expected format was "' + file_extension_zip + '"')
                 raise IOError('Check your settings file or change expected zip extension')
         else:
-            log_stream.error(' ===> File zip ended with a unexpected zip extension "' + file_extension_tmp
-                             + '"; expected format was "' + file_extension_zip + '"')
+            log_stream.error(' ===> File zip ended with a unexpected zip extension; '
+                             'expected format was "' + file_extension_zip + '"')
             raise IOError('Check your settings file or change expected zip extension')
 
         return file_path_unzip
@@ -413,7 +421,7 @@ class DriverDynamic:
 
         if not file_path_unzip.endswith(file_extension_zip):
             file_path_zip = '.'.join([file_path_unzip, file_extension_zip])
-        elif file_path_unzip.endswith(file_extension_zip):
+        else:
             file_path_zip = file_path_unzip
 
         return file_path_zip
@@ -543,6 +551,10 @@ class DriverDynamic:
         if self.file_geo_mask_tag in list(var_dict.keys()):
             file_geo_mask = var_dict[self.file_geo_mask_tag]
 
+        file_geo_scale = None
+        if self.file_geo_scale_tag in list(var_dict.keys()):
+            file_geo_scale = var_dict[self.file_geo_scale_tag]
+
         file_time_steps_expected = 1
         if self.file_time_steps_expected_tag in list(var_dict.keys()):
             file_time_steps_expected = var_dict[self.file_time_steps_expected_tag]
@@ -563,7 +575,8 @@ class DriverDynamic:
         if self.file_layer_tag in list(var_dict.keys()):
             file_layer = var_dict[self.file_layer_tag]
 
-        return (file_include, file_compression, file_geo_reference, file_geo_mask,
+        return (file_include, file_compression,
+                file_geo_reference, file_geo_mask, file_geo_scale,
                 file_type, file_coords, file_freq,
                 file_time_steps_expected, file_time_steps_ref, file_time_steps_flag,
                 file_domain, file_layer)
@@ -639,11 +652,12 @@ class DriverDynamic:
 
                 log_stream.info(' ----> Save datasets destination "' + var_name_dst + '" ... ')
 
-                file_include_dst, file_compression_dst, file_geo_reference_dst, file_geo_mask_dst, \
-                    file_type_dst, file_coords_dst, file_freq_dst, \
-                    file_time_steps_expected_dst, file_time_steps_ref_dst, \
-                    file_time_steps_flag_dst,\
-                    file_domain_dst, file_layer_dst = self.extract_var_fields(dst_dict[var_name_dst])
+                (file_include_dst, file_compression_dst,
+                 file_geo_reference_dst, file_geo_mask_dst, file_geo_scale_dst,
+                 file_type_dst, file_coords_dst, file_freq_dst,
+                 file_time_steps_expected_dst, file_time_steps_ref_dst,
+                 file_time_steps_flag_dst,
+                 file_domain_dst, file_layer_dst) = self.extract_var_fields(dst_dict[var_name_dst])
 
                 var_dset_layer_dst = self.parse_var_dict(file_layer_dst, obj_list=self.alg_layer_variable)
 
@@ -722,7 +736,7 @@ class DriverDynamic:
                                 log_stream.warning(' ===> Datasets is undefined. Data not found')
 
                             var_file_dict_dst = {}
-                            for file_layers_step in file_layers_name:
+                            for file_layers_step in var_dset_layer_dst:
                                 alg_template_step = {'layer_name': file_layers_step}
                                 alg_template_intersect = intersect_dicts(self.alg_template_data, alg_template_step)
                                 var_file_path_tmp = fill_tags2string(var_file_path_dst,
@@ -966,11 +980,12 @@ class DriverDynamic:
 
                     log_stream.info(' ----> Get datasets source "' + var_name_src + '" ... ')
 
-                    file_include_src, file_compression_src, file_geo_reference_src, file_geo_mask_src, \
-                        file_type_src, file_coords_src, file_freq_src, \
-                        file_time_steps_expected_src, file_time_steps_ref_src, \
-                        file_time_steps_flag_src,\
-                        file_domain_src, file_layer_src = self.extract_var_fields(src_dict[var_name_src])
+                    (file_include_src, file_compression_src,
+                     file_geo_reference_src, file_geo_mask_src, file_geo_scale_src,
+                     file_type_src, file_coords_src, file_freq_src,
+                     file_time_steps_expected_src, file_time_steps_ref_src,
+                     file_time_steps_flag_src,
+                     file_domain_src, file_layer_src) = self.extract_var_fields(src_dict[var_name_src])
 
                     var_dset_layer_src = self.parse_var_dict(file_layer_src, obj_list=self.alg_layer_variable)
 
@@ -992,10 +1007,11 @@ class DriverDynamic:
 
                                 log_stream.info(' ------> Domain "' + var_domain_name_src + '" ... ')
 
+                                # get terrain information
                                 geo_file_obj = None
                                 if file_geo_reference_src is not None:
                                     if file_geo_reference_src in list(self.static_data_src.keys()):
-                                        geo_file_obj = self.static_data_src[file_geo_reference_src];
+                                        geo_file_obj = self.static_data_src[file_geo_reference_src]
                                     else:
                                         log_stream.error(' ===> Geographical info must be defined in the static object')
                                         raise RuntimeError('Algorithm will produce unexpected errors.')
@@ -1003,19 +1019,28 @@ class DriverDynamic:
                                     log_stream.error(' ===> Geographical info is defined by NoneType object')
                                     raise RuntimeError('Algorithm will produce unexpected errors.')
 
+                                # get mask information
                                 mask_file_obj = None
                                 if file_geo_mask_src is not None:
                                     if file_geo_mask_src in list(self.static_data_src.keys()):
                                         mask_file_obj = self.static_data_src[file_geo_mask_src]
+                                # get scale information
+                                scale_file_obj = None
+                                if file_geo_scale_src is not None:
+                                    if file_geo_scale_src in list(self.static_data_src.keys()):
+                                        scale_file_obj = self.static_data_src[file_geo_scale_src]
 
                                 if method_mask is not None:
                                     if mask_file_obj is None:
                                         log_stream.warning(' ===> Mask info is defined by NoneType object')
 
+                                # get terrain data
+                                geo_file_data, geo_file_values = None, None
+                                geo_file_x, geo_file_y, geo_file_attrs = None, None, None
                                 if var_domain_name_src in list(geo_file_obj.keys()):
                                     geo_file_name = geo_file_obj[var_domain_name_src]
                                     if os.path.exists(geo_file_name):
-                                        geo_file_data = read_obj(geo_file_name);
+                                        geo_file_data = read_obj(geo_file_name)
                                         geo_file_values, geo_file_x, geo_file_y, geo_file_attrs,\
                                             i_cols_ref, j_rows_ref, i_cols_dom, j_rows_dom = \
                                             self.set_geo_attributes(geo_file_data)
@@ -1026,6 +1051,7 @@ class DriverDynamic:
                                     log_stream.error(' ===> Geographical domain "' + var_domain_name_src + '" not found')
                                     raise IOError('Geographical domain not available. Check your settings file')
 
+                                # get mask data
                                 mask_file_data, mask_file_values = None, None
                                 mask_file_x, mask_file_y, mask_file_attrs = None, None, None
                                 if mask_file_obj is not None:
@@ -1040,6 +1066,22 @@ class DriverDynamic:
                                     else:
                                         log_stream.warning(' ===> Mask domain "' + var_domain_name_src + '" not found')
 
+                                # get scale data
+                                scale_file_data, scale_file_values = None, None
+                                scale_file_x, scale_file_y, scale_file_attrs = None, None, None
+                                if scale_file_obj is not None:
+                                    if var_domain_name_src in list(scale_file_obj.keys()):
+                                        scale_file_name = scale_file_obj[var_domain_name_src]
+                                        if os.path.exists(scale_file_name):
+                                            scale_file_data = read_obj(scale_file_name)
+                                            scale_file_values, scale_file_x, scale_file_y, scale_file_attrs, _, _, _, _ = \
+                                                self.set_geo_attributes(scale_file_data)
+                                        else:
+                                            log_stream.warning(' ===> Mask datasets "' + scale_file_name + '" not found')
+                                    else:
+                                        log_stream.warning(' ===> Mask domain "' + var_domain_name_src + '" not found')
+
+                                # check file availability
                                 if os.path.exists(var_file_path_src):
 
                                     if dset_collection_tmp is None:
@@ -1047,6 +1089,7 @@ class DriverDynamic:
                                     if var_name_tmp not in list(dset_collection_tmp.keys()):
                                         dset_collection_tmp[var_name_tmp] = {}
 
+                                    # check if compression applied or not
                                     if file_compression_src:
 
                                         # manage tmp file (to avoid permission errors)
@@ -1064,8 +1107,10 @@ class DriverDynamic:
                                     else:
                                         var_file_path_tmp = deepcopy(var_file_path_src)
 
+                                    # check file type
                                     if file_type_src == 'netcdf':
 
+                                        # get nc data
                                         var_dset_src = read_data_nc(
                                             var_file_path_tmp, geo_file_x, geo_file_y, geo_file_attrs,
                                             var_coords=file_coords_src,
@@ -1079,11 +1124,13 @@ class DriverDynamic:
                                             dim_name_geo_y=self.dim_name_geo_y,
                                             dim_name_time=self.dim_name_time,
                                             dims_order=self.dims_order_3d)
-
+                                        # organize nc data
                                         var_dset_src = filter_dset_vars(var_dset_src, var_list=var_dset_layer_src)
+                                        var_dset_list = list(var_dset_src.data_vars)
 
                                     elif file_type_src == 'tif' or file_type_src == 'tiff':
 
+                                        # get tiff data
                                         var_dset_src = read_data_tiff(
                                             var_file_path_tmp,
                                             var_scale_factor=file_layers_scale_factor, var_type='float32',
@@ -1100,9 +1147,74 @@ class DriverDynamic:
                                             decimal_round_geo=7, flag_round_geo=True,
                                             flag_obj_type='Dataset')
 
+                                        # organize tiff data
                                         var_dset_src = filter_dset_vars(var_dset_src, var_list=None)
+                                        var_dset_list = list(var_dset_src.data_vars)
+
+                                    elif file_type_src == 'binary' or file_type_src == 'bin':
+
+                                        # check binary mandatory variable(s)
+                                        if geo_file_data is None:
+                                            log_stream.error(' ===> Geo values is not defined for binary file case')
+                                            raise IOError('Check your geo reference in the configuration file')
+
+                                        if (geo_file_x is None) or (geo_file_y is None):
+                                            log_stream.error(' ===> Geo reference is not defined for binary file case')
+                                            raise IOError('Check your geo reference in the configuration file')
+
+                                        # get binary data
+                                        var_dset_tmp = read_data_binary(
+                                            var_file_path_tmp, geo_file_x, geo_file_y, geo_file_attrs,
+                                            var_scale_factor=file_layers_scale_factor, var_time=var_time,
+                                            var_format='i',
+                                            var_name=file_layers_name,
+                                            var_time_steps_expected=1,
+                                            coord_name_geo_x=self.coord_name_geo_x,
+                                            coord_name_geo_y=self.coord_name_geo_y,
+                                            coord_name_time=self.coord_name_time,
+                                            dim_name_geo_x=self.dim_name_geo_x, dim_name_geo_y=self.dim_name_geo_y,
+                                            dim_name_time=self.dim_name_time,
+                                            dims_order=self.dims_order_3d)
+
+                                        # organize binary information
+                                        var_dset_filter = []
+                                        if self.method_apply_to_variable is not None:
+                                            var_list = list(self.method_apply_to_variable.keys())
+                                            for var_name in var_list:
+                                                if var_name in list(var_dset_tmp.data_vars):
+
+                                                    fx_data = self.method_apply_to_variable[var_name]
+                                                    fx_var_in, fx_var_out = fx_data['var_in'], fx_data['var_out']
+                                                    fx_name = fx_data['fx']
+
+                                                    if hasattr(lib_fx, fx_name):
+                                                        fx_obj = getattr(lib_fx, fx_name)
+
+                                                        var_da_in = var_dset_tmp[fx_var_in]
+                                                        var_values_in = var_da_in.values[:, :, 0]
+
+                                                        var_values_tmp = fx_obj(
+                                                            var_values_in, scale_file_values, geo_file_values)
+
+                                                        var_values_out = np.expand_dims(var_values_tmp, 2)
+                                                        var_da_out = xr.DataArray(data=var_values_out,
+                                                            dims=var_da_in.dims, coords=var_da_in.coords,
+                                                            attrs=var_da_in.attrs,
+                                                            name=fx_var_out)
+
+                                                        var_dset_tmp[fx_var_out] = var_da_out
+
+                                                        var_dset_filter.append(fx_var_out)
+
+                                        else:
+                                            var_dset_filter.extend(var_dset_layer_src)
+
+                                        # organize binary data
+                                        var_dset_src = filter_dset_vars(var_dset_tmp, var_list=var_dset_filter)
+                                        var_dset_list = list(var_dset_src.data_vars)
 
                                     else:
+                                        # exit for format type not implemented
                                         log_stream.error(' ===> File type "' + file_type_src + '"is not allowed.')
                                         raise NotImplementedError('Case not implemented yet')
 
@@ -1129,13 +1241,13 @@ class DriverDynamic:
                                         plt.colorbar()
                                         plt.show()
                                         '''
-
+                                        # apply the mask method to the variable source data-array
                                         if active_mask:
                                             if method_mask == 'watermark':
                                                 var_dset_src = apply_var_mask(var_dset_src, mask_file_values)
                                             else:
                                                 log_stream.error(' ===> Masking method "'
-                                                                 + method_mask + '" is not allowed')
+                                                                 + str(method_mask) + '" is not allowed')
                                                 raise NotImplementedError('Case not implemented yet')
 
                                         # Apply the interpolation method to the variable source data-array
@@ -1180,9 +1292,15 @@ class DriverDynamic:
                                         else:
                                             var_dset_masked = deepcopy(var_dset_anc)
 
+                                        # organize data by time(s)
                                         if var_time not in list(dset_collection_tmp[var_name_tmp].keys()):
+
+                                            # time step first time
                                             dset_collection_tmp[var_name_tmp][var_time] = var_dset_masked
+
                                         elif var_time in list(dset_collection_tmp[var_name_tmp].keys()):
+
+                                            # time step already avaialable
                                             var_dset_tmp = dset_collection_tmp[var_name_tmp][var_time]
                                             attrs_dset_tmp = var_dset_tmp.attrs
 
@@ -1190,21 +1308,21 @@ class DriverDynamic:
                                                 var_dset_tmp, var_dset_masked)
 
                                             # Iterate over variables to aggregate layers
-                                            for file_layer_name, file_layer_no_data in zip(
-                                                    file_layers_name, file_layers_no_data):
+                                            for file_layer_name, file_layer_no_data, var_dset_name in zip(
+                                                    file_layers_name, file_layers_no_data, var_dset_list):
 
-                                                if (file_layer_name in list(var_dset_masked_adj.variables)) and \
-                                                        (file_layer_name in list(var_dset_masked_adj.variables)):
+                                                if (var_dset_name in list(var_dset_masked_adj.variables)) and \
+                                                        (var_dset_name in list(var_dset_masked_adj.variables)):
 
-                                                    var_da_masked_adj = var_dset_masked_adj[file_layer_name]
-                                                    var_da_tmp_adj = var_dset_tmp_adj[file_layer_name].reindex_like(var_da_masked_adj)    ###MODIFIED
+                                                    var_da_masked_adj = var_dset_masked_adj[var_dset_name]
+                                                    var_da_tmp_adj = var_dset_tmp_adj[var_dset_name].reindex_like(var_da_masked_adj)    ###MODIFIED
 
                                                     var_da_filled_adj = xr.where(
                                                         (var_da_tmp_adj != file_layer_no_data)
                                                         & (np.isfinite(var_da_masked_adj)),
                                                         var_da_masked_adj, var_da_tmp_adj)
 
-                                                    var_dset_masked_adj[file_layer_name] = deepcopy(var_da_filled_adj)
+                                                    var_dset_masked_adj[var_dset_name] = deepcopy(var_da_filled_adj)
 
                                             var_dset_merged = deepcopy(var_dset_masked_adj)
 
@@ -1242,17 +1360,19 @@ class DriverDynamic:
                         log_stream.info(' ----> Get datasets source  "' + var_name_src +
                                         '" ... SKIPPED. Compute flag not activated.')
 
+                # iterate over variable ancillary list
                 for var_name_anc in var_list_anc:
 
                     log_stream.info(' ----> Save datasets ancillary "' + var_name_anc + '" ... ')
 
                     if (dset_collection_tmp is not None) and (var_name_anc in list(dset_collection_tmp.keys())):
 
-                        file_include_anc, file_compression_anc, file_geo_reference_anc, file_geo_mask_anc, \
-                            file_type_anc, file_coords_anc, file_freq_anc, \
-                            file_time_steps_expected_anc, file_time_steps_ref_anc, \
-                            file_time_steps_flag_anc, \
-                            file_domain_anc, file_layer_anc = self.extract_var_fields(anc_dict[var_name_anc])
+                        (file_include_anc, file_compression_anc,
+                         file_geo_reference_anc, file_geo_mask_anc, file_geo_scale_anc,
+                         file_type_anc, file_coords_anc, file_freq_anc,
+                         file_time_steps_expected_anc, file_time_steps_ref_anc,
+                         file_time_steps_flag_anc,
+                         file_domain_anc, file_layer_anc) = self.extract_var_fields(anc_dict[var_name_anc])
 
                         var_dset_layer_anc = self.parse_var_dict(file_layer_anc, obj_list=self.alg_layer_variable)
 
@@ -1266,6 +1386,7 @@ class DriverDynamic:
                                 ' ===> Only "pickle" format is supported for ancillary datasets by constants ')
                             raise NotImplementedError('Case not implemented yet')
 
+                        # iterate over time(s)
                         for var_time, var_path_list_anc in file_path_collections_anc.items():
 
                             log_stream.info(' -----> Time "' + var_time.strftime(time_format_algorithm) + '" ... ')
@@ -1299,7 +1420,7 @@ class DriverDynamic:
                                                     '" ... SKIPPED. Datasets not available')
                             else:
                                 log_stream.info(' -----> Time "' + var_time.strftime(time_format_algorithm) +
-                                                '" ... SKIPPED. Datasets previously savec')
+                                                '" ... SKIPPED. Datasets previously saved')
 
                         log_stream.info(' ----> Save datasets ancillary "' + var_name_anc + '" ... DONE')
 

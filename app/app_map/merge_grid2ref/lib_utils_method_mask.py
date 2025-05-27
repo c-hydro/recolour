@@ -13,6 +13,8 @@ import pandas as pd
 import xarray as xr
 import numpy as np
 
+from copy import deepcopy
+
 from lib_info_args import logger_name
 
 # Logging
@@ -34,6 +36,10 @@ def active_var_mask(var_attrs, mask_attrs,
         fields_format_expected = ['{}', '{}', '{:.3f}', '{:.3f}', '{:.3f}']
     if fields_type_expected is None:
         fields_type_expected = [int, int, float, float, float]
+
+    if not var_attrs:
+        log_stream.error(' ===> Variable attributes are not defined. Try to use the mask attributes')
+        raise RuntimeError('Attributes must be defined to check the flag related to the mask method')
 
     if mask_attrs is not None:
         active_mask = True

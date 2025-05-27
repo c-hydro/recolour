@@ -38,6 +38,7 @@ class DriverData:
         # set tag(s)
         self.file_name_tag, self.folder_name_tag = 'file_name', 'folder_name'
         self.fields_tag, self.format_tag = 'fields', 'format'
+        self.delimiter_tag = 'delimiter'
 
         # point object(s)
         folder_name_pnt = self.point_dict[self.folder_name_tag]
@@ -45,6 +46,11 @@ class DriverData:
         self.file_path_pnt = os.path.join(folder_name_pnt, file_name_pnt)
         self.fields_pnt = self.point_dict[self.fields_tag]
         self.format_pnt = self.point_dict[self.format_tag]
+
+        if self.delimiter_tag in list(self.point_dict.keys()):
+            self.delimiter_point = self.point_dict[self.delimiter_tag]
+        else:
+            self.delimiter_point = ','
 
         # tmp object(s)
         self.folder_name_tmp_raw = self.tmp_dict[self.folder_name_tag]
@@ -62,7 +68,8 @@ class DriverData:
         # check file availability
         if self.format_pnt == 'csv':
             # read data
-            point_obj = read_point_data(file_name, file_columns_remap=self.fields_pnt)
+            point_obj = read_point_data(
+                file_name, file_delimiter=self.delimiter_point, file_columns_remap=self.fields_pnt)
             # info end
             log_stream.info(' -----> Read file point "' + file_name + '" ... DONE')
         else:

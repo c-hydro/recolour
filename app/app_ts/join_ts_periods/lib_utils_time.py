@@ -211,8 +211,15 @@ def define_time_frequency(time_index, time_freq_default='D'):
 
     if isinstance(time_index, pd.DatetimeIndex):
         if time_index.shape[0] >= 3:
-            time_freq_raw = pd.infer_freq(time_index)
-            time_freq_str = re.findall("[a-zA-Z]+", time_freq_raw)[0]
+            time_freq_raw = None
+            try:
+                time_freq_raw = pd.infer_freq(time_index)
+                time_freq_str = re.findall("[a-zA-Z]+", time_freq_raw)[0]
+            except:
+                log_stream.warning(' ===> Time frequency is not correctly defined [' + str(time_freq_raw) + ']. '
+                                   'Try to use the first two time steps to define the frequency')
+                time_delta = time_index[1] - time_index[0]
+                time_freq_str = time_delta.resolution_string
         elif time_index.shape[0] == 2:
             time_delta = time_index[1] - time_index[0]
             time_freq_str = time_delta.resolution_string

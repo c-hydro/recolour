@@ -294,12 +294,16 @@ def organize_datasets_points(
 
     # organize workspace (transpose the dataframe)
     alg_logger.info(' -------> Organize points... ')
-    collections_workspace.reset_index(inplace=True)
-    collections_workspace.drop('index', inplace=True, axis=1)
-    collections_workspace.set_index('gpi', inplace=True)
-    collections_workspace.index.name = 'gpi'
-    collections_workspace.attrs = attrs_obj
-    alg_logger.info(' -------> Organize points ... DONE')
+    if collections_workspace is not None:
+        collections_workspace.reset_index(inplace=True)
+        collections_workspace.drop('index', inplace=True, axis=1)
+        collections_workspace.set_index('gpi', inplace=True)
+        collections_workspace.index.name = 'gpi'
+        collections_workspace.attrs = attrs_obj
+        alg_logger.info(' -------> Organize points ... DONE')
+    else:
+        alg_logger.warning(' ===> Points datasets are not available.')
+        alg_logger.info(' -------> Organize points ... SKIPPED. Collections is defined by NoneType')
 
     # info datasets end
     alg_logger.info(' ------> Convert datasets ... DONE')

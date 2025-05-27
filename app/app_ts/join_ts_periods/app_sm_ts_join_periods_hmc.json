@@ -4,7 +4,7 @@
       "title": "Running tool for soil moisture time-series analysis",
       "web-site": "",
       "source": "Python library developed by CIMA Research Foundation",
-      "history": "1.0.0 [20240301]",
+      "history": "1.1.0 [20250423]",
       "project-info": "recolour",
       "algorithm": "Algorithm developed by CIMA Research Foundation"
     },
@@ -35,13 +35,15 @@
       "fields": {
         "code": "code", "longitude": "longitude", "latitude": "latitude",
         "name": "name", "valid": "valid", "units": "units", "tag": "tag"
-      }
+      },
+      "delimiter": ","
     },
     "dynamic": {
       "source": {
         "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/nrt/{source_sub_path_time}",
         "file_name": "sm_datasets_hmc_{source_datetime}_soil_moisture_liguria.csv",
-        "type": "csv"
+        "type": "csv",
+        "delimiter": ";"
       },
       "ancillary": {
         "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/grid2csv/ancillary/{ancillary_sub_path}",

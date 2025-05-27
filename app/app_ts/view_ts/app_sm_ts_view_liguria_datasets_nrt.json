@@ -113,11 +113,11 @@
         "file_name": "sm_ts_{destination_datetime}_{point_name}_dataset.jpeg",
         "format": "jpeg",
         "fields": {
-          "ref": "sm_obs",
+          "ref": "sm_obs_10_cm",
           "other_k1": "sm_hmc",
-          "other_k2": "sm_ecmwf_layer_0_7",
-          "other_k3": "sm_ecmwf_layer_0_28",
-          "other_k4": "sm_ecmwf_layer_0_100",
+          "other_k2": "sm_ecmwf_layer_0_7_cm",
+          "other_k3": "sm_ecmwf_layer_0_28_cm",
+          "other_k4": "sm_ecmwf_layer_0_100_cm",
           "other_k5": "sm_smap",
           "time": "time"
         },
@@ -133,18 +133,20 @@
           "other_k5": "SMAP"
         },
         "style": {
-          "ref": {"marker": "o", "color": "black", "linestyle": "--", "lw": 1, "ms": 4, "alpha": 1.0},
-          "other_k1": {"marker": null, "color": "green", "linestyle": "-", "lw": 1, "ms": null, "alpha": 1.0},
-          "other_k2": {"marker": null, "color": "red", "linestyle": "-", "lw": 1, "ms": null, "alpha": 1.0},
-          "other_k3": {"marker": null, "color": "orange", "linestyle": "-", "lw": 1, "ms": null, "alpha": 1.0},
-          "other_k4": {"marker": null, "color": "pink", "linestyle": "-", "lw": 1, "ms": null, "alpha": 1.0},
-          "other_k5": {"marker": null, "color": "blue", "linestyle": "-", "lw": 1, "ms": null, "alpha": 1.0}
+          "time_series": {
+            "ref": {"marker": "o", "color": "black", "linestyle": "--", "lw": 1, "ms": 4, "alpha": 1.0},
+            "other_k1": {"marker": null, "color": "green", "linestyle": "-", "lw": 1, "ms": null, "alpha": 1.0}
+          },
+          "heatmap": {
+            "line_width": 0.3, "line_color": "gray",
+            "cmap": "coolwarm",
+            "cbar_label": "avg soil moisture [%]",
+            "text_color": "black", "text_weight": "bold", "text_size": 6
+          }
         },
         "metrics": ["pearson_r", "nash_sutcliffe"],
         "groups": {
-          "group_1": ["ref", "other_k1"],
-          "group_2": ["ref", "other_k2", "other_k3", "other_k4"],
-          "group_3": ["ref", "other_k5"]
+          "group_1": ["ref", "other_k1"]
         }
       }
     }

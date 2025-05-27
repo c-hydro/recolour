@@ -53,38 +53,63 @@ def reset_folder(folder_name):
 def get_filetype(grid_path):
 
     # get folder structure
-    one_down = os.path.join(grid_path, os.listdir(grid_path)[0])
-    if os.path.isdir(one_down):
-        two_down = os.path.join(one_down, os.listdir(one_down)[0])
-    elif os.path.isfile(one_down):
-        two_down, _ = os.path.split(one_down)
-    else:
-        logging.error(' ===> Object path "one_down" is not supported')
-        raise NotImplementedError('Case not supported yet')
+    one_list_dir = os.listdir(grid_path)
 
-    if os.path.isdir(two_down):
-        extension = None
-        for path, dirs, files in os.walk(two_down):
-            if extension is not None:
-                break
-            for name in files:
-                filename, extension = os.path.splitext(name)
-                break
-    elif os.path.isfile(two_down):
-        _, extension = os.path.splitext(two_down)
-    else:
-        logging.error(' ===> Object path "two_down" is not supported')
-        raise NotImplementedError('Case not supported yet')
+    # iterate over first level of folders
+    filename, extension = None, None
+    for one_dir in one_list_dir:
 
-    if extension == '.nc' or extension == '.nc4':
-        return 'netcdf'
-    elif extension == '.tiff' or extension == '.tif':
-        return 'tiff'
-    elif extension == '.grb' or extension == '.grib':
-        return 'grib'
+        logging.info(' ------> Search file in folder "' + one_dir + '" ... ')
+
+        one_down = os.path.join(grid_path, one_dir)
+        if os.path.isdir(one_down):
+            two_list_dir = os.listdir(one_down)
+            two_down = os.path.join(one_down, two_list_dir[0])
+        elif os.path.isfile(one_down):
+            two_down, _ = os.path.split(one_down)
+        else:
+            logging.error(' ===> Object path "one_down" is not supported')
+            raise NotImplementedError('Case not supported yet')
+
+        if os.path.isdir(two_down):
+            for path, dirs, files in os.walk(two_down):
+                if extension is not None:
+                    break
+                for name in files:
+                    filename, extension = os.path.splitext(name)
+                    break
+        elif os.path.isfile(two_down):
+            _, extension = os.path.splitext(two_down)
+        else:
+            logging.error(' ===> Object path "two_down" is not supported')
+            raise NotImplementedError('Case not supported yet')
+
+        if filename is not None and extension is not None:
+            logging.info(' ------> Search file in folder "' + one_dir + '" ... DONE')
+            break
+        else:
+            logging.info(' ------> Search file in folder "' + one_dir + '" ... FILES NOT FOUND')
+
+
+    # check extension
+    logging.info(' ------> Get file extension ... ')
+    if extension is not None:
+        if extension == '.nc' or extension == '.nc4':
+            logging.info(' ------> Get file extension ... DONE ["' + filename + '" -- netcdf]')
+            return 'netcdf'
+        elif extension == '.tiff' or extension == '.tif':
+            logging.info(' ------> Get file extension ... DONE ["' + filename + '" -- tiff]')
+            return 'tiff'
+        elif extension == '.grb' or extension == '.grib':
+            logging.info(' ------> Get file extension ... DONE ["' + filename + '" -- grib]')
+            return 'grib'
+        else:
+            logging.info(' ------> Get file extension ... FAILED')
+            logging.error(' ===> File format for grid datasets "' + str(extension) + '" is not supported')
+            raise NotImplemented('Case not implemented yet')
     else:
-        logging.error(' ===> File format for grid datasets "' + str(extension) + '" is not supported')
-        raise NotImplemented('Case not implemented yet')
+        logging.error(' ===> File format for grid datasets "' + str(extension) + '" is not defined')
+        raise RuntimeError('Search file folders are empty or not correctly defined. Check them.')
 # -------------------------------------------------------------------------------------
 
 

@@ -4,7 +4,7 @@
       "title": "Viewing tool for soil moisture time-series",
       "web-site": "",
       "source": "Python library developed by CIMA Research Foundation",
-      "history": "1.0.0 [20240112]",
+      "history": "1.2.0 [20250428]",
       "project-info": "recolour",
       "algorithm": "Algorithm developed by CIMA Research Foundation"
     },
@@ -57,33 +57,34 @@
   "data": {
     "static" : {
       "source": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/registry/liguria/",
-        "file_name": "sm_ws_registry.csv",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/weather_stations_obs/destination/regione_liguria/data_analysis/reference_vwc_10_cm/geo/",
+        "file_name": "sm_datasets_ws_registry.csv",
         "format": "csv",
         "fields": {
           "code": "code",
           "longitude": "longitude", "latitude": "latitude",
           "name": "name", "valid": "valid", "units": "units", "tag": "tag"
-        }
+        },
+        "delimiter": ";"
       },
       "destination": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/registry/liguria/",
-        "file_name": "sm_ws_registry.workspace"
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/weather_stations_obs/destination/regione_liguria/data_analysis/reference_vwc_10_cm/geo/",
+        "file_name": "sm_datasets_ws_registry.workspace"
       }
     },
     "dynamic": {
       "source": {
         "data": {
           "__comment__": "ts format: json, csv",
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/analysis/liguria/ts_scaling/{source_sub_path_time}",
-          "file_name": "sm_ts_{source_datetime}_{point_name}_analysis_liguria.csv",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/weather_stations_obs/destination/regione_liguria/data_analysis/reference_vwc_10_cm/dr/scale/data/{source_sub_path_time}",
+          "file_name": "sm_analysis_d5_{source_datetime}_{point_name}_scale_vwc_10_cm.csv",
           "format": "csv",
           "fields": {
-            "ref": "sm_obs",
+            "ref": "sm_obs_10_cm",
             "other_k1": "sm_hmc",
-            "other_k2": "sm_ecmwf_layer_0_7",
-            "other_k3": "sm_ecmwf_layer_0_28",
-            "other_k4": "sm_ecmwf_layer_0_100",
+            "other_k2": "sm_ecmwf_layer_0_7_cm",
+            "other_k3": "sm_ecmwf_layer_0_28_cm",
+            "other_k4": "sm_ecmwf_layer_0_100_cm",
             "other_k5": "sm_smap",
             "time": "time"
           },
@@ -92,42 +93,43 @@
           "value_no_data": -9999.0
         },
         "metrics": {
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/analysis/liguria/ts_metrics/{source_sub_path_time}",
-          "file_name": "sm_ts_{source_datetime}_{point_name}_metrics_liguria.csv",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/weather_stations_obs/destination/regione_liguria/data_analysis/reference_vwc_10_cm/dr/scale/metrics/{source_sub_path_time}",
+          "file_name": "sm_analysis_d5_{source_datetime}_{point_name}_metrics_vwc_10_cm.csv",
           "format": "csv",
           "fields": {
-            "ref": "sm_obs",
+            "ref": "sm_obs_10_cm",
             "other_k1": "sm_hmc",
-            "other_k2": "sm_ecmwf_layer_0_7",
-            "other_k3": "sm_ecmwf_layer_0_28",
-            "other_k4": "sm_ecmwf_layer_0_100",
+            "other_k2": "sm_ecmwf_layer_0_7_cm",
+            "other_k3": "sm_ecmwf_layer_0_28_cm",
+            "other_k4": "sm_ecmwf_layer_0_100_cm",
             "other_k5": "sm_smap",
             "time": "time"
           }
         }
       },
       "ancillary": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/analysis/liguria/ancillary/multi_group_1m/{ancillary_sub_path_time}",
-        "file_name": "sm_ts_{ancillary_datetime}_{point_name}_view_liguria.workspace"
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/weather_stations_obs/destination/regione_liguria/data_analysis/reference_vwc_10_cm/ancillary/{ancillary_sub_path_time}",
+        "file_name": "sm_datasets_d5_{ancillary_datetime}_{point_name}_vwc_10_cm.workspace"
       },
       "destination": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/grid2csv/analysis/liguria/ts_view/multi_group_1m/{destination_sub_path_time}/{point_name}/",
-        "file_name": "sm_ts_{destination_datetime}_{point_name}_{group_name}_{time_sub_name}_{time_start}_{time_end}.jpeg",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/weather_stations_obs/destination/regione_liguria/data_analysis/reference_vwc_10_cm/plot/{destination_sub_path_time}",
+        "file_name": "sm_datasets_d5_{destination_datetime}_{point_name}_{group_name}_{time_sub_name}_{time_start}_{time_end}_vwc_10_cm.jpeg",
         "format": "jpeg",
         "fields": {
-          "ref": "sm_obs",
+          "ref": "sm_obs_10_cm",
           "other_k1": "sm_hmc",
-          "other_k2": "sm_ecmwf_layer_0_7",
-          "other_k3": "sm_ecmwf_layer_0_28",
-          "other_k4": "sm_ecmwf_layer_0_100",
+          "other_k2": "sm_ecmwf_layer_0_7_cm",
+          "other_k3": "sm_ecmwf_layer_0_28_cm",
+          "other_k4": "sm_ecmwf_layer_0_100_cm",
           "other_k5": "sm_smap",
           "time": "time"
         },
-        "title": "Soil Moisture - Time Series - {point_name} from {time_start} to {time_end} - {group_name}",
+        "limit_min": 20.0, "limit_max": 60.0, "dpi": 300, "size": [18, 10],
+        "title": "Soil Moisture :: Time Series - {point_name} from {time_start} to {time_end} :: Group {group_name}",
         "label_axis_x": "time [days]",
         "label_axis_y": "soil moisture [%]",
         "legend": {
-          "ref": "OBS",
+          "ref": "OBS 10 cm",
           "other_k1": "HMC",
           "other_k2": "ECMWF 0-7 cm",
           "other_k3": "ECMWF 0-28 cm",
@@ -135,21 +137,42 @@
           "other_k5": "SMAP"
         },
         "style": {
-          "ref": {"marker": "o", "color": "black", "linestyle": "--", "lw": 1, "ms": 4, "alpha": 1.0},
-          "other_k1": {"marker": null, "color": "green", "linestyle": "-", "lw": 1, "ms": null, "alpha": 1.0},
-          "other_k2": {"marker": null, "color": "red", "linestyle": "-", "lw": 1, "ms": null, "alpha": 1.0},
-          "other_k3": {"marker": null, "color": "orange", "linestyle": "-", "lw": 1, "ms": null, "alpha": 1.0},
-          "other_k4": {"marker": null, "color": "pink", "linestyle": "-", "lw": 1, "ms": null, "alpha": 1.0},
-          "other_k5": {"marker": null, "color": "blue", "linestyle": "-", "lw": 1, "ms": null, "alpha": 1.0}
+          "generic": {
+            "time_format_title": "%Y-%m-%d"
+          },
+          "time_series": {
+            "ref": {"marker": "o", "color": "black", "linestyle": "--", "lw": 1, "ms": 4, "alpha": 1.0},
+            "other_k1": {"marker": null, "color": "green", "linestyle": "-", "lw": 1, "ms": null, "alpha": 1.0},
+            "other_k2": {"marker": null, "color": "red", "linestyle": "-", "lw": 1, "ms": null, "alpha": 1.0},
+            "other_k3": {"marker": null, "color": "orange", "linestyle": "-", "lw": 1, "ms": null, "alpha": 1.0},
+            "other_k4": {"marker": null, "color": "pink", "linestyle": "-", "lw": 1, "ms": null, "alpha": 1.0},
+            "other_k5": {"marker": null, "color": "blue", "linestyle": "-", "lw": 1, "ms": null, "alpha": 1.0}
+          },
+          "heatmap": {
+            "line_width": 0.2, "line_color": "gray",
+            "cmap": "coolwarm",
+            "cbar_label": "avg soil moisture [%]",
+            "label_axis_x": "time [days]", "label_size_x": 6.5, "label_size_y": 6,
+            "text_color": "black", "text_weight": "bold", "text_size": 6, "text_format": ".0f"
+          },
+          "table": {
+            "text_size": 6
+          }
         },
         "metrics": ["pearson_r", "nash_sutcliffe"],
-        "groups_data": null,
+        "groups_data": {
+          "ALL": ["ref", "other_k1","other_k2", "other_k3", "other_k4", "other_k5"],
+          "HMC": ["ref", "other_k1"],
+          "ECMWF": ["ref", "other_k2", "other_k3", "other_k4"],
+          "SMAP": ["ref", "other_k5"]
+        },
         "groups_time": {
           "time_sub_period": {"months": 1},
+          "time_sub_rounding": "M",
           "time_sub_name": "{:02d}",
-          "time_start": "2021-08-01 00:00",
-          "time_end": "2023-10-01 00:00",
-          "time_reference": "2024-03-05 00:00"
+          "time_start": null,
+          "time_end": null,
+          "time_reference": null
         }
       }
     }
@@ -160,14 +183,14 @@
   },
   "log": {
     "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/log/",
-    "file_name": "sm_ts_viewer_liguria_multi_group_1m.txt"
+    "file_name": "sm_ts_viewer_liguria_multi_group.txt"
   },
   "time": {
-    "time_reference": "2024-03-05 00:00",
+    "time_reference": null,
     "time_period": 1,
     "time_frequency": "D",
     "time_rounding": "D",
-    "time_start": "2021-08-01 00:00",
-    "time_end": "2023-10-01 00:00"
+    "time_start": null,
+    "time_end": null
   }
 }

@@ -2,35 +2,41 @@
   "product": {
     "__comment__" : "bbox format (example italy) :: [6, 35, 18.5, 47] or null",
     "name": "hmc",
-    "bbox": null
+    "bbox": null,
+    "image_buffer": 25,
+    "time_frequency": "H",
+    "time_rounding": "H"
   },
   "flags": {
     "reset_static": true,
     "reset_dynamic": true
   },
   "grid": {
-    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/hmc_static/",
-    "file_name": "hmc_grid.nc"
+    "__comment__": "derived_by: 'source_datasets', 'null'",
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/hmc_geo/cells/",
+    "file_name": "hmc_grid.nc",
+    "derived_by": "source_datasets"
   },
   "template": {
     "dataset": {
       "cell_n": "%04d"
     },
     "time": {
-      "datetime_source": "%Y%m%d%H0000",
+      "datetime_source": "%Y%m%d0000",
       "sub_path_source": "%Y/%m/%d/",
       "datetime_destination": "%Y%m%d%H",
       "sub_path_destination": "%Y/%m/%d"
     },
     "file": {
-      "file_name_source": "SoilMoistureItaly_{datetime_source}.tif",
+      "file_name_source": "sm_hmc_{datetime_source}.tiff",
       "file_name_destination": "{cell_n}.nc"
     }
   },
   "variables": ["soil_moisture"],
   "data": {
-    "path_grid": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/hmc_grid/",
-    "path_ts": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/hmc_ts_nrt/"
+    "path_grid": "/home/fabio/Desktop/Recolour_Workspace/ws/hmc_map/",
+    "path_ts": "/home/fabio/Desktop/Recolour_Workspace/ws/hmc_cell_nrt/",
+    "path_stack": "/home/fabio/Desktop/Recolour_Workspace/ws/hmc_cell_nrt/"
   },
   "time": {
     "time_now": null,
@@ -41,7 +47,7 @@
     "time_rounding" : "H"
   },
   "log": {
-  	"path": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/log/",
+  	"path": "/home/fabio/Desktop/Recolour_Workspace/ws/log/",
   	"file": "app_img2cell_hmc.txt"
   }
 }

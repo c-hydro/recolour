@@ -396,6 +396,9 @@ class DriverData:
                         deepcopy(point_dframe_tmp),
                         resample_frequency=self.par_resample_time_freq, resample_method=self.par_resample_time_method)
 
+                    # testing pre resampling
+                    point_dframe_pre = point_dframe_resampled.dropna(how='all')
+
                     # method to fill time-series
                     point_dframe_filled = fill_data_point(
                         deepcopy(point_dframe_resampled),
@@ -403,6 +406,9 @@ class DriverData:
                         fill_order=self.par_fill_time_order,
                         fill_limit=self.par_fill_time_limit,
                         fill_direction=self.par_fill_time_dir)
+
+                    # testing post resampling
+                    point_dframe_post = point_dframe_filled.dropna(how='all')
 
                     # save in a common obj
                     dframe_point_out[point_key] = point_dframe_filled

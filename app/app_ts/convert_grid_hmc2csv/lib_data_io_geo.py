@@ -72,6 +72,7 @@ def read_point_data(file_name,
 
     df_point_remap = df_point.rename(columns=df_remap)
 
+    # check if the columns are available (if not, add them using nans)
     select_keys, select_values = list(df_remap.keys()), list(df_remap.values())
     if "units" not in columns_keys:
         df_point_remap['units'] = file_units_default

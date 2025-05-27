@@ -77,6 +77,9 @@ class DriverData:
         self.label_axis_x_tag, self.label_axis_y_tag = 'label_axis_x', 'label_axis_y'
         self.label_spacing_x_tag = 'label_spacing_x'
         self.legend_tag, self.style_tag = 'legend', "style"
+        self.limit_min_tag, self.limit_max_tag = 'limit_min', 'limit_max'
+        self.dpi_tag, self.size_tag = 'dpi', 'size'
+
         # other tags
         self.metrics_tag, self.group_data_tag, self.group_time_tag = 'metrics', 'groups_data', 'groups_time'
 
@@ -123,11 +126,12 @@ class DriverData:
             fields_dst_fig, format_dst_fig)
 
         (title_dst_fig, label_axis_x_dst_fig, label_axis_y_dst_fig, label_spacing_x_dst_fig,
-         fig_legend, fig_style) = self.get_info_figure(self.destination_dict)
+         fig_legend, fig_style,
+         fig_limit_min, fig_limit_max, fig_dpi, fig_size) = self.get_info_figure(self.destination_dict)
         # zip tmp data
         self.dset_obj_dst_fig = self.zip_info_figure(
             title_dst_fig, label_axis_x_dst_fig, label_axis_y_dst_fig, label_spacing_x_dst_fig,
-            fig_legend, fig_style)
+            fig_legend, fig_style, fig_limit_min, fig_limit_max, fig_dpi, fig_size)
 
         # get destination other
         self.metrics_settings = self.destination_dict[self.metrics_tag]
@@ -190,11 +194,13 @@ class DriverData:
     # -------------------------------------------------------------------------------------
     # method to zip info figure
     def zip_info_figure(self, fig_title, fig_label_axis_x, fig_label_axis_y, fig_label_spacing_x,
-                        fig_legend, fig_style):
+                        fig_legend, fig_style, fig_limit_min, fig_limit_max, fig_dpi, fig_size):
         info_obj = {self.title_tag: fig_title,
                     self.label_axis_x_tag: fig_label_axis_x, self.label_axis_y_tag: fig_label_axis_y,
                     self.label_spacing_x_tag: fig_label_spacing_x,
-                    self.legend_tag: fig_legend, self.style_tag: fig_style}
+                    self.legend_tag: fig_legend, self.style_tag: fig_style,
+                    self.limit_min_tag: fig_limit_min, self.limit_max_tag: fig_limit_max,
+                    self.dpi_tag: fig_dpi, self.size_tag: fig_size}
         return info_obj
     # -------------------------------------------------------------------------------------
 
@@ -209,7 +215,17 @@ class DriverData:
         fig_legend = check_key_of_obj(self.legend_tag, obj_data, value_data_default=None)
         fig_style = check_key_of_obj(self.style_tag, obj_data, value_data_default=None)
 
-        return fig_title, fig_label_axis_x, fig_label_axis_y, fig_label_spacing_x, fig_legend, fig_style
+        fig_limit_min = check_key_of_obj(self.limit_min_tag, obj_data, value_data_default=None)
+        fig_limit_max = check_key_of_obj(self.limit_max_tag, obj_data, value_data_default=None)
+        fig_dpi = check_key_of_obj(self.dpi_tag, obj_data, value_data_default=150)
+        fig_size = check_key_of_obj(self.size_tag, obj_data, value_data_default=[18, 10])
+        if not isinstance(fig_size, tuple):
+            if isinstance(fig_size, list):
+                fig_size = tuple(fig_size)
+        if not isinstance(fig_size, tuple):
+            fig_size = (18, 10)
+        return (fig_title, fig_label_axis_x, fig_label_axis_y, fig_label_spacing_x,
+                fig_legend, fig_style, fig_limit_min, fig_limit_max, fig_dpi, fig_size)
 
     # -------------------------------------------------------------------------------------
 
@@ -282,10 +298,22 @@ class DriverData:
         fig_title = self.dset_obj_dst_fig[self.title_tag]
         fig_label_x_tag = self.dset_obj_dst_fig[self.label_axis_x_tag]
         fig_label_y_tag = self.dset_obj_dst_fig[self.label_axis_y_tag]
+
+        fig_spacing_x = None
         if self.label_spacing_x_tag in list(self.dset_obj_dst_fig.keys()):
             fig_spacing_x = self.dset_obj_dst_fig[self.label_spacing_x_tag]
-        else:
-            fig_spacing_x = None
+        fig_limit_min = None
+        if self.limit_min_tag in list(self.dset_obj_dst_fig.keys()):
+            fig_limit_min = self.dset_obj_dst_fig[self.limit_min_tag]
+        fig_limit_max = None
+        if self.limit_max_tag in list(self.dset_obj_dst_fig.keys()):
+            fig_limit_max = self.dset_obj_dst_fig[self.limit_max_tag]
+        fig_dpi = 150
+        if self.dpi_tag in list(self.dset_obj_dst_fig.keys()):
+            fig_dpi = self.dset_obj_dst_fig[self.dpi_tag]
+        fig_size = (18, 10)
+        if self.size_tag in list(self.dset_obj_dst_fig.keys()):
+            fig_size = self.dset_obj_dst_fig[self.size_tag]
 
         # iterate over point(s)
         for point_fields in point_registry.to_dict(orient="records"):
@@ -341,6 +369,7 @@ class DriverData:
                         # view point time-series
                         view_time_series(file_path_dst_point,
                                          point_ts_data=point_data_group, point_metrics=point_metrics_group,
+                                         min_ts=fig_limit_min, max_ts=fig_limit_max,
                                          point_registry=point_fields,
                                          file_fields=file_fields_dst,
                                          file_groups_name=group_tag, file_groups_time=self.groups_time_settings,
@@ -349,7 +378,7 @@ class DriverData:
                                          fig_legend=fig_legend, fig_style=fig_style,
                                          fig_label_axis_x=fig_label_x_tag, fig_label_axis_y=fig_label_y_tag,
                                          fig_spacing_x=fig_spacing_x,
-                                         fig_dpi=150)
+                                         fig_dpi=fig_dpi, fig_size=fig_size)
 
                         # group info end
                         log_stream.info(' ------> Group "' + group_tag + '" ... DONE')

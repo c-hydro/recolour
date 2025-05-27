@@ -497,7 +497,7 @@ class Img2Ts(object):
         # image counter
         read_images = 0
 
-        dates_raw = self.imgin.tstamps_for_daterange(self.startdate, self.enddate)
+        dates_raw = self.imgin.tstamps_for_daterange(self.startdate, self.enddate, frequency, rounding)
 
         # filter dates using selected date_start end date_end
         dates_filtered = []

@@ -36,6 +36,9 @@ def combine_data_point_by_time(point_data_collections_src, point_geo,
     if point_data_collections_src is not None:
         for point_var, point_data_raw in point_data_collections_src.items():
 
+            # info start
+            log_stream.info(' ------> Point "' + point_var + '" ... ')
+
             # create null data
             null_data = np.zeros(shape=(time_range_expected.shape[0], point_geo.shape[0]))
             null_data[:, :] = np.nan
@@ -53,6 +56,9 @@ def combine_data_point_by_time(point_data_collections_src, point_geo,
             # store data in a common obj
             point_data_collections_dst[point_var] = point_data_expected
 
+            # info end
+            log_stream.info(' ------> Point "' + point_var + '" ... DONE')
+
     else:
         log_stream.warning(' ===> No data available to combine over the expected time range')
         point_data_collections_dst = None
@@ -69,6 +75,10 @@ def range_data_point(point_collection,
 
     time_start_collection, time_end_collection, frequency_collection, seconds_collections = [], [], [], []
     for point_name, point_data in point_collection.items():
+
+        # info start
+        log_stream.info(' ------> Point "' + point_name + '" ... ')
+
         time_index_step = point_data.index
         time_start_step, time_end_step = time_index_step[0], time_index_step[-1]
         time_frequency_step = define_time_frequency(time_index_step)
@@ -95,6 +105,10 @@ def range_data_point(point_collection,
         time_start_collection.append(time_start_step)
         time_end_collection.append(time_end_step)
 
+        # info end
+        log_stream.info(' ------> Point "' + point_name + '" ... DONE')
+
+    # define time information
     idx_min = np.argmin(np.array(seconds_collections))
 
     time_frequency = frequency_collection[idx_min]

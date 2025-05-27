@@ -57,6 +57,7 @@ class DriverData:
 
         self.file_name_tag, self.folder_name_tag = 'file_name', 'folder_name'
         self.format_tag, self.fields_tag = 'format', 'fields'
+        self.delimiter_tag = 'delimiter'
 
         self.point_reference_tag = 'point_reference'
         self.grid_reference_tag, self.soil_type_reference_tag = 'grid_reference', 'soil_type_reference'
@@ -125,6 +126,11 @@ class DriverData:
         file_name_src_point = self.src_dict[self.point_reference_tag][self.file_name_tag]
         self.file_path_src_point = os.path.join(folder_name_src_point, file_name_src_point)
         self.fields_src_point = self.src_dict[self.point_reference_tag][self.fields_tag]
+
+        if self.delimiter_tag in list(self.src_dict[self.point_reference_tag].keys()):
+            self.delimiter_src_point = self.src_dict[self.point_reference_tag][self.delimiter_tag]
+        else:
+            self.delimiter_src_point = ','
 
         # destination object(s)
         folder_name_dst = self.dst_dict[self.folder_name_tag]
@@ -313,8 +319,9 @@ class DriverData:
         log_stream.info(' -----> Read file point "' + file_name + '" ... ')
 
         if file_name.endswith('csv') or file_name.endswith('txt'):
-            point_obj = read_point_data(file_name,
-                                        file_columns_remap=self.fields_src_point)
+            point_obj = read_point_data(
+                file_name, file_delimiter=self.delimiter_src_point,
+                file_columns_remap=self.fields_src_point)
             log_stream.info(' -----> Read file point "' + file_name + '" ... DONE')
         else:
             log_stream.info(' -----> Read file point "' + file_name + '" ... FAILED')

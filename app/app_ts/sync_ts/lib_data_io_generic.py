@@ -242,9 +242,20 @@ def fill_data_point(dframe_data_in,
                     fill_method='polynomial', fill_order=2):
 
     if fill_method == 'polynomial':
+        try:
+            dframe_data_out = dframe_data_in.interpolate(
+                method='polynomial', order=fill_order,
+                limit=fill_limit, limit_direction=fill_direction)
+        except BaseException as base_exp:
+            log_stream.warning(' ===> Polynomial time-series interpolation failed: ' + str(base_exp))
+            log_stream.warning(' ===> Try to use linear interpolation')
+
+            dframe_data_out = dframe_data_in.interpolate(
+                method='linear', limit=fill_limit, limit_direction=fill_direction)
+
+    elif fill_method == 'linear':
         dframe_data_out = dframe_data_in.interpolate(
-            method='polynomial', order=fill_order,
-            limit=fill_limit, limit_direction=fill_direction)
+            method='linear', limit=fill_limit, limit_direction=fill_direction)
     else:
         dframe_data_out = deepcopy(dframe_data_in)
 

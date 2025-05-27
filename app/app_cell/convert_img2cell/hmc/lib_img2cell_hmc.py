@@ -156,6 +156,7 @@ class Img2Ts(object):
     """
 
     def __init__(self, input_dataset, outputpath, startdate, enddate,
+                 fdate='D', rdate='D',
                  input_kwargs={}, input_grid=None, target_grid=None, imgbuffer=100, variable_rename=None,
                  unlim_chunksize=100, cellsize_lat=5.0, cellsize_lon=5.0,
                  r_methods='nn', r_weightf=None, r_min_n=1, r_radius=18000,
@@ -200,6 +201,8 @@ class Img2Ts(object):
         self.currentdate = startdate
         self.startdate = startdate
         self.enddate = enddate
+        self.fdate = fdate
+        self.rdate = rdate
         self.imgbuffer = imgbuffer
         self.outputpath = outputpath
         self.variable_rename = variable_rename
@@ -479,7 +482,8 @@ class Img2Ts(object):
         # image counter
         read_images = 0
 
-        dates_raw = self.imgin.tstamps_for_daterange(self.startdate, self.enddate)
+        dates_raw = self.imgin.tstamps_for_daterange(
+            self.startdate, self.enddate, frequency=self.fdate, rounding=self.rdate)
 
         # filter dates using selected date_start end date_end
         dates_filtered = []

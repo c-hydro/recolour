@@ -33,6 +33,10 @@ def remap_dframe(obj_df_in, obj_map_in=None):
 
     index_name_in = obj_df_in.index.name
 
+    if index_name_in is None:
+        log_stream.warning(' ===> Index name is defined by NoneType. Try to remap to "time"')
+        index_name_in = 'time'
+
     if index_name_in in list(obj_map_in):
         index_name_out = obj_map_in[index_name_in]
         obj_df_in.index.name = index_name_out

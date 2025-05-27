@@ -647,9 +647,22 @@ class AscatNrtBufrFileList(ChronFiles):
 
         file_time_stamps, file_time_intervals = None, None
         for dt_cur in dt_range.astype(datetime):
-            files, dates = self.search_date(
-                dt_cur,
-                return_date=True, search_date_str="%Y%m%d*", date_str="%Y%m%d", date_field="date")
+
+            import inspect
+            signature = inspect.signature(self.search_date)
+            print(signature)
+
+            try:
+                files, dates = self.search_date(
+                    dt_cur,
+                    return_date=True, search_date_str="%Y%m%d*", date_str="%Y%m%d", date_field="date")
+            except BaseException as base_exp:
+                logging.warning(' ===> Method search_date failed for unexpected arguments')
+                files, dates = self.search_date(
+                    dt_cur,
+                    return_date=True, search_str="%Y%m%d*", date_str="%Y%m%d", date_field="date")
+
+
             for f, dt in zip(files, dates):
                 if (files not in file_names) and (dt_start <= dt <= dt_end):
 

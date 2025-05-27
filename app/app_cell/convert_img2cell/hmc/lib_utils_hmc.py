@@ -19,6 +19,34 @@ import netCDF4 as nc
 logging.getLogger('rasterio').setLevel(logging.WARNING)
 # ----------------------------------------------------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------------------------------------------------------
+# method to select grid data origin
+def select_origin_grid(data_path: str, data_origin: (str, None) =None, default_origin: str ='.nc') -> str:
+
+    if data_origin is None:
+        ext_origin = default_origin
+    elif data_origin == 'source_datasets':
+
+        extension = None
+        for root, dirs, files in os.walk(data_path):
+            for file in files:
+                extension = os.path.splitext(file)[1]
+                if extension in ['.nc', '.tif', '.tiff', '.nc4', '.netcdf']:
+                    break
+
+        if extension is not None:
+            ext_origin = extension
+        else:
+            logging.error(' ===> Grid data origin is not selected')
+            raise RuntimeError('Check the supported origin datasets to correctly set the grid data origin')
+
+    else:
+        logging.error(' ===> Grid data origin "' + data_origin + '" is not supported')
+        raise NotImplemented('Case not supported for grid file')
+
+
+    return ext_origin
+# ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to create file grid
@@ -38,6 +66,7 @@ def create_file_grid(grid_path, data_path, data_ext='.tif', grid_update=True):
         file_path = None
         for root, dirs, files in os.walk(data_path):
             for file in files:
+
                 if file.endswith(data_ext):
                     file_path = os.path.join(root, file)
                     break

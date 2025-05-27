@@ -2,12 +2,36 @@
 Changelog
 =========
 
+Version 2.1.0 [2025-05-27]
+**************************
+- PROJECT: operational framework grid	
+	- APPS -- MAP: compute_cell2grid_ecmwf
+		- fix bugs for undefined datasets (due to time selection)
+	- APPS -- MAP: merge_grid2ref
+		- update codes to include difference cases and fix bugs
+	- APPS -- TS: convert_grid_ecmwf2csv
+		- fix bugs
+	- APPS -- TS: convert_grid_hmc2csv
+		- fix bugs
+	- APPS -- TS: convert_grid_smap2csv
+		- fix bugs
+	- APPS -- TS: sync_ts
+		- fix bugs
+	- APPS -- TS: analyze_ts
+		- fix bugs
+	- TOOLS -- DOWNLOADER HMC
+		- add tools to download old datasets
+	- TOOLS -- ORGANIZER SYSTEM
+		. add tools to organize folder trees
+	- TOOLS -- ORGANIZER SYSTEM
+		- add tools to backup crontab
+
 Version 2.0.0 [2025-04-22]
 **************************
 - PROJECT: operational framework grid	
-	- APPS -- merge_grid2ref
+	- APPS -- MAP: merge_grid2ref
 		- first release to megre partial grid to the reference one
-	- APPS -- convert_time_step_src2csv
+	- APPS -- TS: convert_time_step_src2csv
 		- extend settings to the operational mode run
 	- TOOLS -- DOWNLOADER SMAP: smap_downloader_spl2smp_e.py
 		- refactor of all application methods and algorithm

@@ -30,7 +30,8 @@
   "variables": ["soil_moisture"],
   "data": {
     "path_grid": "/home/hsaf/share/recolour/hmc_grid/",
-    "path_ts": "/home/hsaf/share/recolour/hmc_ts_nrt/"
+    "path_ts": "/home/hsaf/share/recolour/hmc_ts_nrt/",
+    "path_stack": "/home/hsaf/share/recolour/hmc_ts_stack/"
   },
   "time": {
     "time_now": null,
