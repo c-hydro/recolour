@@ -20,6 +20,9 @@ old/
 dset/
 example/
 tmp/
+*OLD/
+OLD*/
+*OLD*/
 */tmp/
 miniconda.sh
 *.log
