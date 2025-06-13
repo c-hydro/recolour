@@ -2,6 +2,20 @@
 Changelog
 =========
 
+Version 2.2.0 [2025-06-03]
+**************************
+- PROJECT: operational framework grid	
+	- APPS -- CELL: convert_img2cell_ecmwf
+		- fix bugs for grid orientation (adjust longitudes and latitudes 1d arrays) and error messages for alert the users
+	- APPS -- CELL: convert_swath2cell_ascat
+		- fix bugs in searching file (based on time information)
+	- APPS -- TS: convert_grid2csv_hmc
+		- fix bugs time period in PREVIOUS_MONTH e CURRENT_MONTH mode
+
+- PROJECT: operational framework grid
+	- APPS -- POINTS: analyze_point_ascat
+		- beta release
+		
 Version 2.1.0 [2025-05-27]
 **************************
 - PROJECT: operational framework grid	

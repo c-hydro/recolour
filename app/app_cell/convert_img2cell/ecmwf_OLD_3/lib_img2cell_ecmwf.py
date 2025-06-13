@@ -508,14 +508,12 @@ class Img2Ts(object):
                 continue
 
             ''' debug
-            import matplotlib.pylab as plt
             input_2d = np.reshape(input_img['var40'], (1801, 3600))
-            input_2d[input_2d < 0] = np.nan
             lon_2d = np.reshape(lon, (1801, 3600))
             lat_2d = np.reshape(lat, (1801, 3600))
             plt.figure(); plt.imshow(input_2d); plt.colorbar()
             plt.figure(); plt.imshow(lon_2d); plt.colorbar()
-            plt.figure(); plt.imshow(lat_2d); plt.colorbar() ## controllare disposizione latitudini rispetto ai dati
+            plt.figure(); plt.imshow(lat_2d); plt.colorbar()
             plt.show()
             '''
 

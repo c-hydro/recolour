@@ -97,23 +97,6 @@ class BaseImage(ImageBase):
             dataset.coords['lon'] = (dataset.coords['lon'] + 180) % 360 - 180 # correct!
             dataset = dataset.sortby(dataset['lon'])
 
-        # check the lats
-        lat_data_start, lat_data_end = dataset.coords['lat'].values[0], dataset.coords['lat'].values[-1]
-        lat_grid_start, lat_grid_end = self.grid.activearrlat[0], self.grid.activearrlat[-1]
-        if lat_data_start > lat_data_end:
-            if lat_grid_start < lat_grid_end:
-                pass
-            else:
-                logging.error(' ===> Latitudes of grid are expected first > last to adapt the data using'
-                              'flipud function and to keep the grid orientation that are used in '
-                              'image output dataset. Check the configuration if needed')
-                raise RuntimeError('Check grid orientation to keep the right orientation')
-        else:
-            logging.error(' ===> Latitudes of data are expected first > last to adapt the data using'
-                            'flipud function and to keep the grid orientation that are used in '
-                            'image output dataset. Check the configuration if needed')
-            raise RuntimeError('Check grid orientation to keep the right orientation')
-
         for parameter, variable in dataset.variables.items():
             if parameter in param_names:
                 param_metadata, param_data = {}, {}
@@ -137,34 +120,21 @@ class BaseImage(ImageBase):
                 # reverse the data to be in the correct order
                 param_data = np.flipud(param_data)  # to adapt to the other products that used in the metrics procedure
 
-                param_data = np.concatenate((self.fill_values, param_data.flatten()))
-
-                return_img.update({str(parameter): param_data[self.grid.activegpis]})
-                return_metadata.update({str(parameter): param_metadata})
-
                 ''' debug
-                data_src = dataset[parameter].values[0, :, :]
-                plt.figure()
-                plt.imshow(data_src)
-                plt.colorbar()
-
                 data_tmp = param_data.copy()
-                data_tmp = np.reshape(data_tmp, (data_src.shape[0], data_src.shape[1]))
                 data_tmp[data_tmp < 0] = np.nan
                 plt.figure()
                 plt.imshow(data_tmp)
                 plt.colorbar()
-
-                data_img = return_img[parameter]
-                data_img = np.reshape(data_img, (data_src.shape[0], data_src.shape[1]))
-                plt.figure()
-                plt.imshow(data_img)
-                plt.colorbar()
-
                 plt.show()
-                #'''
+                '''
 
-                # check for corrupt files
+                param_data = np.concatenate((self.fill_values, param_data.flatten()))
+
+                return_img.update({str(parameter): param_data[self.grid.activegpis]})
+                return_metadata.update({str(parameter): param_metadata})
+                        
+            # check for corrupt files
                 try:
                     return_img[parameter]
                 except KeyError:

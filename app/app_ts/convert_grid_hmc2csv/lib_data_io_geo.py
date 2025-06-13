@@ -126,7 +126,16 @@ def read_point_data(file_name,
 def read_grid_data(file_name, output_format='data_array', output_dtype='float32',
                    var_limit_min=None, var_limit_max=None, var_proj='EPSG:4326',
                    coord_name_x=geo_coord_name_x, coord_name_y=geo_coord_name_y,
-                   dim_name_x=geo_dim_name_x, dim_name_y=geo_dim_name_y, binary_mask=False):
+                   dim_name_x=geo_dim_name_x, dim_name_y=geo_dim_name_y,
+                   binary_mask=False, file_mandatory=False):
+
+    # check file availability
+    if not os.path.exists(file_name):
+        if not file_mandatory:
+            alg_logger.warning(' ===> File name "' + file_name + '" not found. Grid set to NoneType')
+        else:
+            alg_logger.error(' ===> File name "' + file_name + '" not found. Exit')
+            raise RuntimeError('Grid must be defined')
 
     try:
         dset = rasterio.open(file_name)

@@ -1,0 +1,52 @@
+{
+  "product": {
+        "__comment_bbox__" : "bbox format (example italy) :: [6, 35, 18.5, 47] or null",
+    "__comment_orientation__" : "(1) south-north-west-east :: hsaf_validation (2) north-south-west-east :: map tc",
+    "name": "h26",
+    "bbox": [6, 35, 18.5, 47],
+    "image_buffer": 5,
+    "orientation": "north-south-west-east"
+  },
+  "flags": {
+    "reset_static": true,
+    "reset_dynamic": true
+  },
+  "grid": {
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_static/",
+    "file_name": "ecmwf_grid_h26_italy.nc"
+  },
+  "template": {
+    "dataset": {
+      "cell_n": "%04d"
+    },
+    "time": {
+      "datetime_source": "%Y%m%d%H",
+      "sub_path_source": "%Y/%m/%d/",
+      "datetime_destination": "%Y%m%d%H",
+      "sub_path_destination": ""
+    },
+    "file": {
+      "file_name_source": "h26_{datetime_source}_R01.nc",
+      "file_name_destination": "{cell_n}.nc"
+    }
+  },
+  "variables": ["var40"],
+  "data": {
+    "path_grid": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_grid_nrt/h26",
+    "path_ts": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_cell_dr/nc/",
+    "path_stack": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_cell_dr/stack/"
+  },
+  "time": {
+    "_comment": "dr :: 2018-01-01 -- 2023-09-20 ",
+    "time_now": null,
+    "time_start": "2024-03-02",
+    "time_end": "2024-03-10",
+    "time_period": 1,
+    "time_frequency": "D",
+    "time_rounding" : "D"
+  },
+  "log" : {
+  	"path": "/home/fabio/Desktop/Recolour_Workspace/ws/log/",
+  	"file": "app_img2cell_ecmwf_dr.txt"
+  }
+}

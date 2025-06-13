@@ -89,14 +89,8 @@ def cell_grid(grid_path, file_grid='grid.nc'):
         logging.error(' ===> Latitude variable in grid file is not defined by expected tags (lat, latitude)')
         raise RuntimeError('Check the grid file to define the tag of latitude variable')
 
-    domain_lat_first, domain_lat_last = domain_lat_1d[0], domain_lat_1d[-1]
-    if domain_lat_first > domain_lat_last:
-        logging.warning(' ===> Adjust latitudes from [90 ::: -90] to [-90 ::: 90]')
-        domain_lat_1d = np.flip(domain_lat_1d)
-
     domain_lon_max = np.nanmax(domain_lon_1d)
     if domain_lon_max > 180:
-        logging.warning(' ===> Adjust longitudes from [0 ::: 360] to [-180 ::: 180].')
         domain_lon_1d = (domain_lon_1d - 180) # % 360 - 180
 
     domain_lon_2d, domain_lat_2d = np.meshgrid(domain_lon_1d, domain_lat_1d)

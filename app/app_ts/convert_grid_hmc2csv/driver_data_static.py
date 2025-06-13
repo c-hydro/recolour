@@ -363,6 +363,10 @@ class DriverData:
                 log_stream.error(' ===> File grid format "' + self.format_src_grid + '" not expected')
                 raise NotImplementedError('Case not implemented yet')
 
+            if obj_grid_base is None:
+                log_stream.error(' ===> File grid "' + str(file_path_src_grid) + '" is not correctly read')
+                raise RuntimeError('Base grid is defined by NoneType. Grid must be defined by object')
+
             # get soil type object
             if self.format_src_soil_type is None:
                 log_stream.warning(' ===> File "soil_type" format is not defined. Datasets will not available')

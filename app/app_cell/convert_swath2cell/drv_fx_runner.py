@@ -25,6 +25,7 @@ from lib_utils_generic import reset_folder
 from lib_fx_datasets_source import AscatNrtBufrFileList, AscatEpsBufrFileList
 from lib_fx_datasets_destination import GriddedNcIndexedRaggedTs as GriddedNcRaggedTs
 from lib_fx_datasets_destination import GriddedNcContiguousRaggedTs as GriddedNcRaggedTs
+from lib_fx_datasets_analysis import build_points, save_points
 #from time_series import GriddedNcContiguousRaggedTs as GriddedNcRaggedTs
 #from time_series import GriddedNcIndexedRaggedTs as GriddedNcRaggedTs
 from lib_fx_datasets_generic import convert_sub_path_str_2_dict, convert_sub_path_2_root_path
@@ -52,6 +53,7 @@ class DrvFxRunner:
                  sub_path_swath, sub_path_cell, sub_path_workspace, sub_path_ts,
                  folder_name_swath, file_name_swath,
                  folder_name_ts, file_name_ts,
+                 folder_name_points, file_name_points,
                  folder_name_cell, file_name_cell,
                  folder_name_chunk, file_name_chunk,
                  folder_name_workspace, file_name_workspace,
@@ -82,6 +84,8 @@ class DrvFxRunner:
         self.file_name_chunk = file_name_chunk
         self.folder_name_ts = folder_name_ts
         self.file_name_ts = file_name_ts
+        self.folder_name_points = folder_name_points
+        self.file_name_points = file_name_points
 
         self.folder_name_grid = folder_name_grid
         self.file_name_grid = file_name_grid
@@ -188,8 +192,10 @@ class DrvFxRunner:
                 filename_template=product_filename_tmpl,
                 subfolder_template=product_sub_folder_tmpl)
 
+            dt_delta = timedelta(days=1)
             product_time_stamps, product_time_intervals = np.array(
-                product_class_driver.tstamps_for_daterange(time_start, time_end, frequency, rounding))
+                product_class_driver.tstamps_for_daterange(time_start, time_end, dt_delta=dt_delta))
+
             product_file_names = product_class_driver.search_period(time_start, time_end)
 
             product_dt_delta = timedelta(minutes=3)
@@ -207,7 +213,7 @@ class DrvFxRunner:
                 subfolder_template=product_sub_folder_tmpl)
 
             product_time_stamps, product_time_intervals = np.array(
-                product_class_driver.tstamps_for_daterange(time_start, time_end, frequency, rounding))
+                product_class_driver.tstamps_for_daterange(time_start, time_end))
 
             product_dt_delta = timedelta(minutes=100)
             product_dt_buffer = timedelta(hours=0)
@@ -227,7 +233,7 @@ class DrvFxRunner:
                 subfolder_template=product_sub_folder_tmpl)
 
             product_time_stamps, product_time_intervals = np.array(
-                product_class_driver.tstamps_for_daterange(time_start, time_end, frequency, rounding))
+                product_class_driver.tstamps_for_daterange(time_start, time_end))
 
             product_dt_delta = timedelta(minutes=100)
             product_dt_buffer = timedelta(hours=0)
@@ -302,22 +308,37 @@ class DrvFxRunner:
                                    init_file_cell=False, use_file_cell=False):
 
         # info method start
-        logging.info(' ---> Execute fx resampler ... ')
+        logging.info(' ---> Execute data resampler ... ')
 
         # organize workspace folders and filename(s)
-        reset_folder(self.folder_name_workspace, self.reset_ancillary_workspace)
+        if self.reset_ancillary_workspace:
+            logging.info(' ----> Reset ancillary workspace folder "' + self.folder_name_workspace + '" ... ')
+            reset_folder(self.folder_name_workspace, self.reset_ancillary_workspace)
+            logging.info(' ----> Reset ancillary workspace folder "' + self.folder_name_workspace + '" ... DONE')
         file_path_ws = os.path.join(self.folder_name_workspace, self.file_name_workspace)
         os.makedirs(self.folder_name_workspace, exist_ok=True)
+
         # organize chunk folders and filename(s)
-        reset_folder(self.folder_name_chunk, self.reset_ancillary_chunk)
+        if self.reset_ancillary_chunk:
+            logging.info(' ----> Reset ancillary chunk folder "' + self.folder_name_chunk + '" ... ')
+            reset_folder(self.folder_name_chunk, self.reset_ancillary_chunk)
+            logging.info(' ----> Reset ancillary workspace folder "' + self.folder_name_chunk + '" ... DONE')
         file_path_chunk = os.path.join(self.folder_name_chunk, self.file_name_chunk)
         os.makedirs(self.folder_name_chunk, exist_ok=True)
+
         # organize cell folders and filename(s)
-        reset_folder(self.folder_name_cell, self.reset_ancillary_cell)
+        if self.reset_ancillary_cell:
+            logging.info(' ----> Reset ancillary cell folder "' + self.folder_name_cell + '" ... ')
+            reset_folder(self.folder_name_cell, self.reset_ancillary_cell)
+            logging.info(' ----> Reset ancillary cell folder "' + self.folder_name_cell + '" ... DONE')
         file_path_cell = os.path.join(self.folder_name_cell, self.file_name_cell)
         os.makedirs(self.folder_name_cell, exist_ok=True)
+
         # organize ts folders and filename(s)
-        reset_folder(self.folder_name_ts, self.reset_datasets_ts)
+        if self.reset_datasets_ts:
+            logging.info(' ----> Reset datasets time series folder "' + self.folder_name_ts + '" ... ')
+            reset_folder(self.folder_name_ts, self.reset_datasets_ts)
+            logging.info(' ----> Reset datasets time series folder "' + self.folder_name_ts + '" ... DONE')
         file_path_ts = os.path.join(self.folder_name_ts, self.file_name_ts)
         os.makedirs(self.folder_name_ts, exist_ok=True)
 
@@ -325,7 +346,7 @@ class DrvFxRunner:
         if fx_time_intervals is not None:
 
             # run resample method
-            fx_class_driver.resample(
+            resampled_data, resampled_times = fx_class_driver.resample(
                 fx_time_intervals,
                 write_n_resampled=self.write_n_resampled,
                 init_file_ws=init_file_ws, use_file_ws=use_file_ws, name_file_ws=file_path_ws,
@@ -334,13 +355,24 @@ class DrvFxRunner:
                 name_file_ts=file_path_ts)
 
             # info method end
-            logging.info(' ---> Execute fx resampler ... DONE')
+            logging.info(' ---> Execute data resampler ... DONE')
+
+            # info method start
+            logging.info(' ---> Execute data analyzer ... ')
+
+            # method to build points dataframe
+            merged_data = build_points(data=resampled_data)
+            # method to save points dataframe
+            save_points(merged_data, file_path=self.folder_name_points, file_name=self.file_name_points)
+
+            # info method end
+            logging.info(' ---> Execute data analyzer ... DONE')
 
         else:
 
             # info method end
             logging.warning(' ===> Time intervals are not defined. Datasets are not available for resampling')
-            logging.info(' ===> Execute fx resampler ... SKIPPED')
+            logging.info(' ===> Execute data resampler ... SKIPPED')
 
     # -------------------------------------------------------------------------------------
 

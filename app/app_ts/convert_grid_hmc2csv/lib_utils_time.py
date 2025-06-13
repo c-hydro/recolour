@@ -61,7 +61,7 @@ def set_time(time_ref_args=None, time_ref_file=None, time_format='%Y-%m-%d %H:$M
             log_stream.info(' ------> Time ' + time_ref + ' set by argument')
         elif (time_ref_args is None) and (time_ref_file is not None):
             time_ref = time_ref_file
-            logging.info(' ------> Time ' + time_ref + ' set by user')
+            log_stream.info(' ------> Time ' + time_ref + ' set by user')
         elif (time_ref_args is None) and (time_ref_file is None):
             time_now = date.today()
             time_ref = time_now.strftime(time_format)
@@ -86,9 +86,10 @@ def set_time(time_ref_args=None, time_ref_file=None, time_format='%Y-%m-%d %H:$M
 
             if time_period == 'CURRENT_MONTH':
 
-                time_current_first = time_ref.replace(day=1, hour=0)
-                time_current_end = deepcopy(time_ref)
-                time_range = pd.date_range(start=time_current_first, end=time_current_end, freq=time_frequency)
+                #time_current_first = time_ref.replace(day=1, hour=0)
+                start_of_period = time_ref.to_period('M').start_time.floor(time_frequency)
+                end_of_period = deepcopy(time_ref)
+                time_range = pd.date_range(start=start_of_period, end=end_of_period, freq=time_frequency)
 
             elif time_period == 'PREVIOUS_MONTH':
 
@@ -96,10 +97,13 @@ def set_time(time_ref_args=None, time_ref_file=None, time_format='%Y-%m-%d %H:$M
                 time_delta = pd.Timedelta(days=1)
                 time_previous_tmp = time_current_first - time_delta
 
-                time_previous_end = time_previous_tmp + pd.offsets.MonthEnd(n=0)
-                time_previous_start = time_previous_end.replace(day=1)
+                end_of_period = time_previous_tmp.to_period('M').end_time.floor(time_frequency)
+                start_of_period = time_previous_tmp.to_period('M').start_time.floor(time_frequency)
 
-                time_range = pd.date_range(start=time_previous_start, end=time_previous_end, freq=time_frequency)
+                # time_previous_end = time_previous_tmp + pd.offsets.MonthEnd(n=0)
+                # time_previous_start = time_previous_end.replace(day=1)
+
+                time_range = pd.date_range(start=start_of_period, end=end_of_period, freq=time_frequency)
 
             else:
                 log_stream.error(' ===> TimePeriod "' + time_period + '" expression is not supported')
@@ -108,7 +112,7 @@ def set_time(time_ref_args=None, time_ref_file=None, time_format='%Y-%m-%d %H:$M
             log_stream.error(' ===> TimePeriod "' + str(time_period) + '" type is not supported')
             raise NotImplementedError('Case not implemented yet')
 
-        logging.info(' -----> Time info defined by "time_run" argument ... DONE')
+        log_stream.info(' -----> Time info defined by "time_run" argument ... DONE')
 
     elif (time_ref_file_start is not None) and (time_ref_file_end is not None):
 

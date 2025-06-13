@@ -59,7 +59,8 @@ class BaseImage(ImageBase):
     
     def __init__(self,
                  filename, mode='r', parameter='var40',
-                 grid_path=None, subgrid=None, array_1D=False):
+                 grid_path=None, grid_orientation='north-south-west-east',
+                 subgrid=None, array_1D=False):
 
         super(BaseImage, self).__init__(filename, mode=mode)
         
@@ -71,6 +72,8 @@ class BaseImage(ImageBase):
         self.fill_values = np.repeat(9999., 0)
         self.grid = cell_grid(self.grid_path) if not subgrid else subgrid
         self.array_1D = array_1D
+
+        self.grid_orientation = grid_orientation
 
     def read(self, timestamp=None):
         
@@ -97,23 +100,6 @@ class BaseImage(ImageBase):
             dataset.coords['lon'] = (dataset.coords['lon'] + 180) % 360 - 180 # correct!
             dataset = dataset.sortby(dataset['lon'])
 
-        # check the lats
-        lat_data_start, lat_data_end = dataset.coords['lat'].values[0], dataset.coords['lat'].values[-1]
-        lat_grid_start, lat_grid_end = self.grid.activearrlat[0], self.grid.activearrlat[-1]
-        if lat_data_start > lat_data_end:
-            if lat_grid_start < lat_grid_end:
-                pass
-            else:
-                logging.error(' ===> Latitudes of grid are expected first > last to adapt the data using'
-                              'flipud function and to keep the grid orientation that are used in '
-                              'image output dataset. Check the configuration if needed')
-                raise RuntimeError('Check grid orientation to keep the right orientation')
-        else:
-            logging.error(' ===> Latitudes of data are expected first > last to adapt the data using'
-                            'flipud function and to keep the grid orientation that are used in '
-                            'image output dataset. Check the configuration if needed')
-            raise RuntimeError('Check grid orientation to keep the right orientation')
-
         for parameter, variable in dataset.variables.items():
             if parameter in param_names:
                 param_metadata, param_data = {}, {}
@@ -135,36 +121,28 @@ class BaseImage(ImageBase):
                 np.ma.set_fill_value(param_data, 9999)
 
                 # reverse the data to be in the correct order
-                param_data = np.flipud(param_data)  # to adapt to the other products that used in the metrics procedure
+                if self.grid_orientation == 'south-north-west-east':
+                    param_data = np.flipud(param_data)  # to adapt to the other products that used in the metrics procedure
+                elif self.grid_orientation == 'north-south-west-east':
+                    pass
+                else:
+                    raise NotImplementedError('grid orientation not implemented yet')
+
+                ''' debug
+                data_tmp = param_data.copy()
+                data_tmp[data_tmp < 0] = np.nan
+                plt.figure()
+                plt.imshow(data_tmp)
+                plt.colorbar()
+                plt.show()
+                '''
 
                 param_data = np.concatenate((self.fill_values, param_data.flatten()))
 
                 return_img.update({str(parameter): param_data[self.grid.activegpis]})
                 return_metadata.update({str(parameter): param_metadata})
-
-                ''' debug
-                data_src = dataset[parameter].values[0, :, :]
-                plt.figure()
-                plt.imshow(data_src)
-                plt.colorbar()
-
-                data_tmp = param_data.copy()
-                data_tmp = np.reshape(data_tmp, (data_src.shape[0], data_src.shape[1]))
-                data_tmp[data_tmp < 0] = np.nan
-                plt.figure()
-                plt.imshow(data_tmp)
-                plt.colorbar()
-
-                data_img = return_img[parameter]
-                data_img = np.reshape(data_img, (data_src.shape[0], data_src.shape[1]))
-                plt.figure()
-                plt.imshow(data_img)
-                plt.colorbar()
-
-                plt.show()
-                #'''
-
-                # check for corrupt files
+                        
+            # check for corrupt files
                 try:
                     return_img[parameter]
                 except KeyError:
@@ -206,13 +184,13 @@ class WrapImage(BaseImage):
     def __init__(
         self,
         filename, mode="r",
-        grid_path=None, parameter="var40",
-        subgrid=None, array_1D=False,
+        grid_path=None, parameter="var40", grid_orientation='north-south-west-east',
+        subgrid=None, array_1D=False
     ):
 
         super(WrapImage, self).__init__(
             filename=filename, mode=mode,
-            grid_path=grid_path,parameter=parameter,
+            grid_path=grid_path,parameter=parameter, grid_orientation=grid_orientation,
             subgrid=subgrid, array_1D=array_1D,
         )
 # -------------------------------------------------------------------------------------
@@ -240,6 +218,7 @@ class ecmwf_ds(MultiTemporalImageBase):
                  file_name_tmpl=None,
                  datetime_format=None,
                  parameter='var40',
+                 grid_orientation='north-south-west-east',  # 'south-north-west-east
                  grid_path=None, subgrid=None, array_1D=False,
                  start_step=0, end_step=0,
                  ):
@@ -248,7 +227,8 @@ class ecmwf_ds(MultiTemporalImageBase):
             'parameter': parameter,
             'array_1D': array_1D,
             'subgrid': subgrid,
-            "grid_path": grid_path
+            "grid_path": grid_path,
+            "grid_orientation": grid_orientation
         }
 
         if product == 'h14':

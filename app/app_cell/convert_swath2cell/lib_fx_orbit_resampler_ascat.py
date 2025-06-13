@@ -43,6 +43,8 @@ class OrbitResamplerAscat(OrbitResamplerBase):
         should be considered temporal neighbors
     """
 
+    # ----------------------------------------------------------------------------------------------------------------------
+    # class initialization
     def __init__(self, orbit_io, resam_io, spatial_res=25000.,
                  wfunc='hamming', min_num_nn=3, dt=15,
                  write_orbit_buffer=False, to_xarray=False,
@@ -57,6 +59,9 @@ class OrbitResamplerAscat(OrbitResamplerBase):
             write_orbit_buffer=write_orbit_buffer, to_xarray=to_xarray,
             dt_delta=dt_delta, dt_buffer=dt_buffer)
 
+    # ----------------------------------------------------------------------------------------------------------------------
+
+    # ----------------------------------------------------------------------------------------------------------------------
     # method to resample data
     def resample(self, time_stamps, write_n_resampled=14 * 2 * 365, **kwargs):
         """
@@ -80,10 +85,16 @@ class OrbitResamplerAscat(OrbitResamplerBase):
             list of resampled timestamps that actually contained
             data on the target grid
         """
-        super(OrbitResamplerAscat, self).resample(
+        resampled_data, resampled_times =  super(OrbitResamplerAscat, self).resample(
             time_stamps,
             write_n_resampled=write_n_resampled, **kwargs)
 
+        return resampled_data, resampled_times
+
+    # ----------------------------------------------------------------------------------------------------------------------
+
+    # ----------------------------------------------------------------------------------------------------------------------
+    # method to resample orbit
     def resample_orbit(self, timestamp):
         """
         Resample orbit.
@@ -94,6 +105,11 @@ class OrbitResamplerAscat(OrbitResamplerBase):
 
         return gpis, orbit
 
+    # ----------------------------------------------------------------------------------------------------------------------
+
+
+    # ----------------------------------------------------------------------------------------------------------------------
+    # method to write resampled data
     def write_resampled_data(self, gpi_data, orbit_data,
                              init_file_cell=True, use_file_cell=True, name_file_cell='cell_{:}.data',
                              name_file_ts='{cell_n}.nc'):
@@ -139,10 +155,13 @@ class OrbitResamplerAscat(OrbitResamplerBase):
         fields_to_drop = set(orbit_data.dtype.names).difference(fields_to_keep)
         orbit_data = drop_fields(orbit_data, fields_to_drop)
 
-        super(OrbitResamplerAscat, self).write_resampled_data(
+        # organize the data in a way that it can be written and return the data
+        cells_data = super(OrbitResamplerAscat, self).write_resampled_data(
             gpi_data, orbit_data,
             init_file_cell=init_file_cell, use_file_cell=use_file_cell, name_file_cell=name_file_cell,
             name_file_ts=name_file_ts)
+
+        return cells_data
 # ----------------------------------------------------------------------------------------------------------------------
 
 

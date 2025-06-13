@@ -325,7 +325,7 @@ def reshuffle(product,
     logging.info(' -----> 2) Define datasets metadata ... DONE')
     # -------------------------------------------------------------------------------------
 
-    ''' debug grids
+    '''
     lats = target_grid.activearrlat
     lons = target_grid.activearrlon
 

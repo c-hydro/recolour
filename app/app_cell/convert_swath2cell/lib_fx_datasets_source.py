@@ -640,17 +640,28 @@ class AscatNrtBufrFileList(ChronFiles):
         else:
             dt_delta = timedelta(seconds=dt_totalseconds)
 
+        dt_totalseconds = dt_delta.total_seconds()
+        if dt_totalseconds <= 0:
+            logging.error(
+                ' ===> Parameter dt_delta is less than/equal to 0 seconds but is expected to be greater than 0 seconds')
+            raise RuntimeError('Check the frequency in the time parameters (set to hour or day according to the cases')
+
         dt_range = np.arange(dt_start, dt_end + dt_delta, dt_delta)
 
         if ts_end < dt_range[-1]:
             dt_range[-1] = ts_end
 
+        dt_start, dt_end = dt_range[0].item(), dt_range[-1].item()
+
+        dt_files = timedelta(hours=1)
+        dt_steps = np.arange(dt_start, dt_end + dt_files, dt_files)
+
         file_time_stamps, file_time_intervals = None, None
-        for dt_cur in dt_range.astype(datetime):
+        for dt_cur in dt_steps.astype(datetime): #dt_range
 
             import inspect
             signature = inspect.signature(self.search_date)
-            print(signature)
+            # print(signature)
 
             try:
                 files, dates = self.search_date(

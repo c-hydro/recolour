@@ -16,6 +16,8 @@ import shutil
 from lib_utils_generic import reset_folder
 from lib_utils_time import parse_time_string, fill_time_string
 
+from lib_fx_datasets_analysis import build_points, save_points
+
 from drv_fx_runner import DrvFxRunner
 # -------------------------------------------------------------------------------------
 
@@ -53,6 +55,7 @@ class DrvFxWrapper:
         self.alg_datasets_chunk = alg_settings[tag_section_datasets]['dynamic']['ancillary']['chunk']
         self.alg_datasets_workspace = alg_settings[tag_section_datasets]['dynamic']['ancillary']['workspace']
         self.alg_datasets_ts = alg_settings[tag_section_datasets]['dynamic']['ts']
+        self.alg_datasets_points = alg_settings[tag_section_datasets]['dynamic']['points']
         self.alg_log = alg_settings[tag_section_log]
 
         self.tag_folder_name = 'folder_name'
@@ -77,6 +80,10 @@ class DrvFxWrapper:
         self.folder_name_ts = self.alg_datasets_ts[self.tag_folder_name]
         self.file_name_ts = self.alg_datasets_ts[self.tag_file_name]
         self.file_path_ts = os.path.join(self.folder_name_ts, self.file_name_ts)
+
+        self.folder_name_points = self.alg_datasets_points[self.tag_folder_name]
+        self.file_name_points = self.alg_datasets_points[self.tag_file_name]
+        self.file_path_points = os.path.join(self.folder_name_points, self.file_name_points)
 
         self.folder_name_cell = self.alg_datasets_cell[self.tag_folder_name]
         self.file_name_cell = self.alg_datasets_cell[self.tag_file_name]
@@ -228,6 +235,7 @@ class DrvFxWrapper:
             'time_reference': alg_time_reference, 'time_start': alg_time_start, 'time_end': alg_time_end,
             "folder_name_swath": self.folder_name_swath, "file_name_swath": self.file_name_swath,
             'folder_name_ts': folder_name_ts, 'file_name_ts': file_name_ts,
+            'folder_name_points': self.folder_name_points, 'file_name_points': self.file_name_points,
             'folder_name_grid': self.folder_name_grid, 'file_name_grid': self.file_name_grid,
             'folder_name_workspace': folder_name_workspace, 'file_name_workspace': file_name_workspace,
             'folder_name_chunk': folder_name_chunk, 'file_name_chunk': file_name_chunk,

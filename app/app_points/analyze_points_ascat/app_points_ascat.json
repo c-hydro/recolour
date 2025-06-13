@@ -1,0 +1,43 @@
+{
+  "parameters": {
+    "resampling_max_distance": 20000,
+    "resampling_min_neighbours": 1,
+    "resampling_neighbours": 8,
+    "filtering_active": true
+  },
+  "geo":  {
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_auxiliary/reference/terrain/",
+    "file_name": "italia_cn_500_latlon.tif"
+  },
+  "data": {
+    "source": {
+      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_csv/ssm/h16/{time:%Y/%m/%d/}",
+      "file_name": "ssm_h16_{time:%Y%m%d_%H%M}.csv"
+    },
+    "destination": {
+      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_graph/ssm/h16/{time:%Y/%m/%d/}",
+      "file_name": "sm_h16_{time:%Y%m%d_%H%M}.tif"
+    }
+  },
+  "plot": {
+    "point": {
+      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_graph/ssm/h16/{time:%Y/%m/%d/}",
+      "file_name": "sm_points_{time:%Y%m%d_%H%M}.png",
+      "vmin": 0,
+      "vmax": 100,
+      "cmap": "viridis",
+      "marker_size": 10
+    },
+    "map": {
+      "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_graph/ssm/h16/{time:%Y/%m/%d/}",
+      "file_name": "sm_map_{time:%Y%m%d_%H%M}.png",
+      "vmin": 0,
+      "vmax": 100,
+      "cmap": "viridis"
+    }
+  },
+  "log": {
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/logs/ascat_points/",
+    "file_name": "analyze_points_ascat.log"
+  }
+}

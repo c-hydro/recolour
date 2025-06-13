@@ -53,63 +53,38 @@ def reset_folder(folder_name):
 def get_filetype(grid_path):
 
     # get folder structure
-    one_list_dir = os.listdir(grid_path)
-
-    # iterate over first level of folders
-    filename, extension = None, None
-    for one_dir in one_list_dir:
-
-        logging.info(' ------> Search file in folder "' + one_dir + '" ... ')
-
-        one_down = os.path.join(grid_path, one_dir)
-        if os.path.isdir(one_down):
-            two_list_dir = os.listdir(one_down)
-            two_down = os.path.join(one_down, two_list_dir[0])
-        elif os.path.isfile(one_down):
-            two_down, _ = os.path.split(one_down)
-        else:
-            logging.error(' ===> Object path "one_down" is not supported')
-            raise NotImplementedError('Case not supported yet')
-
-        if os.path.isdir(two_down):
-            for path, dirs, files in os.walk(two_down):
-                if extension is not None:
-                    break
-                for name in files:
-                    filename, extension = os.path.splitext(name)
-                    break
-        elif os.path.isfile(two_down):
-            _, extension = os.path.splitext(two_down)
-        else:
-            logging.error(' ===> Object path "two_down" is not supported')
-            raise NotImplementedError('Case not supported yet')
-
-        if filename is not None and extension is not None:
-            logging.info(' ------> Search file in folder "' + one_dir + '" ... DONE')
-            break
-        else:
-            logging.info(' ------> Search file in folder "' + one_dir + '" ... FILES NOT FOUND')
-
-
-    # check extension
-    logging.info(' ------> Get file extension ... ')
-    if extension is not None:
-        if extension == '.nc' or extension == '.nc4':
-            logging.info(' ------> Get file extension ... DONE ["' + filename + '" -- netcdf]')
-            return 'netcdf'
-        elif extension == '.tiff' or extension == '.tif':
-            logging.info(' ------> Get file extension ... DONE ["' + filename + '" -- tiff]')
-            return 'tiff'
-        elif extension == '.grb' or extension == '.grib':
-            logging.info(' ------> Get file extension ... DONE ["' + filename + '" -- grib]')
-            return 'grib'
-        else:
-            logging.info(' ------> Get file extension ... FAILED')
-            logging.error(' ===> File format for grid datasets "' + str(extension) + '" is not supported')
-            raise NotImplemented('Case not implemented yet')
+    one_down = os.path.join(grid_path, os.listdir(grid_path)[0])
+    if os.path.isdir(one_down):
+        two_down = os.path.join(one_down, os.listdir(one_down)[0])
+    elif os.path.isfile(one_down):
+        two_down, _ = os.path.split(one_down)
     else:
-        logging.error(' ===> File format for grid datasets "' + str(extension) + '" is not defined')
-        raise RuntimeError('Search file folders are empty or not correctly defined. Check them.')
+        logging.error(' ===> Object path "one_down" is not supported')
+        raise NotImplementedError('Case not supported yet')
+
+    if os.path.isdir(two_down):
+        extension = None
+        for path, dirs, files in os.walk(two_down):
+            if extension is not None:
+                break
+            for name in files:
+                filename, extension = os.path.splitext(name)
+                break
+    elif os.path.isfile(two_down):
+        _, extension = os.path.splitext(two_down)
+    else:
+        logging.error(' ===> Object path "two_down" is not supported')
+        raise NotImplementedError('Case not supported yet')
+
+    if extension == '.nc' or extension == '.nc4':
+        return 'netcdf'
+    elif extension == '.tiff' or extension == '.tif':
+        return 'tiff'
+    elif extension == '.grb' or extension == '.grib':
+        return 'grib'
+    else:
+        logging.error(' ===> File format for grid datasets "' + str(extension) + '" is not supported')
+        raise NotImplemented('Case not implemented yet')
 # -------------------------------------------------------------------------------------
 
 
@@ -205,7 +180,9 @@ def reshuffle(product,
               cell_format_ts='%04d',
               data_sub_path_ts=None,
               reset_ts=True,
-              input_grid=None, target_grid=None, bbox=None,
+              input_grid=None,
+              target_grid=None, orientation_grid='north-south-west-east',
+              bbox=None,
               img_buffer=100,
               dataset_stack_root=None,
               stack_flag=True,
@@ -259,7 +236,7 @@ def reshuffle(product,
                 data_sub_path=data_sub_path_grid,
                 file_name_tmpl=file_name_tmpl_grid,
                 datetime_format=datetime_format_grid,
-                parameter=parameters, subgrid=input_grid, array_1D=True
+                parameter=parameters, subgrid=input_grid, array_1D=True, grid_orientation=orientation_grid
             )
             logging.info(' -----> 1) Define file type and format ... DONE')
         else:
@@ -325,7 +302,7 @@ def reshuffle(product,
     logging.info(' -----> 2) Define datasets metadata ... DONE')
     # -------------------------------------------------------------------------------------
 
-    ''' debug grids
+    '''
     lats = target_grid.activearrlat
     lons = target_grid.activearrlon
 
@@ -471,6 +448,13 @@ def parse_args(args):
         type=str,
         default=4,
         help="How many images to read at once."
+    )
+
+    parser.add_argument(
+        "orientation",
+        type=str,
+        default="north-south-west-east",
+        help="Set grid_orientation."
     )
 
     parser.add_argument(
@@ -642,6 +626,7 @@ def main(args):
         data_sub_path_ts=args.templates_dst[2],
         bbox=bbox_list_arr,
         target_grid=None,
+        orientation_grid=args.orientation,
         reset_ts=args.flags[1],
         dataset_stack_root=args.dataset_stack_root,
         stack_flag=True,

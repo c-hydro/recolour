@@ -48,41 +48,46 @@
       "ancillary": {
         "cell": {
           "__comment__": "tags: cell_n",
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_ancillary/h16/cell/",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_ancillary/ssm/h16/cell/",
           "file_name": "h16_{cell_n}.cell",
           "active": false,
           "initialize": false
         },
         "chunk": {
           "__comment__": "tags: datetime_chunk_start, datetime_chunk_end",
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_ancillary/h16/chunk/{sub_path_chunk}/",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_ancillary/ssm/h16/chunk/{sub_path_chunk}/",
           "file_name": "h16_{datetime_chunk_start}_{datetime_chunk_end}.chunk",
           "active": true,
           "initialize": false
         },
         "workspace": {
           "__comment__": "tags: datetime_workspace_start, datetime_workspace_end",
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_ancillary/h16/workspace/{sub_path_workspace}/",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_ancillary/ssm/h16/workspace/{sub_path_workspace}/",
           "file_name": "h16_{datetime_workspace_start}_{datetime_workspace_end}.workspace",
           "active": true,
-          "initialize": false
+          "initialize": true
         }
       },
       "ts": {
         "__comment__": "tags: cell_n",
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_nrt/h16/{sub_path_ts}",
-        "file_name": "h16_{cell_n}.nc"
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_nrt/ssm/h16/{sub_path_ts}",
+        "file_name": "ssm_h16_{cell_n}.nc"
+      },
+      "points": {
+        "__comment__": "tags: cell_day_time, cell_day_hour",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_cell_csv/ssm/h16/{sub_path_ts}",
+        "file_name": "ssm_h16_{cell_day_time}_{cell_day_hour}.csv"
       }
     }
   },
   "time": {
-    "_comment_": "2023-05-22 00:00 2023-05-26 16:00",
+    "_comment_": "example: time_start, time_end 2023-05-22 00:00 2023-05-26 16:00 CONFIGURE_BY_TIME_NOW",
     "time_now": null,
-    "time_start": "CONFIGURE_BY_TIME_NOW",
-    "time_end": "CONFIGURE_BY_TIME_NOW",
-    "time_period": 3,
-    "time_frequency": "D",
-    "time_rounding" : "D"
+    "time_start": "2025-06-09 00:00",
+    "time_end": "2025-06-11 00:00",
+    "time_period": 2,
+    "time_frequency": "H",
+    "time_rounding" : "H"
   },
   "log": {
     "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/log/",

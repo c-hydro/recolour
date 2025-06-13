@@ -439,7 +439,7 @@ class OrbitResamplerBase(object):
 
         # initialize variable(s)
         orbit_data, gpi_data = [], []
-        resample_times_list, all_resampled_times = [], []
+        resample_times_list, resampled_times = [], []
         # active memory monitoring
         mem_mon = MemoryMonitor()
         mem_mon.start()
@@ -632,11 +632,11 @@ class OrbitResamplerBase(object):
             # write resampled data to disk
             gpi_data = np.hstack(gpi_data)
             orbit_data = np.hstack(orbit_data)
-            self.write_resampled_data(
+            resampled_data = self.write_resampled_data(
                 gpi_data, orbit_data,
                 init_file_cell=init_file_cell, use_file_cell=use_file_cell, name_file_cell=name_file_cell,
                 name_file_ts=name_file_ts)
-            all_resampled_times.extend(resample_times_list)
+            resampled_times.extend(resample_times_list)
 
             logging.info(' ----> Write resampled data to disk (end of period) ... DONE')
         else:
@@ -647,7 +647,7 @@ class OrbitResamplerBase(object):
         self.resam_io.close()
         self.save_orbit_buffer()
 
-        return all_resampled_times
+        return resampled_data, resampled_times
 
     def write_resampled_data(self, gpi_data, orbit_data,
                              init_file_cell=True, use_file_cell=True,
@@ -680,6 +680,7 @@ class OrbitResamplerBase(object):
 
         # iterate over cell(s)
         s_cells = 0
+        data_cells = {}
         for i in np.arange(s_cells, n_cells):
 
             ''' start debug cell
@@ -714,8 +715,16 @@ class OrbitResamplerBase(object):
 
             self.resam_io.write_cell(cell_i, gpi_i_local, orbit_i, self.timefield)
 
+            # store data in dictionary
+            data_cells[cell_i] = {
+                'data': orbit_i, 'lon': lon_i_global, 'lat': lat_i_global,
+                'gpi_local': gpi_i_local, 'gpi_global': gpi_i_global
+            }
+
             # info end cell
             logging.info(' ------> Dump cell: ' + str(uniq_cells[i]) + ' ... DONE')
+
+        return data_cells
 
     @staticmethod
     def rectDictToNdarray(dd):

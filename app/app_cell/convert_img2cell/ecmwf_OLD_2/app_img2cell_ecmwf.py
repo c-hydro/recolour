@@ -1,55 +1,51 @@
 #!/usr/bin/python3
 
 """
-RECOLOUR TOOLS - ASCAT SWATH2CELL - REprocess paCkage for sOiL mOistUre pRoducts
+RECOLOUR TOOLS - ECMWF IMG2CELL - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20250610'
-__version__ = '1.4.0'
+__date__ = '20240502'
+__version__ = '1.8.0'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)'
+    'Martina Natali (martina01.natali@edu.unife.it)'
 __library__ = 'recolour'
 
 General command line:
-python app_swath2cell_ascat.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
+python app_img2cell_ecmwf.py -settings_file configuration.json -time_now "YYYY-MM-DD HH:MM"
 
 Version(s):
-20250610 (1.4.0) --> Fix bugs in managing file list
-20240322 (1.3.0) --> Fix bugs in nc file and update code(s) for improving log messages
-20240218 (1.2.0) --> Code refactor for the data record and nrt mode
-20231128 (1.1.0) --> Code refactor for the recolour package
-20230804 (1.0.0) --> First development
+20240502 (1.8.0) --> Fix bugs related to geo-referencing and grid creation
+20240415 (1.7.0) --> Update codes and fix bugs
+20231128 (1.6.0) --> Code refactor and fix bugs
+20230918 (1.5.0) --> Add "data_record" and "nrt" mode
+20230803 (1.0.0) --> First development
 """
 # -------------------------------------------------------------------------------------
 
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 # libraries
 import os
-import sys
-import pandas as pd
-import time
 import logging
-
+import time
 from argparse import ArgumentParser
-from copy import deepcopy
 
-from lib_info_args import logger_name
-from lib_info_args import logger_file as logger_file_def, logger_format as logger_format_def
-from lib_info_args import time_format_algorithm as time_format
+from lib_info_args import time_format_datasets as time_format
+from lib_utils_time import set_time_info, update_time_info
+from lib_info_settings import get_data_settings, parse_data_settings, get_data_by_tag
+from lib_utils_ecmwf import create_file_grid
 
-from lib_info_settings import get_data_settings
-from lib_utils_time import set_time
-
-from drv_fx_wrapper import DrvFxWrapper
-# -------------------------------------------------------------------------------------
+from lib_reshuffle_ecmwf import main as main_runner
+# ----------------------------------------------------------------------------------------------------------------------
 
 # -------------------------------------------------------------------------------------
 # algorithm information
 project_name = 'recolour'
-alg_name = 'swath2cell'
+alg_name = 'img2cell'
 alg_type = 'Application'
-alg_version = '1.4.0'
-alg_release = '2025-06-10'
+alg_version = '1.8.0'
+alg_release = '2024-05-02'
 # -------------------------------------------------------------------------------------
+
 
 # -------------------------------------------------------------------------------------
 # script main
@@ -57,15 +53,15 @@ def main_wrapper():
 
     # -------------------------------------------------------------------------------------
     # method to get script argument(s)
-    alg_file_settings, alg_time_settings = get_args()
+    file_settings, time_settings = get_args()
 
     # read data settings
-    alg_data_settings = get_data_settings(alg_file_settings)
+    data_settings = get_data_settings(file_settings)
 
     # set logging
-    set_logging(logger_name=logger_name,
-                logger_folder=alg_data_settings['log']['folder_name'],
-                logger_file=alg_data_settings['log']['file_name'])
+    log_settings = get_data_by_tag(
+        data_settings, data_tag='log', data_default={'path': os.path.dirname(__file__), "file": "log.txt"})
+    set_logging(logger_file=os.path.join(log_settings['path'], log_settings['file']))
     # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------
@@ -80,37 +76,37 @@ def main_wrapper():
     # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------
-    # Organize time information
-    alg_time_run, alg_time_chunks = set_time(
-        time_run_args=alg_time_settings,
-        time_run_file=alg_data_settings['time']['time_now'],
-        time_run_file_start=alg_data_settings['time']['time_start'],
-        time_run_file_end=alg_data_settings['time']['time_end'],
+    # method to organize time information
+    alg_time_now, alg_time_run, alg_time_start, alg_time_end = set_time_info(
+        time_run_args=time_settings, time_run_file=data_settings['time']['time_now'],
+        time_run_file_start=data_settings['time']['time_start'],
+        time_run_file_end=data_settings['time']['time_end'],
         time_format=time_format,
-        time_period=alg_data_settings['time']['time_period'],
-        time_frequency=alg_data_settings['time']['time_frequency'],
-        time_rounding=alg_data_settings['time']['time_rounding'], time_reverse=True)
+        time_period=data_settings['time']['time_period'],
+        time_frequency=data_settings['time']['time_frequency'],
+        time_rounding=data_settings['time']['time_rounding'])
+    # method to update time information
+    data_settings = update_time_info(data_settings, alg_time_run, alg_time_start, alg_time_end)
     # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------
-    # iterate over time information
-    for time_reference, time_info in alg_time_chunks.items():
-
-        # -------------------------------------------------------------------------------------
-        # initialize driver
-        drv_fx = DrvFxWrapper(
-            alg_settings=alg_data_settings,
-            alg_time_reference=time_reference,
-            alg_time_start=time_info[0], alg_time_end=time_info[1])
-        # organize fx args
-        alg_fx_args = drv_fx.organize_fx_args()
-        # organize fx classes
-        alg_fx_classes, alg_fx_time = drv_fx.organize_fx_classes(alg_fx_args)
-        # execute fx
-        drv_fx.execute_fx(alg_fx_classes, alg_fx_time)
-        # -------------------------------------------------------------------------------------
+    # parse data settings
+    args_settings = parse_data_settings(data_settings)
+    # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------
+    # create data grid
+    create_file_grid(
+        grid_path=os.path.join(data_settings['grid']['folder_name'], data_settings['grid']['file_name']),
+        data_path=data_settings['data']['path_grid'],
+        data_ext='.nc', grid_update=data_settings['flags']['reset_static'],
+    )
+    # -------------------------------------------------------------------------------------
+
+    # ----------------------------------------------------------------------------------------------------------------------
+    # run procedure to convert grid to time-series datasets
+    main_runner(args_settings)
+    # ----------------------------------------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------
     # info algorithm (end)
@@ -132,7 +128,7 @@ def main_wrapper():
 def get_args():
     parser_handle = ArgumentParser()
     parser_handle.add_argument('-settings_file', action="store", dest="alg_settings")
-    parser_handle.add_argument('-time', action="store", dest="alg_time")
+    parser_handle.add_argument('-time_now', action="store", dest="alg_time")
     parser_values = parser_handle.parse_args()
 
     alg_settings, alg_time = 'configuration.json', None
@@ -148,36 +144,27 @@ def get_args():
 
 # -------------------------------------------------------------------------------------
 # method to set logging information
-def set_logging(logger_name='algorithm_logger', logger_folder=None,
-                logger_file='log.txt', logger_format=None):
-
+def set_logging(logger_file='./log.txt', logger_format=None):
     if logger_format is None:
-        logger_format = deepcopy(logger_format_def)
-    if logger_file is None:
-        logger_file = deepcopy(logger_file_def)
+        logger_format = '%(asctime)s %(name)-12s %(levelname)-8s ' \
+                        '%(filename)s:[%(lineno)-6s - %(funcName)20s()] %(message)s'
 
-    if logger_folder is not None:
-        logger_path = os.path.join(logger_folder, logger_file)
+    logger_loc = os.path.split(logger_file)
+    if logger_loc[0] == "":
+        logger_folder = os.path.dirname(__file__)
     else:
-        logger_path = deepcopy(logger_file)
-
-    logger_loc = os.path.split(logger_path)
-    if logger_loc[0] == '' or logger_loc[0] == "":
-        logger_folder_name, logger_file_name = os.path.dirname(os.path.abspath(sys.argv[0])), logger_loc[1]
-    else:
-        logger_folder_name, logger_file_name = logger_loc[0], logger_loc[1]
-
-    os.makedirs(logger_folder_name, exist_ok=True)
+        logger_folder = logger_loc[0]
+        logger_file = logger_loc[1]
+    os.makedirs(logger_folder, exist_ok=True)
 
     # define logger path
-    logger_path = os.path.join(logger_folder_name, logger_file_name)
+    logger_path = os.path.join(logger_folder, logger_file)
 
     # Remove old logging file
     if os.path.exists(logger_path):
         os.remove(logger_path)
 
-    # Open logger
-    logging.getLogger(logger_name)
+    # Set level of root debugger
     logging.root.setLevel(logging.DEBUG)
 
     # Open logging basic configuration
@@ -206,7 +193,3 @@ def set_logging(logger_name='algorithm_logger', logger_folder=None,
 if __name__ == "__main__":
     main_wrapper()
 # -------------------------------------------------------------------------------------
-
-
-
-
