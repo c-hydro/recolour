@@ -1,4 +1,4 @@
-# **Recolour**
+# Recolour
 
 **Recolour** is the **REprocess Package for Soil Moisture Products**, designed to process and analyze soil moisture datasets to support hydrogeological risk prevention and reduction within the Flood‑PROOFS modelling system.
 
@@ -9,6 +9,9 @@
 - [Installation](#installation)
 - [Directory Structure](#directory-structure)
 - [Usage](#usage)
+  - [Generic Settings](#generic-settings)
+  - [Application Settings](#application-settings)
+    - [Triple Collocation Algorithm](#triple-collocation-algorithm)
 - [Examples](#examples)
 - [Contributing](#contributing)
 - [Authors](#authors)
@@ -53,7 +56,9 @@ Before using **Recolour**, ensure you have:
 ## Directory Structure
 
 ### Applications
+
 Core **Recolour** applications organized by processing domain. Each folder contains Python scripts (`.py`) for specific workflows along with their configuration files (`.json`).
+
 ```plaintext
 recolour/
 ├── app_cell
@@ -72,52 +77,37 @@ recolour/
 │   └── convert_swath2cell
 │       ├── app_swath2cell_ascat.py
 │       └── *.json
-├── app_map
-│   ├── compute_cell2grid_ascat
-│   │   └── *.json
-│   ├── compute_cell2grid_ecmwf
-│   │   └── *.json
-│   ├── compute_cell2grid_gldas
-│   │   └── *.json
-│   ├── compute_cell2grid_metrics
-│   │   ├── app_map_cell2grid_metrics.py
-│   │   └── *.json
-│   ├── compute_cell2grid_smap
-│   │   ├── app_map_cell2grid_smap.py
-│   │   └── *.json
-│   ├── create_grid_ecmwf
-│   │   ├── app_map_grid_ecmwf_nrt.py
-│   │   └── *.json
-│   ├── create_grid_hmc
-│   │   ├── app_map_grid_hmc_nrt.py
-│   │   └── *.json
-│   ├── create_grid_reference
-│   │   ├── app_map_grid_reference.py
-│   │   └── *.json
-│   └── resample_grid_src2ref
-│       ├── app_map_grid_src2ref.py
-│       └── *.json
-├── app_points
-│   └── analyze_points_ascat
-│       ├── app_points_ascat.py
-│       └── *.json
-└── app_ts
-    ├── analyze_ts
-    │   ├── app_sm_ts_analyze.py
+└── app_map
+    ├── compute_cell2grid_ascat
     │   └── *.json
-    ├── convert_grid_ecmwf2csv
-    │   ├── app_sm_grid_ecmwf2csv.py
+    ├── compute_cell2grid_ecmwf
     │   └── *.json
-    ├── convert_grid_hmc2csv
-    │   ├── app_sm_grid_hmc2csv.py
+    ├── compute_cell2grid_gldas
     │   └── *.json
-    └── view_ts
-        ├── app_sm_ts_view.py
+    ├── compute_cell2grid_metrics
+    │   ├── app_map_cell2grid_metrics.py
+    │   └── *.json
+    ├── compute_cell2grid_smap
+    │   ├── app_map_cell2grid_smap.py
+    │   └── *.json
+    ├── create_grid_ecmwf
+    │   ├── app_map_grid_ecmwf_nrt.py
+    │   └── *.json
+    ├── create_grid_hmc
+    │   ├── app_map_grid_hmc_nrt.py
+    │   └── *.json
+    ├── create_grid_reference
+    │   ├── app_map_grid_reference.py
+    │   └── *.json
+    └── resample_grid_src2ref
+        ├── app_map_grid_src2ref.py
         └── *.json
 ```
 
 ### Tools
+
 Utility modules and algorithms supporting **Recolour** workflows. These tools provide functionality for data handling, format conversion, validation, and automated workflows.
+
 ```plaintext
 tools/
 ├── algorithm_assimilation
@@ -135,20 +125,33 @@ tools/
 
 ## Usage
 
-**Recolour** applications are executed via their scripts in the `app_cell`, `app_map`, `app_points`, or `app_ts` folders. Use the following pattern:
+### Generic Settings
+
+**Recolour** applications are executed via their scripts in `app_cell`, `app_map`, `app_points`, or `app_ts` folders. Use the following pattern:
+
 ```bash
 python <app_folder>/<workflow_folder>/<script_name>.py <config.json> -time "YYYY-MM-DD HH:MM"
 ```
+
 - `<app_folder>`: one of `app_cell`, `app_map`, `app_points`, or `app_ts`
 - `<workflow_folder>`: subdirectory under the chosen `app_*` folder
 - `<script_name>.py`: the application script to run
 - `<config.json>`: the configuration file in the same folder as the script
 - `-time`: processing date and time in `YYYY-MM-DD HH:MM` format
 
-For example, to compute root-zone soil moisture on June 1, 2025 at 06:00 using the ECMWF DR configuration:
+For example, to compute root-zone soil moisture on June 1, 2025 at 06:00 using the ECMWF DR configuration:
+
 ```bash
-python app_cell/compute_cell_rzsm/app_cell_rzsm.py app_cell/compute_cell_rzsm/app_cell_rzsm_ecmwf_dr_local.json -time "2025-06-01 06:00"
+python app_cell/compute_cell_rzsm/app_cell_rzsm_ecmwf_dr_local.json -time "2025-06-01 06:00"
 ```
+
+### Application Settings
+
+The detailed settings for each application workflow can be found in separate markdown files under the `docs/` directory. This keeps the main README concise and allows direct linking.
+
+- [Triple Collocation Algorithm](docs/triple_collocation.md)
+
+*(Add other application settings files here as needed.)*
 
 ## Examples
 
@@ -158,6 +161,7 @@ python app_cell/compute_cell_rzsm/app_cell_rzsm.py app_cell/compute_cell_rzsm/ap
 ## Contributing
 
 Contributions are welcome! Please:
+
 1. Fork the repository
 2. Create a feature branch: `git checkout -b my-feature`
 3. Add changes and tests (if applicable)
@@ -169,7 +173,7 @@ See [AUTHORS.md](AUTHORS.md) for a complete list of contributors.
 
 ## License
 
-This project is licensed under the [EUPL‑1.2 License](LICENSE.md).
+This project is licensed under the [EUPL-1.2 License](LICENSE.md).
 
 ## Changelog
 
@@ -177,9 +181,9 @@ All notable changes are documented in [CHANGELOG.md](CHANGELOG.md).
 
 ## References
 
-1. CIMA Hydrology and Hydraulics [GitHub Repository](https://github.com/c-hydro)
-2. Python programming language ([python.org](https://www.python.org/))
-3. QGIS project ([qgis.org](https://qgis.org/))
-4. Conda environment manager ([conda.io](https://conda.io/))
-5. Hydrological Model Continuum codes
+1. CIMA Hydrology and Hydraulics [GitHub Repository](https://github.com/c-hydro/recolour)
+2. [Python programming language](https://www.python.org/)
+3. [QGIS project](https://qgis.org/)
+4. [Conda environment manager](https://conda.io/)
+5. [Hydrological Model Continuum codes](n/a)
 
