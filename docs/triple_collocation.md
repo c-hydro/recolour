@@ -10,7 +10,10 @@ Before processing, the study area is divided into 5×5° geographic cells. Each 
 
 
 
+![Global 5×5° Cell Partitioning](images/5x5_cell_partitioning.png)
+
 > **Figure:** Global 5×5° cells grid overlaying the study domain. Each cell spans 5° latitude and longitude, numbered by row/column, enabling independent processing of regional statistics.
+
 
 ### Static Datasets
 
@@ -58,7 +61,10 @@ Before processing, the study area is divided into 5×5° geographic cells. Each 
 
 
 
-> **Figure:** Soil moisture results for the Italy domain. Processing time is extracted from the output GeoTIFF filename (`sm_{datetime_destination}.tiff`), e.g., **2025-06-01 00:00 UTC**. The reference grid resolution is about 500 m, and the datasets used are HMC, ECMWF, and SMAP.&#x20;
+![Italy Triple Collocation)](images/sm_layout.jpeg)
+
+> **Figure:** Soil moisture results for the Italy domain. Processing time is extracted from the output GeoTIFF filename (`sm_{datetime_destination}.tiff`), e.g., **2025-06-01 00:00 UTC**. The reference grid resolution is about 500 m, and the datasets used are HMC, ECMWF, and SMAP.
+
 
 All saved as GeoTIFF `sm_{datetime_destination}.tiff` to the destination folder.
 
