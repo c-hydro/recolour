@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 2.2.1 (2025-08-06)
+- **PROJECT:** soil moisture triple collocation  
+  - **APPS – CELL:** add datasets to test the triple collocation app 
+
 ## Version 2.2.0 (2025-06-03)
 - **PROJECT:** operational framework grid  
   - **APPS – CELL:** convert_img2cell  
