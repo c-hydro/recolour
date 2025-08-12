@@ -1,0 +1,50 @@
+{
+	"parameters" : {
+	  "search_radius_km": 12.5,
+	  "aggregation": "monthly"
+	},
+	"auxiliary": {
+		"registry" : {
+			"folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_static",
+			"file_name": "sm_ws_registry.csv",
+			"variable": null,
+			"index": "tag",
+			"delimiter": ";"
+		}
+	},
+	"source" : {
+		"data_tiff": {
+			"folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_map/{yyyy}/{mm}/{dd}",
+			"file_name": "h16_{yyyy}{mm}{dd}_{label}.tif",
+			"variable": "ssm_filtered",
+			"index": null,
+			"delimiter": null
+		},
+		"data_csv": {
+			"folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_points/h16/{yyyy}/{mm}/{dd}",
+			"file_name": "h16_{yyyy}{mm}{dd}_{label}.csv",
+			"variable": "ssm",
+			"index": "time",
+			"delimiter": ";"
+		},
+		"data_windows": {
+      		"type_1": {"start_hour": 0, "end_hour": 12, "label": "00_12" },
+      		"type_2": {"start_hour": 12, "end_hour": 24, "label": "12_24" }
+		}
+	},
+	"destination": {
+		"folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_ts/h16/{yyyy}/{mm}",
+		"file_name": "h16_ssm_{point_name}_{yyyy}{mm}.csv",
+		"variable": "ssm_{type}",
+		"index": "time",
+		"delimiter": ";"
+	},
+	"log": {
+		"folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_ts/log",
+		"file_name": "ascat_sm_data_ascat2csv.log"
+	},
+	"time": {
+	  "time_start": "2020-09-01",
+	  "time_end":   "2020-11-01"
+	}
+}

@@ -1,0 +1,9 @@
+{
+  "INPUT_ROOT": "/share/HSAF_SM/ascat/nrt/h16/",
+  "OUTPUT_ROOT": "/share/HSAF_SM/ascat/domain/h16/italy/",
+  "__DOMAIN_PATH": "/share/HSAF_SM/ascat/auxiliary/shapefile/alert_area_epsg4326.shp",
+  "DOMAIN_PATH": "/share/HSAF_SM/ascat/auxiliary/domain/grid_reference_1000m.tiff",
+  "LAT_KEY": "latitude",
+  "LON_KEY": "longitude",
+  "LOG_FILE": "/root/projects/hsaf/algorithm_filters/ascat_data_filter.log"
+}
