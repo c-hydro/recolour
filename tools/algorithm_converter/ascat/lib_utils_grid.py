@@ -1,10 +1,17 @@
 # libraries
+import warnings
 import geopandas as gpd
 import numpy as np
 import pandas as pd
 
 from repurpose.resample import resample_to_grid
 import matplotlib.pylab as plt
+
+import warnings
+warnings.filterwarnings(
+    "ignore",
+    message="Possible more than 7 neighbours within 25000 m"
+)
 
 # method to return distance in metric using Haversine formula
 def haversine_distance_matrix(lon1, lat1, lon2, lat2):

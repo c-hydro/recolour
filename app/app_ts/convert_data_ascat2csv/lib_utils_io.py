@@ -1,17 +1,87 @@
+"""
+Library Features:
+
+Name:          lib_utils_io
+Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
+Date:          '20250813'
+Version:       '1.0.0'
+"""
 # ----------------------------------------------------------------------------------------------------------------------
 # libraries
-import numpy as np
+from __future__ import annotations
+import logging
 import pandas as pd
 import xarray as xr
-from functools import wraps
-from typing import Iterable, Optional, List
+from typing import Optional, List, Dict
 
-from lib_utils_decoretors import simplify_list, iterate_dict
+from lib_utils_decoretors import simplify_list, iterate_items
+
+from lib_utils_info import logger_name
+
+# set logger stream
+log_stream = logging.getLogger(logger_name)
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to filter and rename DataFrame columns
+def filter_dataframe(
+    df: pd.DataFrame,
+    rename_map: Optional[Dict[str, str]] = None,
+    filter_map: Optional[Dict[str, bool]] = None,
+    *,
+    keep_order: str = "filter"  # "filter" -> order by filter_map; "dataframe" -> original df order
+) -> pd.DataFrame:
+    """
+    Filter columns using a boolean map and (optionally) rename them.
+
+    - Only columns marked True in `filter_map` AND present in `df` are kept.
+    - Missing columns in `df` are silently skipped (no errors).
+    - If `rename_map` is provided, only kept columns are renamed.
+    - Column order:
+        * "filter": follows the order of keys in `filter_map` that are True and exist in df.
+        * "dataframe": keeps the original df column order among the kept columns.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input DataFrame.
+    rename_map : dict[str, str] | None
+        Mapping from original column names -> new names (optional).
+    filter_map : dict[str, bool] | None
+        Mapping from original column names -> whether to keep (True) or drop (False).
+        If None, all columns are considered kept.
+    keep_order : {"filter", "dataframe"}
+        How to order the resulting columns.
+
+    Returns
+    -------
+    pd.DataFrame
+        Filtered (and possibly renamed) DataFrame.
+    """
+    if filter_map is None:
+        cols_to_keep = list(df.columns)
+    else:
+        # keep True entries that exist in df
+        requested = [col for col, keep in filter_map.items() if keep]
+        present = set(df.columns)
+        cols_to_keep = [col for col in requested if col in present]
+
+        if keep_order == "dataframe":
+            cols_to_keep = [c for c in df.columns if c in cols_to_keep]
+
+    out = df.loc[:, cols_to_keep].copy()
+
+    if rename_map:
+        # rename only the kept columns that appear in the map
+        rename_subset = {k: v for k, v in rename_map.items() if k in out.columns}
+        out.rename(columns=rename_subset, inplace=True)
+
+    return out
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to adapt a DataFrame to a specified time range
-@iterate_dict
+@iterate_items(strict_zip=True, dict_key_source='first')
 def adapt_dataframe_to_range(
     df: pd.DataFrame,
     time_start,
@@ -134,55 +204,31 @@ def compose_paths(
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def _normalize_to_list(obj) -> List[pd.DataFrame]:
-    """Turn input into a clean list of DataFrames, dropping None."""
-    if obj is None:
-        return []
-    if isinstance(obj, pd.DataFrame):
-        return [obj]
-    if isinstance(obj, Iterable) and not isinstance(obj, (str, bytes)):
-        cleaned = [x for x in obj if x is not None]
-        # type check
-        for i, x in enumerate(cleaned):
-            if not isinstance(x, pd.DataFrame):
-                raise TypeError(f"Item at index {i} is not a pandas DataFrame (got {type(x)}).")
-        return cleaned
-    raise TypeError("Input must be a DataFrame, a list/tuple of DataFrames, or None.")
-
-def accept_df_or_list(func):
-    """Decorator to allow a function to accept a single DF, a list of DFs, or None."""
-    @wraps(func)
-    def wrapper(obj, *args, **kwargs):
-        dfs = _normalize_to_list(obj)
-        return func(dfs, *args, **kwargs)
-    return wrapper
-
-@accept_df_or_list
+# method to merge DataFrames by rows
 def merge_by_rows(
-    dfs: List[pd.DataFrame],
+    df1: Optional[pd.DataFrame],
+    df2: Optional[pd.DataFrame],
     ignore_index: bool = True,
     sort: bool = False,
     return_empty_df: bool = False,
-    fill_value: dict = None,
+    fill_value: Union[dict, int, float, str, None] = None,
     drop_rows_all_na: bool = False,
-):
-    """
-    Row-bind DataFrames (like rbind).
-    - Accepts DF | [DF, ...] | None.
-    - Ignores None inside lists.
-    - If nothing remains, returns None (or an empty DF if return_empty_df=True).
-    - Mismatched columns are aligned like pandas.concat.
-    """
+) -> Optional[pd.DataFrame]:
+
+    # Filter out None
+    dfs = [df for df in (df1, df2) if df is not None]
+
     if not dfs:
         return pd.DataFrame() if return_empty_df else None
-
-    out = pd.concat(dfs, ignore_index=ignore_index, sort=sort)
+    if len(dfs) == 1:
+        out = dfs[0].copy()
+    else:
+        out = pd.concat(dfs, ignore_index=ignore_index, sort=sort)
 
     if drop_rows_all_na:
         out = out.dropna(how='all')
 
     if fill_value is not None:
-        # fill_value can be a scalar or a dict per-column
         out = out.fillna(fill_value)
 
     return out
@@ -190,19 +236,73 @@ def merge_by_rows(
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to merge DataArrays by time
-def merge_by_time(df_1, df_2, time_dim: str = "time") -> Optional[xr.DataArray]:
-    if df_1 is None and df_2 is None:
+def merge_by_time(df1, df2, time_dim: str = "time") -> Optional[xr.DataArray]:
+    if df1 is None and df2 is None:
         return None
-    elif df_1 is None:
-        return df_2
-    elif df_2 is None:
-        return df_1
+    elif df1 is None:
+        return df2
+    elif df2 is None:
+        return df1
 
     # Merge when both are present
-    merged = xr.concat([df_1, df_2], dim=time_dim)
+    merged = xr.concat([df1, df2], dim=time_dim)
     merged = merged.groupby(time_dim).first()  # Remove duplicates
     merged = merged.sortby(time_dim)
     return merged
 # ----------------------------------------------------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------------------------------------------------------
+# method to merge DataFrames by data
+@iterate_items(strict_zip=True, dict_key_source='first')
+def merge_by_data(df_1, df_2, no_data=-9999) -> pd.DataFrame:
 
+    if df_1 is not None and df_2 is not None:
+        if not isinstance(df_1, pd.DataFrame) or not isinstance(df_2, pd.DataFrame):
+            log_stream.error("Both inputs must be pandas DataFrames.")
+            raise NotImplementedError("Case not implemented: both inputs must be pandas DataFrames.")
+
+    # check if the DataFrame is empty
+    if df_1.empty and not df_2.empty:
+        log_stream.warning(f" ===> Empty DataFrame 1")
+        return df_2
+    elif df_2.empty and not df_1.empty:
+        log_stream.warning(f" ===> Empty DataFrame 2")
+        return df_1
+    elif df_1.empty and df_2.empty:
+        log_stream.warning(f" ===> Both DataFrames are empty")
+        return pd.DataFrame()
+
+    # merge by time index (outer join to keep all dates)
+    df_merged = pd.merge(df_1, df_2, left_index=True, right_index=True, how='outer')
+    # fill NaN values (e.g., with 0)
+    merged_df = df_merged.fillna(no_data)
+
+    return merged_df
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to check if all dictionaries have the same keys
+def check_dict_keys(dicts):
+    if not dicts:
+        log_stream.warning(" ===> No dictionaries provided.")
+        return
+
+    # Get the keys from the first dictionary
+    reference_keys = set(dicts[0].keys())
+
+    check_keys = True
+    for i, d in enumerate(dicts[1:], start=1):
+        current_keys = set(d.keys())
+        if current_keys != reference_keys:
+            missing = reference_keys - current_keys
+            extra = current_keys - reference_keys
+
+            log_stream.warning(f" ===> Dictionary {i} key mismatch:")
+            if missing:
+                log_stream.warning(f" ===> Missing keys: {missing}")
+            if extra:
+                log_stream.warning(f" ===> Extra keys: {extra}")
+            check_keys = False
+
+    return check_keys
+# ----------------------------------------------------------------------------------------------------------------------

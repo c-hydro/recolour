@@ -1,3 +1,11 @@
+"""
+Class Features
+
+Name:          drv_data_src
+Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
+Date:          '20250813'
+Version:       '1.0.0'
+"""
 # ----------------------------------------------------------------------------------------------------------------------
 # libraries
 import logging
@@ -16,18 +24,19 @@ from lib_utils_time import compute_time_by_labels
 from lib_utils_info import logger_name
 
 # set logger
-alg_logger = logging.getLogger(logger_name)
+logger_stream = logging.getLogger(logger_name)
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # data class
-class DriverData:
+class DrvData:
 
     def __init__(self, folder_name, file_name,
                  file_variable='ssm', file_index='time', file_geo_x='longitude', file_geo_y='latitude',
                  file_delimiter=';', file_format='csv',
                  search_radius_km=12.5,  # Default search radius in kilometers
-                 time_start=None, time_end=None, frequency='D', time_window=None):
+                 time_start=None, time_end=None, frequency='D', time_window=None,
+                 mapping=None):
 
         self.folder_name = folder_name
         self.file_name = file_name
@@ -52,9 +61,15 @@ class DriverData:
 
         self.search_radius_m = search_radius_km * 1000  # Convert kilometers to meters
 
+        self.mapping = mapping
+
     # method to read data
     @iterate_time_steps
     def read_data(self, time_step=None):
+
+        # info start method
+        time_str = time_step.strftime('%Y-%m-%d')
+        logger_stream.info(' ----> Get dynamic datasets [' + self.file_format + ' at ' + time_str + '] ... ')
 
         # define file path(s)
         file_path = compose_paths(self.file_path, path_time=time_step, path_labels=self.labels)
@@ -71,48 +86,66 @@ class DriverData:
             file_data = check_csv(file_data)
 
             # merge data
-            file_obj = merge_by_rows(obj=file_data, ignore_index=False)
+            file_obj = merge_by_rows(df1=file_data[0], df2=file_data[1], ignore_index=False)
+
 
         elif self.file_format == 'tiff' or self.file_format == 'tif':
 
             # read data tiff
             file_data = read_tiff(file_path, file_times, variable='ssm_filtered')
             # merge data
-            file_obj = merge_by_time(file_data[0], file_data[1])
+            file_obj = merge_by_time(df1=file_data[0], df2=file_data[1])
 
         else:
-            raise ValueError(f"Unsupported file format: {self.file_format}")
+            logger_stream.error(' ===> Unsupported file format: ' + self.file_format)
+            raise NotImplementedError('Case not implemented for file format: ' + self.file_format)
+
+        # info start method
+        logger_stream.info(' ----> Get dynamic datasets [' + self.file_format + ' at ' + time_str + '] ... DONE')
 
         return file_obj
 
     # method to organize data maps
     def organize_data_maps(self, file_das: (xr.DataArray, list), registry_df: (dict, pd.DataFrame) ) -> pd.DataFrame:
 
+        # info start method
+        logger_stream.info(' ----> Organize src dynamic datasets [' + self.file_format + '] ... ')
+
+        # merge das to a single da
         workspace_da_global = None
         for da in file_das:
             if workspace_da_global is None:
                 workspace_da_global = da
             else:
-                workspace_da_global = merge_by_time(workspace_da_global, da)
+                workspace_da_global = merge_by_time(workspace_da_global, da, time_dim=self.file_index)
 
+        # select map values using a radius search
         workspace_df_selected = search_values_maps(
-            obj=registry_df, source_da=workspace_da_global,
+            arg1=registry_df, arg2=None,
+            source_da=workspace_da_global,
             radius_m=self.search_radius_m,  # Default radius in meters
-            target_lat_col="latitude",
-            target_lon_col="longitude",
+            target_lat_col=self.file_geo_y,
+            target_lon_col=self.file_geo_x,
             value_col=self.file_variable,
-            lat_name="latitude",
-            lon_name="longitude",
-            time_name='time')
+            lat_name=self.file_geo_y,
+            lon_name=self.file_geo_x,
+            time_name=self.file_index)
 
+        # aggregate maps values by frequency
         workspace_df_aggregated = aggregate_values_maps_by_frequency(
-            obj=workspace_df_selected,
-            time_col='time', value_col=self.file_variable, freq=self.frequency, min_frac=0.75)
+            arg1=workspace_df_selected, arg2=None,
+            time_col=self.file_index, value_col=self.file_variable, freq=self.frequency, min_frac=0.75)
+
+        # info start method
+        logger_stream.info(' ----> Organize src dynamic datasets [' + self.file_format + '] ... DONE')
 
         return workspace_df_aggregated
 
     # method to organize data time-series
     def organize_data_ts(self, file_dfs: (pd.DataFrame, list) = None, registry_df: (dict, pd.DataFrame) = None) -> pd.DataFrame:
+
+        # info start method
+        logger_stream.info(' ----> Organize src dynamic datasets [' + self.file_format + '] ... ')
 
         # concatenate dfs to a single df
         workspace_df_global = None
@@ -122,25 +155,46 @@ class DriverData:
             else:
                 workspace_df_global = pd.concat([workspace_df_global, df], ignore_index=False)
 
-        # select values using a radius search
+        # select point values using a radius search
         workspace_df_selected = search_values_points(
-            obj=registry_df, source_df=workspace_df_global,
+            arg1=registry_df, arg2=None,
+            source_df=workspace_df_global,
             radius_m=self.search_radius_m,  # Default radius in meters
-            target_lat_col="latitude",
-            target_lon_col="longitude",
-            source_lat_col="latitude",
-            source_lon_col="longitude")
+            target_lat_col=self.file_geo_y,
+            target_lon_col=self.file_geo_x,
+            source_lat_col=self.file_geo_y,
+            source_lon_col=self.file_geo_x)
 
+        # aggregate point values by frequency
+        workspace_df_aggregated_sm = aggregate_values_ts_by_frequency(
+            arg1=workspace_df_selected, arg2=None,
+            time_col=self.file_index, value_cols=self.file_variable,  freq=self.frequency,
+            methods=('mean',))
+
+        # aggregate point values by frequency
         workspace_df_aggregated = aggregate_values_ts_by_frequency(
-            workspace_df_selected, time_col='time', value_cols=self.file_variable,  freq=self.frequency)
+            arg1=workspace_df_selected, arg2=None,
+            time_col=self.file_index, value_cols='quality',  freq=self.frequency,
+            methods=('min',))
 
-        return workspace_df_aggregated
+        # info end method
+        logger_stream.info(' ----> Organize src dynamic datasets [' + self.file_format + '] ... DONE')
+
+        return workspace_df_aggregated_sm
 
     # method to sync data
-    def sync_data(self, workspace_df_aggregated: pd.DataFrame ) -> dict:
+    def sync_data(self, workspace_df_aggregated: pd.DataFrame ) -> pd.DataFrame:
 
+        # info start method
+        logger_stream.info(' ----> Sync src dynamic datasets [' + self.file_format + '] ... ')
+
+        # method to adapt dataframe to the time range
         workspace_df_adapted = adapt_dataframe_to_range(
-            workspace_df_aggregated, time_start=self.time_start, time_end=self.time_end, freq=self.frequency)
+            arg1=workspace_df_aggregated, arg2=None,
+            time_start=self.time_start, time_end=self.time_end, freq=self.frequency)
+
+        # info end method
+        logger_stream.info(' ----> Sync src dynamic datasets [' + self.file_format + '] ... DONE')
 
         return workspace_df_adapted
 

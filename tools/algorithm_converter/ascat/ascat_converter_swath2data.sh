@@ -2,7 +2,7 @@
 
 # ----------------------------------------------------------------------------------------
 # Script information
-script_name='RECOLOUR - ASCAT H16 CONVERTER [BUFR 2 TIFF/CSV]'
+script_name='RECOLOUR - ASCAT CONVERTER [SWATH 2 TIFF/CSV]'
 script_version="1.0.0"
 script_date='2025/08/09'
 

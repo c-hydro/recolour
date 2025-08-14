@@ -1,3 +1,12 @@
+"""
+Library Features:
+
+Name:          lib_utils_time
+Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
+Date:          '20250813'
+Version:       '1.0.0'
+"""
+
 # ----------------------------------------------------------------------------------------------------------------------
 # libraries
 import logging
@@ -10,7 +19,7 @@ from pandas.tseries.frequencies import to_offset
 from lib_utils_info import logger_name
 
 # set logger
-log_stream = logging.getLogger(logger_name)
+logger_stream = logging.getLogger(logger_name)
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -67,7 +76,7 @@ def define_time_reference(time_stamp, time_frequency='D', time_format=None):
     """
 
     if time_frequency == 'MS':
-        log_stream.warning(" ===> 'MS' frequency is not supported. Use 'M' for month start.")
+        logger_stream.warning(" ===> 'MS' frequency is not supported. Use 'M' for month start.")
         time_frequency = 'M'
 
     # Define default formats for each frequency
@@ -83,11 +92,11 @@ def define_time_reference(time_stamp, time_frequency='D', time_format=None):
     else:
         # Simple suitability check: ensure format matches frequency granularity
         if time_frequency == 'Y' and ('%m' in time_format or '%d' in time_format):
-            log_stream.warning(f" ===> Provided format '{time_format}' is too detailed for yearly frequency. "
+            logger_stream.warning(f" ===> Provided format '{time_format}' is too detailed for yearly frequency. "
                   f"Defaulting to '{default_formats['Y']}'")
             time_format = default_formats['Y']
         elif time_frequency == 'M' and '%d' in time_format:
-            log_stream.warning(f" ===> Provided format '{time_format}' is too detailed for monthly frequency. "
+            logger_stream.warning(f" ===> Provided format '{time_format}' is too detailed for monthly frequency. "
                   f"Defaulting to '{default_formats['M']}'")
             time_format = default_formats['M']
 
@@ -99,7 +108,7 @@ def define_time_reference(time_stamp, time_frequency='D', time_format=None):
     elif time_frequency == 'Y':
         truncated = pd.Timestamp(year=time_stamp.year, month=1, day=1)
     else:
-        log_stream.error(f" ===> Invalid time frequency '{time_frequency}'. ")
+        logger_stream.error(f" ===> Invalid time frequency '{time_frequency}'. ")
         raise ValueError("Invalid time_frequency. Use 'D', 'M', or 'Y'.")
 
     return truncated.strftime(time_format)
@@ -120,18 +129,21 @@ def _validate_frequency(freq: str, start: pd.Timestamp, end: pd.Timestamp,
     - Optionally requires that the period contains >=2 chunks (require_multiple).
     """
     if end < start:
+        logger_stream.error(" ===> time_end must be >= time_start.")
         raise ValueError("time_end must be >= time_start")
 
     # 1) Parsable / valid frequency
     try:
         off = to_offset(freq)
     except Exception as e:
+        logger_stream.error(f" ===> Invalid frequency '{freq}': {e}")
         raise ValueError(f"Invalid frequency '{freq}': {e}") from e
 
     # 2) It must advance time
     #    Build two boundaries from 'start' to ensure the second is strictly greater.
     bounds_test = pd.date_range(start=start, periods=2, freq=off)
     if len(bounds_test) < 2 or not (bounds_test[1] > bounds_test[0]):
+        logger_stream.error(f" ===> Invalid frequency '{freq}': {bounds_test}")
         raise ValueError(f"Frequency '{freq}' does not advance time from start={start}.")
 
     # 3) Alignment check (optional)
@@ -140,6 +152,7 @@ def _validate_frequency(freq: str, start: pd.Timestamp, end: pd.Timestamp,
         # then start isn't aligned to the anchor (e.g., MS, W-MON, etc.)
         aligned_first = pd.date_range(start=start, periods=1, freq=off)[0]
         if aligned_first != start:
+            logger_stream.error(f" ===> Start {start} is not aligned to freq '{freq}'.")
             raise ValueError(
                 f"Start {start} is not aligned to freq '{freq}'. "
                 f"Set strict_align=False to allow partial first chunk."
@@ -147,49 +160,89 @@ def _validate_frequency(freq: str, start: pd.Timestamp, end: pd.Timestamp,
 
     # 4) Require multiple chunks (optional)
     if require_multiple:
-        # Construct boundaries across the span; if < 2 intervals, reject.
-        # (We include start and end explicitly to be robust to anchors.)
-        bounds = pd.date_range(start=start, end=end, freq=off)
-        if len(bounds) == 0 or bounds[0] != start:
-            bounds = pd.DatetimeIndex([start]).append(bounds)
-        if bounds[-1] != end:
-            bounds = bounds.append(pd.DatetimeIndex([end]))
+        def _build_bounds(s, e, off_):
+            b = pd.date_range(start=s, end=e, freq=off_)
+            if len(b) == 0 or b[0] != s:
+                b = pd.DatetimeIndex([s]).append(b)
+            if b[-1] != e:
+                b = b.append(pd.DatetimeIndex([e]))
+            return b
+
+        bounds = _build_bounds(start, end, off)
+
         if len(bounds) < 3:
-            raise ValueError(
-                f"Frequency '{freq}' is too coarse for [{start}, {end}] "
-                f"to form multiple chunks. Try a finer freq."
-            )
+            # Try to extend to next tick
+            min_end = pd.date_range(start=start, periods=2, freq=off)[-1]
+            if end < min_end:
+                logger_stream.warning(
+                    f"Extended time_end from {end} to {min_end} to meet at least one period for freq='{freq}'."
+                )
+                end = min_end
+                bounds = _build_bounds(start, end, off)
+
+            if len(bounds) < 3:
+                # Still only one chunk possible → fallback gracefully
+                logger_stream.warning(
+                    f"Frequency '{freq}' is too coarse for [{start}, {end}] to form multiple chunks. "
+                    f"Returning a single full period."
+                )
+                ranges = [(start, end)]
+                return ranges
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to compute time ranges based on start, end, and frequency
+def _next_tick(ts: pd.Timestamp, off):
+    """Return the next boundary >= ts + one offset step, respecting anchors."""
+    # If ts already lands on a boundary, we still want the *next* boundary.
+    return pd.date_range(start=ts, periods=2, freq=off)[-1]
+
 def compute_time_ranges(
     time_start, time_end, freq='D',
     closed='right',
     require_multiple: bool = True,
-    strict_align: bool = False):
+    strict_align: bool = False
+):
     """
-    Create contiguous ranges over [time_start, time_end] using `freq`,
-    after validating that the frequency is suitable for chunking.
+    Create contiguous ranges over [time_start, time_end] using `freq`.
 
-    Raises ValueError if validation fails (i.e., unsuitable frequency).
+    If the window is shorter than the minimum period implied by `freq`,
+    automatically extend `time_end` to cover at least one full period starting
+    at `time_start` and issue a warning.
     """
     start = pd.to_datetime(time_start)
     end   = pd.to_datetime(time_end)
 
+    # TZ consistency
+    if (start.tzinfo is None) != (end.tzinfo is None) or (start.tzinfo and end.tzinfo and start.tzinfo != end.tzinfo):
+        logger_stream.error(" ===> time_start and time_end must have matching timezone awareness and tzinfo.")
+        raise ValueError("time_start and time_end must have matching timezone awareness and tzinfo.")
+
+    off = to_offset(freq)
+
+    # --- Ensure at least one full period from start ---
+    min_needed_end = _next_tick(start, off)  # first boundary strictly after start
+    if end < min_needed_end:
+        old_end = end
+        end = min_needed_end
+        logger_stream.warning(
+            f"Extended time_end to satisfy minimum period for freq='{freq}': "
+            f"{old_end} → {end}"
+        )
+
+    # Optional policy validation after normalization
     _validate_frequency(freq, start, end,
                         require_multiple=require_multiple,
                         strict_align=strict_align)
 
-    # Build boundaries (anchor-aware), then force inclusion of start/end.
-    off = to_offset(freq)
+    # Build boundaries (anchor-aware), then force inclusion of start/end
     bounds = pd.date_range(start=start, end=end, freq=off)
     if len(bounds) == 0 or bounds[0] != start:
         bounds = pd.DatetimeIndex([start]).append(bounds)
     if bounds[-1] != end:
         bounds = bounds.append(pd.DatetimeIndex([end]))
 
-    # Emit intervals with chosen closure
+    # Emit intervals with chosen closure (using 1ns adjustments to encode closure)
     ns = pd.Timedelta('1ns')
     ranges = []
     for left, right in zip(bounds[:-1], bounds[1:]):
@@ -203,6 +256,7 @@ def compute_time_ranges(
             r_start = min(left + ns, right)
             r_end   = right if right == end else right - ns
         else:
+            logger_stream.error(f" ===> Invalid closure type '{closed}'.")
             raise ValueError("closed must be one of {'right','left','both','neither'}")
 
         if r_start > r_end:
@@ -239,6 +293,7 @@ def compute_time_window(
     }
     delta = freq_map.get(frequency.upper())
     if delta is None:
+        logger_stream.error(f" ===> Unsupported frequency '{frequency}'. Use one of {list(freq_map.keys())}.")
         raise ValueError(f"Unsupported frequency: {frequency}")
 
     # ---- Priority logic ----
@@ -334,6 +389,7 @@ def compute_time_by_labels(base_date: pd.Timestamp, labels, ref_point='end'):
         elif ref_point == 'mid_point':
             offset_hours = (start_hour + end_hour) / 2
         else:
+            logger_stream.error(f" ===> Invalid ref_point '{ref_point}'.")
             raise ValueError("ref_point must be 'start', 'mid_point', or 'end'")
 
         result.append(base_date.normalize() + pd.Timedelta(hours=offset_hours))

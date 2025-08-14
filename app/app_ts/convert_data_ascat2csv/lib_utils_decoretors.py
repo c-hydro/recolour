@@ -1,7 +1,25 @@
+"""
+Library Features:
+
+Name:          lib_utils_decoretors
+Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
+Date:          '20250813'
+Version:       '1.0.0'
+"""
 # ----------------------------------------------------------------------------------------------------------------------
 # libraries
+from __future__ import annotations
+import logging
+from typing import Any, Callable, Tuple, Type
+import warnings
+
 from functools import wraps
 import pandas as pd
+
+from lib_utils_info import logger_name
+
+# set logger obj
+logger_stream = logging.getLogger(logger_name)
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -30,109 +48,68 @@ def simplify_list(func):
     return wrapper
 # ----------------------------------------------------------------------------------------------------------------------
 
-# ----------------------------------------------------------------------------------------------------------------------
-# decorator to iterate over a dictionary of DataFrames
-def iterate_dict(func):
-    """
-    Decorator that applies a function to each DataFrame in a dict,
-    preserving the same keys in the returned dict.
-    """
-    @wraps(func)
-    def wrapper(obj, *args, **kwargs):
-        if not isinstance(obj, dict):
-            raise TypeError("Input must be a dictionary of DataFrames.")
-        return {k: func(v, *args, **kwargs) for k, v in obj.items()}
-    return wrapper
-# ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
-# method to iterate over a file list or string
-from functools import wraps
-from collections.abc import Iterable
-
-def iterate_file_list(func):
-    """Decorator to allow a function to handle one or two path arguments,
-    each being either a string or an iterable of strings.
-
-    - If both args are strings → call once.
-    - If one arg is iterable → iterate over it, pairing with the other arg.
-    - If both args are iterable → iterate in parallel (zip).
+# method to iterate over items in collections
+def iterate_items(
+    *,
+    iter_types: Tuple[Type[Any], ...] = (list, tuple, dict),
+    strict_zip: bool = False,
+    validate: Callable[[Any], Any] | None = None,
+    warn_on_truncate: bool = False,
+    dict_mode: str = "values",  # 'values', 'keys', or 'items'
+    dict_key_source: str = None,  # 'first', 'second', or None
+):
     """
-
-    @wraps(func)
-    def wrapper(file_path1, file_path2=None, *args, **kwargs):
-
-        def is_str(x):
-            return isinstance(x, str)
-
-        def is_str_iter(x):
-            return isinstance(x, Iterable) and not isinstance(x, str) and all(isinstance(p, str) for p in x)
-
-        # One argument case
-        if file_path2 is None:
-            if is_str(file_path1):
-                return func(file_path1, *args, **kwargs)
-            elif is_str_iter(file_path1):
-                return [func(p, *args, **kwargs) for p in file_path1]
-            else:
-                raise TypeError("file_path1 must be a string or iterable of strings.")
-
-        # Two arguments case
-        else:
-            if is_str(file_path1) and is_str(file_path2):
-                return func(file_path1, file_path2, *args, **kwargs)
-            elif is_str_iter(file_path1) and is_str(file_path2):
-                return [func(p1, file_path2, *args, **kwargs) for p1 in file_path1]
-            elif is_str(file_path1) and is_str_iter(file_path2):
-                return [func(file_path1, p2, *args, **kwargs) for p2 in file_path2]
-            elif is_str_iter(file_path1) and is_str_iter(file_path2):
-                return [func(p1, p2, *args, **kwargs) for p1, p2 in zip(file_path1, file_path2)]
-            else:
-                raise TypeError("file_path1 and file_path2 must be strings or iterables of strings.")
-
-    return wrapper
-# ----------------------------------------------------------------------------------------------------------------------
-
-from functools import wraps
-from collections.abc import Iterable, Sequence
-
-def iterate_items(*,
-                  iter_types=(list, tuple),   # which container types should be iterated
-                  strict_zip=False,           # raise if two iterables have different lengths
-                  validate=None):             # optional per-element validator/coercer
-    """
-    Decorator factory that lets a function accept:
-      - one arg: obj OR iterable[obj]
-      - two args: obj/iterable[obj] paired with obj/iterable[obj]
-    'obj' can be ANY Python object (not just strings/paths).
+    Decorator factory allowing a function to accept:
+      - One positional arg: obj OR iterable[obj]
+      - Two positional args: obj/iterable[obj] paired with obj/iterable[obj]
+    'obj' can be ANY Python object.
 
     Args:
-      iter_types: containers that should be treated as "iterable-of-objs".
-      strict_zip: if True and both args are iterables, lengths must match.
-      validate: optional callable(elem) -> elem (e.g., type check or normalization).
+      iter_types: Types considered collections to iterate over.
+      strict_zip: If True and both args are collections, lengths must match.
+      validate: Optional callable(elem) -> elem for per-element validation.
+      warn_on_truncate: If True and both args are collections with unequal lengths
+                        while strict_zip=False, issue warning or raise.
+      dict_mode: How to iterate single dicts ('values', 'keys', or 'items').
+      dict_key_source: If both args are dicts, choose key source:
+                       'first' → use keys from first dict,
+                       'second' → use keys from second dict,
+                       None → fall back to normal zip behavior.
     """
-    def is_collection(x):
-        # Only treat specific container types as collections to avoid
-        # accidentally iterating over objects that are Iterable but "atomic".
-        return isinstance(x, iter_types)
+    def is_collection(x: Any) -> bool:
+        return isinstance(x, iter_types) and not isinstance(x, (str, bytes))
 
-    def ensure_list(x):
-        return list(x) if isinstance(x, Iterable) and not isinstance(x, (str, bytes)) else x
+    def to_iterable(x: Any):
+        if isinstance(x, dict):
+            if dict_mode == "values": return x.values()
+            elif dict_mode == "keys": return x.keys()
+            elif dict_mode == "items": return x.items()
+            else:
+                raise ValueError(f"Invalid dict_mode: {dict_mode}")
+        return x
 
-    def maybe_validate(x):
+    def maybe_validate(x: Any) -> Any:
         return validate(x) if validate else x
 
     def decorator(func):
         @wraps(func)
         def wrapper(arg1, arg2=None, *args, **kwargs):
-            # One-argument mode
+            # --- One-argument mode ---
             if arg2 is None:
                 if is_collection(arg1):
-                    return [func(maybe_validate(a1), *args, **kwargs) for a1 in arg1]
-                else:
-                    return func(maybe_validate(arg1), *args, **kwargs)
+                    if isinstance(arg1, dict):
+                        result = {
+                            k: func(maybe_validate(v), *args, **kwargs)
+                            for k, v in arg1.items()
+                        }
+                        return result
+                    return [func(maybe_validate(a1), *args, **kwargs)
+                            for a1 in to_iterable(arg1)]
+                return func(maybe_validate(arg1), *args, **kwargs)
 
-            # Two-argument mode
+            # --- Two-argument mode ---
             a1_is_col = is_collection(arg1)
             a2_is_col = is_collection(arg2)
 
@@ -140,20 +117,68 @@ def iterate_items(*,
                 return func(maybe_validate(arg1), maybe_validate(arg2), *args, **kwargs)
 
             if a1_is_col and not a2_is_col:
-                return [func(maybe_validate(a1), maybe_validate(arg2), *args, **kwargs) for a1 in arg1]
+                if isinstance(arg1, dict):
+                    return {
+                        k: func(maybe_validate(v), maybe_validate(arg2), *args, **kwargs)
+                        for k, v in arg1.items()
+                    }
+                return [func(maybe_validate(a1), maybe_validate(arg2), *args, **kwargs)
+                        for a1 in to_iterable(arg1)]
 
             if not a1_is_col and a2_is_col:
-                return [func(maybe_validate(arg1), maybe_validate(a2), *args, **kwargs) for a2 in arg2]
+                if isinstance(arg2, dict):
+                    return {
+                        k: func(maybe_validate(arg1), maybe_validate(v), *args, **kwargs)
+                        for k, v in arg2.items()
+                    }
+                return [func(maybe_validate(arg1), maybe_validate(a2), *args, **kwargs)
+                        for a2 in to_iterable(arg2)]
 
-            # both collections
-            if strict_zip:
-                l1, l2 = len(arg1), len(arg2)
-                if l1 != l2:
-                    raise ValueError(f"Length mismatch: {l1=} != {l2=}")
-            return [func(maybe_validate(a1), maybe_validate(a2), *args, **kwargs) for a1, a2 in zip(arg1, arg2)]
+            # --- Both are collections ---
+            if isinstance(arg1, dict) and isinstance(arg2, dict) and dict_key_source:
+                if dict_key_source == "first":
+                    keys = arg1.keys()
+                    return {
+                        k: func(
+                            maybe_validate(arg1[k]),
+                            maybe_validate(arg2.get(k)),
+                            *args, **kwargs
+                        )
+                        for k in keys
+                    }
+                elif dict_key_source == "second":
+                    keys = arg2.keys()
+                    return {
+                        k: func(
+                            maybe_validate(arg1.get(k)),
+                            maybe_validate(arg2[k]),
+                            *args, **kwargs
+                        )
+                        for k in keys
+                    }
+                else:
+                    raise ValueError(f"Invalid dict_key_source: {dict_key_source}")
+
+            # --- Normal zip behavior ---
+            col1, col2 = list(to_iterable(arg1)), list(to_iterable(arg2))
+            if strict_zip and len(col1) != len(col2):
+                raise ValueError(f"Length mismatch: l1={len(col1)} != l2={len(col2)}")
+            elif warn_on_truncate and len(col1) != len(col2):
+                warnings.warn(
+                    f"Zip would truncate: l1={len(col1)}, l2={len(col2)}. "
+                    f"Use strict_zip=True to require equality.",
+                    UserWarning
+                )
+
+            return [
+                func(maybe_validate(a1), maybe_validate(a2), *args, **kwargs)
+                for a1, a2 in zip(col1, col2)
+            ]
 
         return wrapper
     return decorator
+
+# ----------------------------------------------------------------------------------------------------------------------
 
 
 # ----------------------------------------------------------------------------------------------------------------------

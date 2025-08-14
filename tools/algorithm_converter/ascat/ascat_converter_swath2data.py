@@ -16,14 +16,16 @@ from lib_utils_io import convert_meters_to_degrees
 
 from lib_io_shapefile import shapefile_to_mask
 from lib_io_bufr import decode_bufr
+from lib_io_nc import decode_netcdf
 from lib_io_tiff import write_tiff
 from lib_io_csv import write_csv
 
-# method to process BUFR files and convert to GeoTIFF
-def process_bufr_to_tiff(config_path, date_str):
+# method to process SWATH BUFR/NETCDF files and convert to GeoTIFF
+def process_swath_to_tiff(config_path, date_str):
 
     # load configuration
     config = setup_config(config_path)
+    info_cfg = config["info"]
     input_cfg = config["input"]
     output_grids_cfg = config["output_grids"]
     output_points_cfg = config["output_points"]
@@ -34,10 +36,15 @@ def process_bufr_to_tiff(config_path, date_str):
     parameters_cfg = config["parameters"]
     log_cfg = config["log"]
 
+    # product information
+    prd_name = info_cfg["product_name"]
+    prd_format, prd_ext = info_cfg["product_format"], info_cfg['product_extension']
+    prd_tag = ' ::: '.join([prd_name, prd_format])
+
     # log start information
     logger_obj = setup_logging(log_cfg, date_str)
     # info start of processing
-    logger_obj.info(f" --> BUFR processing for {date_str} ... ")
+    logger_obj.info(f" --> {prd_tag} processing for {date_str} ... ")
 
     # organize mask and grid data
     (mask_values,
@@ -88,38 +95,51 @@ def process_bufr_to_tiff(config_path, date_str):
 
             # info start of processing for this time window
             logger_obj.info(
-                f" ----> Search BUFR files in: {file_path_src} for window {label} ({start_hour}-{end_hour}) ... ")
+                f" ----> Search {prd_tag} files in: {file_path_src} for window {label} ({start_hour}-{end_hour}) ... ")
 
-            # collect BUFR files
-            bufr_files = []
+            # collect NETCDF files
+            list_files = []
             for h in range(start_hour, end_hour):
                 hour_str = f"{h:02d}"
-                bufr_files.extend((file_path_src / hour_str).glob("*.buf"))
+                list_files.extend((file_path_src / hour_str).glob("*.nc"))
 
             # check if any BUFR files were found
-            if not bufr_files:
+            if not list_files:
                 # info end of processing for this time window (no files found)
-                logger_obj.warning(f" ===> No BUFR files for {label} on {date_str}")
+                logger_obj.warning(f" ===> No {prd_tag} files for {label} on {date_str}")
 
                 logger_obj.info(
-                    f" ----> Search BUFR files in: {file_path_src} for window {label} ({start_hour}-{end_hour}) ... SKIPPED")
+                    f" ----> Search {prd_tag} files in: {file_path_src} for window {label} ({start_hour}-{end_hour}) ... SKIPPED")
 
                 # info end of processing for this time window
                 logger_obj.info(f" ---> Time Window " + str(window) + " ... SKIPPED. Input files are not available.")
 
                 continue
 
-            # log number of BUFR files found
-            logger_obj.info(f" ::: Found {len(bufr_files)} BUFR files for {label}")
+            # log number of NETCDF files found
+            logger_obj.info(f" ::: Found {len(list_files)} {prd_tag} files for {label}")
 
-            # read and decode BUFR files
+            # read and decode NETCDF files
             all_data = {
                 "longitude": [], "latitude": [],
                 "ssm": [], "flag_processing": [], "flag_corrections": [], "quality": [],
                 'jd': [], 'time': []}
-            for file in bufr_files:
+            for file in list_files:
                 logging.info(f" ::: Decode file: {file}")
-                data = decode_bufr(file)
+
+                if file.suffix == prd_ext:
+                    logging.info(f" ::: Expected file format: {prd_ext}. Proceeding with decoding.")
+                else:
+                    logging.error(f" ===> Unsupported file format: {file.suffix}. Expected {prd_ext}. Skipping file.")
+                    raise ValueError(f"Unsupported file format: {file.suffix}. Expected {prd_ext}.")
+
+                if file.suffix == ".buf":
+                    data = decode_bufr(file)
+                elif file.suffix == ".nc":
+                    data = decode_netcdf(file)
+                else:
+                    logging.error(f" ===> Unsupported file format: {file.suffix}. Only .buf/.nc files are supported.")
+                    continue
                 for k in all_data:
                     all_data[k].extend(data[k])
 
@@ -134,7 +154,7 @@ def process_bufr_to_tiff(config_path, date_str):
 
             # info end of processing for this time window
             logger_obj.info(
-                f" ----> Search BUFR files in: {file_path_src} for window {label} ({start_hour}-{end_hour}) ... DONE")
+                f" ----> Search {prd_tag} files in: {file_path_src} for window {label} ({start_hour}-{end_hour}) ... DONE")
 
             # info start of processing for defining geographical variables
             logger_obj.info(f" ----> Organize geographical variable(s) ... ")
@@ -291,17 +311,17 @@ def process_bufr_to_tiff(config_path, date_str):
             logger_obj.info(f" ---> Time Window " + str(window) + " ... SKIPPED. Output files already exist.")
 
     # info end of processing
-    logger_obj.info(f" --> BUFR processing for {date_str} ... DONE")
+    logger_obj.info(f" --> {prd_tag} processing for {date_str} ... DONE")
 
 # main method to run the script
 if __name__ == "__main__":
 
     # get command line arguments
-    parser = argparse.ArgumentParser(description="Convert ASCAT BUFR to GeoTIFF")
+    parser = argparse.ArgumentParser(description="Convert ASCAT SWATH BUFR/NETCDF to GeoTIFF")
     parser.add_argument("config", help="Path to config.json")
     parser.add_argument("date", help="Date in YYYYMMDD format")
     args = parser.parse_args()
 
-    # method to process BUFR files and convert to GeoTIFF
-    process_bufr_to_tiff(args.config, args.date)
+    # method to process SWATH BUFR/NETCDF files and convert to GeoTIFF
+    process_swath_to_tiff(args.config, args.date)
 

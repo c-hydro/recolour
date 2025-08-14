@@ -1,17 +1,31 @@
+"""
+Library Features:
+
+Name:          lib_utils_analysis
+Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
+Date:          '20250813'
+Version:       '1.0.0'
+"""
 # ----------------------------------------------------------------------------------------------------------------------
 # libraries
+import logging
 import numpy as np
 import pandas as pd
 import xarray as xr
 from sklearn.neighbors import BallTree
 from typing import Dict, Literal, Union, Optional
 
-from lib_utils_decoretors import iterate_dict
+from lib_utils_decoretors import iterate_items
+
+from lib_utils_info import logger_name
+
+# set logger obj
+logger_stream = logging.getLogger(logger_name)
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to resample values by period (daily, monthly, etc.)
-@iterate_dict
+@iterate_items(strict_zip=True, dict_key_source='first')
 def aggregate_values_ts_by_frequency(df, time_col='timestamp', value_cols=None, freq='D', skipna=True):
     """
     Sorts by time and computes mean values and counts for a given period.
@@ -44,6 +58,7 @@ def aggregate_values_ts_by_frequency(df, time_col='timestamp', value_cols=None, 
     # Ensure datetime index
     if not isinstance(df.index, pd.DatetimeIndex):
         if time_col not in df.columns:
+            logger_stream.error(f"' ===> {time_col}' not found in DataFrame columns.")
             raise ValueError(f"'{time_col}' not found in DataFrame columns.")
         df[time_col] = pd.to_datetime(df[time_col])
         df = df.sort_values(time_col).set_index(time_col)
@@ -58,6 +73,7 @@ def aggregate_values_ts_by_frequency(df, time_col='timestamp', value_cols=None, 
     elif value_cols is None:
         value_cols = df.select_dtypes(include=np.number).columns.tolist()
     if not value_cols:
+        logger_stream.error(" ===> No numeric columns to aggregate.")
         raise ValueError("No numeric columns to aggregate.")
 
     # Build aggregation dictionary
@@ -94,7 +110,7 @@ def aggregate_values_ts_by_frequency(df, time_col='timestamp', value_cols=None, 
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to search values by point within a specified radius
-@iterate_dict
+@iterate_items(strict_zip=True, dict_key_source='first')
 def search_values_points(
     target_df: pd.DataFrame,
     source_df: pd.DataFrame,
@@ -159,7 +175,7 @@ def search_values_points(
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to search values in a DataArray map within a specified radius
-@iterate_dict
+@iterate_items(strict_zip=True, dict_key_source='first')
 def search_values_maps(
     target_df: pd.DataFrame,
     source_da: xr.DataArray,              # dims: (time, lat, lon) by default
@@ -187,6 +203,7 @@ def search_values_maps(
     """
     # Checks
     if any(d not in source_da.dims for d in (time_name, lat_name, lon_name)) or source_da.ndim != 3:
+        logger_stream.error(f" ===> source_da must be 3-D with dims ({time_name}, {lat_name}, {lon_name})")
         raise ValueError(f"source_da must be 3-D with dims ({time_name}, {lat_name}, {lon_name})")
     if target_df.empty:
         return {} if return_mode == "dict" else pd.DataFrame()
@@ -205,6 +222,7 @@ def search_values_maps(
     lats = np.asarray(source_da[lat_name].values)
     lons = np.asarray(source_da[lon_name].values)
     if lats.ndim != 1 or lons.ndim != 1:
+        logger_stream.error(" ===> Expect 1-D lat and lon coords (regular grid).")
         raise ValueError("Expect 1-D lat and lon coords (regular grid).")
 
     lat2d, lon2d = np.meshgrid(lats, lons, indexing="ij")  # (nlat, nlon)
@@ -300,7 +318,7 @@ def search_values_maps(
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to aggregate values maps using frequency
-@iterate_dict
+@iterate_items(strict_zip=True, dict_key_source='first')
 def aggregate_values_maps_by_frequency(df, time_col='time', value_col='ssm_filtered', freq="D", min_frac=0.75):
     """
     Resample to `freq` and compute mean/max/min only when the fraction of finite

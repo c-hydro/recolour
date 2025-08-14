@@ -1,8 +1,8 @@
 {
   "info": {
-    "product_name": "ASCAT - H16",
-    "product_format": "BUFR",
-    "product_extension": ".buf"
+    "product_name": "ASCAT - H122",
+    "product_format": "NETCDF",
+    "product_extension": ".nc"
   },
   "flags": {
     "update_auxiliary": false,
@@ -11,12 +11,12 @@
   "parameters": {
     "grid_spacing_km_fine": 1,
     "grid_buffer_km_fine": 100,
-    "grid_spacing_km_coarse": 12.5,
+    "grid_spacing_km_coarse": 8,
     "grid_extend_area_flag": true,
     "grid_extend_area_km_land": 5,
-    "grid_extend_area_km_sea": 0,
-    "points_buffer_km": 12.5,
-    "resample_radius_of_influence_km": 12.5,
+    "grid_extend_area_km_sea": 7,
+    "points_buffer_km": 25,
+    "resample_radius_of_influence_km": 25,
     "resample_neighbours_min": 2,
     "resample_neighbours_n": 7,
     "filter_threshold": 0.001,
@@ -24,19 +24,19 @@
     "plot_output": false
   },
   "input": {
-    "base_path": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_swath/h16/",
+    "base_path": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_swath/h122/",
     "time_windows": [
       { "start_hour": 0, "end_hour": 12, "label": "00_12" },
       { "start_hour": 12, "end_hour": 24, "label": "12_24" }
     ]
   },
   "output_grids": {
-    "base_path": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_points/h16/",
-    "filename_pattern": "h16_{date}_{label}.tif"
+    "base_path": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_points/h122/",
+    "filename_pattern": "h122_{date}_{label}.tif"
   },
   "output_points": {
-    "base_path": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_points/h16/",
-    "filename_pattern": "h16_{date}_{label}.csv"
+    "base_path": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_points/h122/",
+    "filename_pattern": "h122_{date}_{label}.csv"
   },
   "variables": {
     "ssm": {"min": 0.0, "max": 100, "no_data": null},
@@ -50,11 +50,11 @@
     "shapefile": "/home/fabio/Desktop/Recolour_Workspace/ws/domain/alert_area_epsg4326.shp"
   },
   "output_auxiliary": {
-    "shapefile": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_points/h16/alert_area_epsg4326_h16.shp"
+    "shapefile": "/home/fabio/Desktop/Recolour_Workspace/ws/ascat_points/h122/alert_area_epsg4326_h122.shp"
   },
   "log": {
     "base_path": "/home/fabio/Desktop/Recolour_Workspace/log/",
-    "filename_pattern": "h16_bufr2tiff.log"
+    "filename_pattern": "h122_nc2tiff.log"
   }
 }
 

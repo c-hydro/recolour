@@ -1,3 +1,11 @@
+"""
+Library Features:
+
+Name:          lib_io_csv
+Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
+Date:          '20250813'
+Version:       '1.0.0'
+"""
 # ----------------------------------------------------------------------------------------------------------------------
 # libraries
 import logging
@@ -5,7 +13,7 @@ import os
 import sys
 import pandas as pd
 
-from lib_utils_decoretors import iterate_file_list, iterate_dict, iterate_items
+from lib_utils_decoretors import iterate_items
 from lib_utils_info import logger_name
 
 # set logger
@@ -14,7 +22,8 @@ logger_stream = logging.getLogger(logger_name)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to read a CSV file into a DataFrame
-@iterate_file_list
+#@iterate_file_list
+@iterate_items(iter_types=(list, tuple), strict_zip=True)
 def read_csv(file_name: str, file_delimiter=',') -> pd.DataFrame:
 
     # check if the file exists

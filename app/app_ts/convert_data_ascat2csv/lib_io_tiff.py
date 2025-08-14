@@ -1,3 +1,11 @@
+"""
+Library Features:
+
+Name:          lib_io_tiff
+Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
+Date:          '20250813'
+Version:       '1.0.0'
+"""
 # ----------------------------------------------------------------------------------------------------------------------
 # libraries
 import logging
@@ -11,7 +19,7 @@ from lib_utils_decoretors import iterate_items
 from lib_utils_info import logger_name
 
 # set logger
-alg_logger = logging.getLogger(logger_name)
+logger_stream = logging.getLogger(logger_name)
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -30,6 +38,7 @@ def read_tiff(file_name: str,
                 try:
                     band_index = int(variable)
                 except ValueError:
+                    logger_stream.error(f" ===> Variable '{variable}' not found in band descriptions.")
                     raise ValueError(f"Variable '{variable}' not found in band descriptions.")
 
             band_data = src.read(band_index)
@@ -44,7 +53,7 @@ def read_tiff(file_name: str,
             if file_time is not None:
                 coords["time"] = [file_time]
             else:
-                alg_logger.warning(f" ===> Time not defined for file: {file_name}")
+                logger_stream.warning(f" ===> Time not defined for file: {file_name}")
 
             file_da = xr.DataArray(
                 band_data if file_time is None else band_data[None, :, :],  # expand dims if time is given
@@ -58,7 +67,7 @@ def read_tiff(file_name: str,
             )
 
     else:
-        alg_logger.warning(f" ===> File data tiff not found: {file_name}")
+        logger_stream.warning(f" ===> File data tiff not found: {file_name}")
         file_da = None
 
     return file_da

@@ -1,0 +1,10 @@
+{
+  "shapefile": "/share/HSAF_SM/ascat/auxiliary/shapefile/alert_area_epsg4326.shp",
+  "src": "/share/HSAF_SM/ascat/nrt/h122",
+  "dst": "/share/HSAF_SM/ascat/domain/nc/h122",
+  "pattern": "*.nc",
+  "min_points": 1,
+  "sample_limit": 5000,
+  "time_mode": "auto",
+  "ndays": 0
+}

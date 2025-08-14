@@ -1,8 +1,16 @@
 # Changelog
 
-## Version 2.2.1 (2025-08-06)
+## Version 2.2.1 (2025-08-14)
 - **PROJECT:** soil moisture triple collocation  
   - **APPS – CELL:** add datasets to test the triple collocation app 
+
+- **PROJECT:** time-series  
+  - **APPS – TS:** convert_data_ascat2csv
+
+- **PROJECT:** operational framework grid  
+  - **TOOLS – FILTER ASCAT BUFR:** ascat_filter_bufr.py
+  - **TOOLS – FILTER ASCAT NETCDF:** ascat_filter_netcdf.py
+  - **TOOLS – CONVERTER ASCAT:** ascat_converter_swath2data.py  
 
 ## Version 2.2.0 (2025-06-03)
 - **PROJECT:** operational framework grid  
