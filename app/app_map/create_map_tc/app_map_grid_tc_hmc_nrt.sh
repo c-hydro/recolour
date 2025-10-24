@@ -54,8 +54,8 @@ for time_period_step in $(seq 0 $time_period_days); do
     # Parse time information
     time_step=$(date -d "$time_run ${time_period_step} days ago" +'%Y-%m-%d %H:00')
 
-	# Run python script (using setting and time)
-	echo -n " ===> COMMAND LINE: python $script_path_app -settings_file $script_path_settings -time "$time_step" "
+    # Run python script (using setting and time)
+    echo -n " ===> COMMAND LINE: python $script_path_app -settings_file $script_path_settings -time "$time_step" "
 
     python $script_path_app -settings_file $script_path_settings -time "$time_step"
 

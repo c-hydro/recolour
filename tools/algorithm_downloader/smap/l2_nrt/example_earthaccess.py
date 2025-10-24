@@ -73,7 +73,7 @@ if __name__ == "__main__":
     remote_url = ''.join([remote_address, remote_folder_root, remote_folder_date])
 
     # Path where the files will be saved
-    save_path = "/home/fabio/Desktop/Recolour_Workspace/ws/smap_cell_nrt/spl2smp_e/"
+    save_path = "/home/fabio/Desktop/Recolour_Workspace/dset/smap_cell_nrt/spl2smp_e/"
 
     user, password = get_credentials(machine='urs.earthdata.nasa.gov')
 

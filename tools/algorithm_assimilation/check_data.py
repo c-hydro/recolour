@@ -1,7 +1,7 @@
 import os
 import pickle
 
-folder_name = '/home/fabio/Desktop/PyCharm_Workspace/project/dte-ws/data_dynamic/ancillary/point_analysis_group/'
+folder_name = '/home/fabio/Desktop/PyCharm_Workspace/project/dte-dset/data_dynamic/ancillary/point_analysis_group/'
 file_name_1 = 'analysis.soil_moisture.statistics_000305_000003.workspace'
 file_name_2 = 'analysis.soil_moisture.statistics_000305_000006.workspace'
 

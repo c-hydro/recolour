@@ -15,6 +15,9 @@ python app_map_grid_tc.py -settings_file configuration.json -time "YYYY-MM-DD HH
 Complete list of cells:
 [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430, 1431]
 
+Flags of datasets:
+flag_ref_k1_k2=0, flag_ref=1, flag_ref_k1=2, flag_ref_k2=3, flag_k1=4, flag_k2=5,
+
 Version(s):
 20240517 (1.8.1) --> Fix bugs in weight method
 20240514 (1.8.0) --> Update code(s) to filter points metrics and datasets using a common strategy; codes refactoring
@@ -158,8 +161,11 @@ def get_args():
     settings_file, settings_time = 'configuration.json', None
     if parser_value.settings_file:
         settings_file = parser_value.settings_file
-    if parser_value.settings_time:
+    if hasattr(parser_value, 'settings_time') and parser_value.settings_time:
         settings_time = parser_value.settings_time
+
+    if settings_time is None:
+        settings_time = time.strftime("%Y-%m-%d %H:%M", time.localtime())
 
     return settings_file, settings_time
 

@@ -15,9 +15,16 @@ __pycache__/
 *$py.class
 
 # Project
+web/
+stuff/
+report/
+papers/
+package/
 conda/
 old/
 dset/
+dset/
+datasets/
 example/
 tmp/
 *OLD/
@@ -75,3 +82,10 @@ venv.bak/
 # IDEs and editors
 .vscode
 .idea
+/recolour_adapter_4_hyde_package.txt
+/recolour_xml_package.txt
+/recolour_runner_package.txt
+/recolour_publisher_package.txt
+/recolour_notebook_package.txt
+/recolour_default_environment.yml
+/setup_recolour_system_conda_python_default.sh
