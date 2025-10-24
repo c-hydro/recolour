@@ -89,3 +89,7 @@ venv.bak/
 /recolour_notebook_package.txt
 /recolour_default_environment.yml
 /setup_recolour_system_conda_python_default.sh
+/package/ascat/
+/package/door/
+/package/gldas/
+/package/pytesmo/
