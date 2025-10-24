@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 2.3.0 (2025-10-25)
+- **PROJECT:** time-series  
+  - **APPS – TS:** generic operational-release
+
 ## Version 2.2.1 (2025-08-14)
 - **PROJECT:** soil moisture triple collocation  
   - **APPS – CELL:** add datasets to test the triple collocation app 
