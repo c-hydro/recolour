@@ -225,7 +225,7 @@ def organize_datasets_points(
         collections_masked = collections_obj.loc[dict(gpi=reg_loc, time=slice(time_start, time_end))]
 
         # check collections availability
-        if collections_masked.dims['time'] > 0:
+        if collections_masked.sizes['time'] > 0:
 
             collections_tmp = deepcopy(collections_masked)
 

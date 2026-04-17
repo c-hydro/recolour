@@ -12,6 +12,8 @@ Version:       '1.0.0'
 import logging
 import os
 
+import pandas as pd
+
 from lib_info_args import logger_name, time_format_algorithm
 from lib_utils_io import fill_path_with_tags
 from lib_utils_generic import make_folder, reset_folder, pad_list
@@ -287,7 +289,13 @@ class DrvMap:
                 if collections_dframe is None:
                     collections_dframe = point_dframe_step
                 else:
-                    collections_dframe = collections_dframe.append(point_dframe_step)
+
+                    collections_dframe = pd.concat(
+                        [collections_dframe, point_dframe_step],
+                        ignore_index=True
+                    )
+
+                    # collections_dframe = collections_dframe.append(point_dframe_step)
         # info end merge cell group
         alg_logger.info(' -----> Merge cell ... DONE')
 
