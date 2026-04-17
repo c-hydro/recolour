@@ -1,0 +1,35 @@
+{
+  "src_dir": "/home/fabio/Desktop/recolour/exec/mirror/h122/h122_cur_mon_nc/",
+  "dst_dir": "/home/fabio/Desktop/recolour/exec/select_over_domain/h122/%Y/%m/%d/%H",
+  "filename_regex": ".*H122_C_LIIB_(?P<stamp>\\d{14}).*",
+  "filename_time_format": "%Y%m%d%H%M%S",
+  "look_back_days": 3,
+  "look_back_hours": 72,
+  "recent_by": "mtime",
+  "domain": {
+    "name": "italy",
+    "lat_min": 35.0, "lat_max": 48.5, "lon_min": 6.0, "lon_max": 19.5,
+    "require": "any"
+  },
+  "netcdf": {
+    "lat_var_candidates": ["latitude", "lat", "Latitude", "LATITUDE"],
+    "lon_var_candidates": ["longitude", "lon", "Longitude", "LONGITUDE"]
+  },
+  "copy": {
+    "overwrite": false,
+    "dry_run": false,
+    "preserve_metadata": true,
+    "action": "copy"
+  },
+  "logging": {
+    "level": "INFO",
+    "folder": "/home/fabio/Desktop/recolour/exec/h122/logs/",
+    "filename": "h122_transfer_logging.txt"
+  },
+  "report": {
+    "enabled": true,
+    "folder": "/home/fabio/Desktop/recolour/exec/h122/reports/",
+    "filename": "h122_transfer_report_%Y%m%d_%H%M.json",
+    "include_file_lists": true
+  }
+}

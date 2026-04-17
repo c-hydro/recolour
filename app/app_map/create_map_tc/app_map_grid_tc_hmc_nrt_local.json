@@ -186,36 +186,36 @@
       "source" : {
         "cell_grid": {
           "k1": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_auxiliary/grid/",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/datasets/map_tc/auxiliary/cell/h141_h142_h26/var40/",
             "file_name": "grid.nc",
             "name": "ecmwf"
           },
           "ref": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/hmc_auxiliary/grid/",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/datasets/map_tc/auxiliary/cell/hmc/",
             "file_name": "grid.nc",
             "name": "hmc"
           },
           "k2": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/smap_auxiliary/grid/spl2smp_e/",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/datasets/map_tc/auxiliary/cell/smap/spl2smp_e/",
             "file_name": "grid.nc",
             "name": "smap"
           }
         },
         "geo_grid": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_tc_auxiliary/domain/",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/datasets/map_tc/auxiliary/domain/",
             "file_name": "grid_reference_1000m.tiff"
         },
         "mask_grid": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_tc_auxiliary/mask_area/",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/datasets/map_tc/auxiliary/mask/",
             "file_name": "mask_italy_no_carea.tif"
         },
         "removed_area_grid": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_tc_auxiliary/mask_area/",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/datasets/map_tc/auxiliary/mask/",
             "file_name": "mask_italy_removed_v4.tif"
         }
       },
       "destination":{
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_tc_ancillary/static/",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/datasets/map_tc/ancillary/static/",
         "file_name": "geo_info_hmc.workspace"
       }
     },
@@ -223,7 +223,7 @@
       "source": {
         "soil_moisture":{
           "k1" : {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_cell_nrt_var40/nc/{sub_path_source_k1}",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/datasets/map_tc/data/ecmwf/{sub_path_source_k1}",
             "file_name": "{cell_n}.nc",
             "name": "ecmwf",
             "variable": {
@@ -235,7 +235,7 @@
             "time_rounding": "D"
           },
           "ref": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/hmc_cell_nrt/{sub_path_source_ref}",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/datasets/map_tc/data/hmc/{sub_path_source_ref}",
             "file_name": "{cell_n}.nc",
             "name": "hmc",
             "variable": {
@@ -247,7 +247,7 @@
             "time_rounding": "D"
           },
           "k2": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/smap_cell_nrt/spl2smp_e/{sub_path_source_k2}",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/datasets/map_tc/data/smap/{sub_path_source_k2}",
             "file_name": "{cell_n}.nc",
             "name": "smap",
             "variable": {
@@ -260,7 +260,7 @@
           }
         },
         "metrics": {
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/validation_tc/results/hmc_ecmwf_smap_ver2/",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/datasets/map_tc/metrics/",
           "file_name": "{cell_n}.nc",
           "variable": {
             "RZSM_HMC_ALL_w": "weights_k1_ref", "RZSM_SMAP_ALL_w": "weights_k1_k2", "HMC_SMAP_ALL_w": "weights_ref_k2",
@@ -274,27 +274,27 @@
       },
       "ancillary": {
         "points_source": {
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_tc_ancillary/dynamic/points_source/{sub_path_ancillary_points_src}",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/datasets/map_tc/ancillary/points_source/{sub_path_ancillary_points_src}",
           "file_name": "sm_pnt_{datetime_ancillary_points_src}_{cell_n}.raw.workspace"
         },
         "points_destination": {
           "data": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_tc_ancillary/dynamic/points_destination/datasets/{sub_path_ancillary_points_dst_data}",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/datasets/map_tc/ancillary/points_destination/datasets/{sub_path_ancillary_points_dst_data}",
             "file_name": "sm_pnt_{datetime_ancillary_points_dst_data}.datasets.workspace"
           },
           "metrics": {
-            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_tc_ancillary/dynamic/points_destination/metrics/{sub_path_ancillary_points_dst_metrics}",
+            "folder_name": "/home/fabio/Desktop/Recolour_Workspace/datasets/map_tc/ancillary/points_destination/metrics/{sub_path_ancillary_points_dst_metrics}",
             "file_name": "sm_pnt_{datetime_ancillary_points_dst_metrics}.metrics.workspace"
           }
         },
         "maps": {
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_tc_ancillary/dynamic/maps/{sub_path_ancillary_maps}",
+          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/datasets/map_tc/ancillary/maps/{sub_path_ancillary_maps}",
           "file_name": "sm_maps_{datetime_ancillary_maps}.workspace"
         }
       },
       "destination": {
         "__comment__": "format: [netcdf, tiff]",
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/map_tc_nrt/{sub_path_destination}",
+        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/datasets/map_tc/results/{sub_path_destination}",
         "file_name": "sm_{datetime_destination}.tiff",
         "variable": {
               "soil_moisture_resampled": "soil_moisture_masked_resampled",
@@ -318,11 +318,11 @@
     "time_rounding" : "D"
   },
   "log": {
-    "folder_name" : "/home/fabio/Desktop/Recolour_Workspace/ws/log/map_tc/",
+    "folder_name" : "/home/fabio/Desktop/Recolour_Workspace/datasets/map_tc/log/",
     "file_name": "app_map_grid_tc_nrt.txt"
   },
   "tmp": {
-    "folder_name" : "/home/fabio/Desktop/Recolour_Workspace/ws/tmp/map_tc/",
+    "folder_name" : "/home/fabio/Desktop/Recolour_Workspace/datasets/map_tc/tmp/",
     "file_name": null
   }
 }

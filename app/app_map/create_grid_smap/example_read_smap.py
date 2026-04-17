@@ -138,12 +138,12 @@ def main(file_name, grid_name):
 # call script from external library
 if __name__ == "__main__":
 
-    file_folder = '/home/fabio/Desktop/Recolour_Workspace/recolour-ws/smap_test_georef/'
+    file_folder = '/home/fabio/Desktop/Recolour_Workspace/recolour-dset/smap_test_georef/'
     file_name = 'SMAP_L2_SM_P_E_46118_D_20230919T222213_R2023_005.h5'
 
     file_path = os.path.join(file_folder, file_name)
 
-    grid_folder = '/home/fabio/Desktop/Recolour_Workspace/recolour-ws/domain/'
+    grid_folder = '/home/fabio/Desktop/Recolour_Workspace/recolour-dset/domain/'
     grid_name = 'italy_sm_smap.tiff'
 
     grid_path = os.path.join(grid_folder, grid_name)

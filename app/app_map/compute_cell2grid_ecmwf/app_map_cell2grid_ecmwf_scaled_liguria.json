@@ -63,17 +63,17 @@
   "datasets": {
     "static": {
       "grid_product": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_static_nrt/",
+        "folder_name": "/home/fabio/Desktop/recolour/dset/ecmwf_static_nrt/",
         "file_name": "grid.nc"
       },
       "grid_reference" : {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/domain/",
+        "folder_name": "/home/fabio/Desktop/recolour/dset/domain/",
         "file_name": "geo_liguria.tiff"
       }
     },
     "dynamic" : {
       "source": {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_cell_nrt_vars/scaling/methods/{sub_path_source}",
+        "folder_name": "/home/fabio/Desktop/recolour/dset/ecmwf_cell_nrt_vars/scaling/methods/{sub_path_source}",
         "file_name": "scaling_{cell_n}.nc",
         "variables_in": {
           "datasets": ["var_0_28", "var_0_28_scaled","time"],
@@ -86,17 +86,17 @@
       },
       "ancillary": {
         "points" : {
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_ancillary/cells2grid/scaled/{sub_path_ancillary_points}",
+          "folder_name": "/home/fabio/Desktop/recolour/dset/ecmwf_ancillary/cells2grid/scaled/{sub_path_ancillary_points}",
           "file_name": "ecmwf_variables_points_{cell_n}_{datetime_ancillary_points}.nc"
         },
         "grid": {
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_ancillary/cells2grid/scaled/{sub_path_ancillary_grid}",
+          "folder_name": "/home/fabio/Desktop/recolour/dset/ecmwf_ancillary/cells2grid/scaled/{sub_path_ancillary_grid}",
           "file_name": "ecmwf_variables_grid_{datetime_ancillary_grid}.workspace"
         }
       },
       "destination": {
         "__comment__": "format: [netcdf, tiff]",
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/ecmwf_map/scaled/{sub_path_destination}",
+        "folder_name": "/home/fabio/Desktop/recolour/dset/ecmwf_map/scaled/{sub_path_destination}",
         "file_name": "ecmwf_map_{datetime_destination}_liguria.tiff",
         "variables_in": {
           "datasets": ["sm_values_0_28_profile", "sm_values_0_28_scaled", "time_delta"],
@@ -120,7 +120,7 @@
     "time_rounding" : "H"
   },
   "log": {
-    "path_log" : "/home/fabio/Desktop/Recolour_Workspace/ws/log/cells2grid/scaled/",
+    "path_log" : "/home/fabio/Desktop/recolour/dset/log/cells2grid/scaled/",
     "file_log": "app_map_cell2grid_ecmwf_scaled_liguria.txt"
   }
 }

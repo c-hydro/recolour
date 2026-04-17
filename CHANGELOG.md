@@ -1,5 +1,24 @@
 # Changelog
 
+## Version 2.4.0 (2026-04-15)
+- **PROJECT:** operational framework grid  
+  - **APPS – CELL:** app_img2cell_ecmwf.py 
+    - Added support for additional datasets and fixed bugs in time selection and file searching.  
+  - **TOOLS – DOWNLOADER ASCAT:** ascat_downloader_ssm_h122.py 
+    - Added support for mirroring the ftp folders
+  - **TOOLS – TRANSFER ASCAT:** ascat_transfer_ssm_h122.py 
+    - Added support for selecting files based on domain box
+
+- **PROJECT:** generic framework
+  - Fix bugs in operational-release and added support for additional datasets.
+  - Update package generic files
+
+## Version 2.3.0 (2025-10-25)
+- **PROJECT:** time-series  
+  - **GENERIC** operational-release
+- **PROJECT:** operational framework grid  
+  - **GENERIC** operational-release
+
 ## Version 2.2.1 (2025-08-14)
 - **PROJECT:** soil moisture triple collocation  
   - **APPS – CELL:** add datasets to test the triple collocation app 

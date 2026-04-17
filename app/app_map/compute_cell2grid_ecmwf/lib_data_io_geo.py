@@ -79,9 +79,13 @@ def read_file_raster(file_name, output_format='data_array', output_dtype='float3
         plt.colorbar()
         plt.show()
         '''
+        # shape of the data
+        n_y, n_x = values.shape
 
-        lon = np.arange(center_left, center_right + np.abs(res[0] / 2), np.abs(res[0]), float)
-        lat = np.flip(np.arange(center_bottom, center_top + np.abs(res[1] / 2), np.abs(res[1]), float), axis=0)
+        # Build 1D center coordinates with *exactly* the right length
+        lon = np.linspace(center_left, center_right, n_x, dtype=float)
+        lat = np.flip(np.linspace(center_bottom, center_top, n_y, dtype=float), axis=0)
+
         lons, lats = np.meshgrid(lon, lat)
 
         lat_upper = lats[0, 0]
@@ -89,6 +93,11 @@ def read_file_raster(file_name, output_format='data_array', output_dtype='float3
         if lat_lower > lat_upper:
             lats = np.flipud(lats)
             values = np.flipud(values)
+
+        min_lon, max_lon = np.min(lons), np.max(lons)
+        min_lat, max_lat = np.min(lats), np.max(lats)
+
+        bbox = [min_lon, min_lat, max_lon, max_lat]
 
         min_lon_round = round(np.min(lons), decimal_round_geo)
         max_lon_round = round(np.max(lons), decimal_round_geo)
@@ -106,9 +115,9 @@ def read_file_raster(file_name, output_format='data_array', output_dtype='float3
         assert max_lat_round == center_top_round
 
         data_attrs = {'transform': transform, 'crs': crs,
-                      'bbox': [bounds.left, bounds.bottom, bounds.right, bounds.top],
-                      'bb_left': bounds.left, 'bb_right': bounds.right,
-                      'bb_top': bounds.top, 'bb_bottom': bounds.bottom,
+                      'bbox': bbox, # [bounds.left, bounds.bottom, bounds.right, bounds.top],
+                      'bb_left': min_lon, 'bb_right': max_lon,
+                      'bb_top': max_lat, 'bb_bottom': min_lat,
                       'res_lon': res[0], 'res_lat': res[1]}
 
         if output_format == 'dictionary':
