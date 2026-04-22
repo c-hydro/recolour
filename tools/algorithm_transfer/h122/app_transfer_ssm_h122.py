@@ -38,7 +38,7 @@ import xarray as xr
 # ----------------------------------------------------------------------------------------------------------------------
 # algorithm information
 project_name = 'recolour'
-alg_name = 'Application for transfering ssm h122 files over a configured geographic domain'
+alg_name = 'Application to transfer ssm h122 files over a configured geographic domain'
 alg_type = 'Package'
 alg_version = '1.0.0'
 alg_release = '2026-04-15'
