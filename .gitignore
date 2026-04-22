@@ -21,6 +21,9 @@ report/
 papers/
 package/
 conda/
+conda*/
+*conda*/
+/*conda*/
 old/
 dset/
 dset/
