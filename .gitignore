@@ -37,6 +37,9 @@ miniconda.sh
 old
 OLD
 Log
+log
+*log
+*Log
 tmp
 TMP
 Tmp
