@@ -1,0 +1,59 @@
+{
+  "logging": {
+    "level": "INFO",
+    "folder": "/home/fabio/Desktop/recolour/log/{time_step:%Y/%m/%d}",
+    "filename": "smap_swath2cell.log",
+    "rotate_daily": true
+  },
+
+  "parameters": {
+  "mode": "domain_split",
+  "n_rows": 3,
+  "n_cols": 3,
+  "id_digits": 2
+  },
+
+  "source": {
+    "folder": "/home/fabio/Desktop/recolour/exec/smap/{time_step:%Y/%m/%d/%H}",
+    "filename": "*.h5",
+    "file_regex": "^SMAP_L2_SM_P_E_[0-9]+_[AD]_(?P<time>[0-9]{8}T[0-9]{6})_R[0-9]+_[0-9]+\\.h5$",
+    "value_col": "soil_moisture",
+    "dropna_value": true
+  },
+
+  "datasets": {
+    "latitude": "/Soil_Moisture_Retrieval_Data/latitude",
+    "longitude": "/Soil_Moisture_Retrieval_Data/longitude",
+    "soil_moisture": "/Soil_Moisture_Retrieval_Data/soil_moisture"
+  },
+
+  "grid": {
+    "reference_grid": "/home/fabio/Desktop/recolour/dset/ascat_auxiliary/domain/grid_reference_500m.tiff"
+  },
+
+  "destination": {
+    "mode": "cell",
+    "folder": "/home/fabio/Desktop/recolour/exec/smap_cell/{time_step:%Y/%m/%d/}",
+    "filename": "smap_{cell}_{time_step:%Y%m%d}.nc",
+    "overwrite": true,
+    "dry_run": false
+  },
+
+  "time": {
+    "period_mode": "time_range",
+    "n_hours": 24,
+
+    "time_start": "2026-04-20 05:00",
+    "time_end": "2026-04-21 16:00",
+
+    "time_frequency": "1H",
+    "floor_start_to_midnight": false,
+    "floor_end_to_midnight": false
+  },
+
+  "report": {
+    "enabled": true,
+    "folder": "/home/fabio/Desktop/recolour/report/{time_step:%Y/%m/%d}",
+    "filename": "smap_swath2cell_%Y%m%d_%H%M.json"
+  }
+}
