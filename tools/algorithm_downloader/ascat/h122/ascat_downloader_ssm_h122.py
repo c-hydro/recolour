@@ -11,7 +11,7 @@ __author__ =
 __library__ = 'recolour'
 
 General command line:
-python ascat_downloader_ssm_h122.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
+python ecmwf_downloader_rzsm.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
 20260415 (1.0.0) --> First development
@@ -107,8 +107,8 @@ def get_logger(settings):
     log_path = os.path.join(log_folder, log_filename)
 
     # reset handlers (important if script reused)
-    logger.handlers = []
-    logger.setLevel(level)
+    alg_logger.handlers = []
+    alg_logger.setLevel(level)
 
     formatter = logging.Formatter(
         "%(asctime)s | %(levelname)s | %(message)s",
@@ -125,9 +125,8 @@ def get_logger(settings):
     ch.setLevel(level)
     ch.setFormatter(formatter)
 
-    logger.addHandler(fh)
-    logger.addHandler(ch)
-# ----------------------------------------------------------------------------------------------------------------------
+    alg_logger.addHandler(fh)
+    alg_logger.addHandler(ch)
 
 # make folder
 def make_folder(folder_name):
