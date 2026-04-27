@@ -1,0 +1,37 @@
+{
+  "algorithm": {
+    "name": "Application for downloading SMAP SPL2SMP_E files",
+    "version": "1.0.0",
+    "release": "2026-04-24"
+  },
+  "logging": {
+    "folder": "./log",
+    "filename": "smap_downloader.log",
+    "level": "INFO",
+    "rotate_daily": true
+  },
+  "lock": {
+    "folder": "./lock",
+    "basename": "smap_downloader_",
+    "max_slots": 1
+  },
+  "earthdata": {
+    "strategy": null
+  },
+  "product": {
+    "short_name": "SPL2SMP_E",
+    "version": "006"
+  },
+  "spatial": {
+    "bounding_box": [6.0, 36.0, 19.0, 47.5]
+  },
+  "time": {
+    "time_start": "2026-04-19",
+    "time_end": "2026-04-23"
+  },
+  "downloader": {
+    "data_folder": "/home/fabio/Desktop/recolour/exec/smap/{time_step:%Y/%m/%d/%H}",
+    "n_days": 3,
+    "reference_time_round_to_day": true
+  }
+}

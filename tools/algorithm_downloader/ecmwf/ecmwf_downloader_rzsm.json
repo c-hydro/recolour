@@ -1,0 +1,56 @@
+{
+  "algorithm": {
+    "name": "HSAF FTP MIRROR - PRODUCTS ECMWF - RZSM",
+    "version": "1.0.0",
+    "release": "2026-04-23"
+  },
+
+  "ftp": {
+    "netrc_machine_label": "ftphsaf.meteoam.it",
+    "ftp_url": "ftphsaf.meteoam.it",
+    "check_path": "/products/h26/",
+    "timeout": 30,
+    "max_retries": 5,
+    "reconnect_interval_base": 5,
+    "ssl_verify_certificate": false
+  },
+
+  "mirror": {
+  "n_days": 3,
+  "reference_time_round_to_hour": true,
+  "local_folder_mirror": "/home/fabio/Desktop/recolour/exec/mirror/h26/",
+  "only_newer": false,
+  "continue_download": true,
+  "no_empty_dirs": true,
+  "verbose": true
+  },
+
+  "time": {
+    "time_start": null,
+    "time_end": null
+  },
+
+  "products": {
+    "remote_folders": [
+      "/products/h26/h26_cur_mon_nc/"
+    ]
+  },
+
+  "filter": {
+  "filename_regex": "h26_(?P<stamp>\\d{10})_R01.nc",
+  "filename_time_format": "%Y%m%d%H",
+  "include_hours": ["00"]
+  },
+
+  "lock": {
+    "folder": "/home/fabio/Desktop/recolour/exec/lock/h26/",
+    "basename": "head_downloader_rzsm_mirror_conn_",
+    "max_slots": 2
+  },
+
+  "logging": {
+    "level": "INFO",
+    "folder": "/home/fabio/Desktop/recolour/exec/h26/logs/",
+    "filename": "h26_download_logging.txt"
+  }
+}

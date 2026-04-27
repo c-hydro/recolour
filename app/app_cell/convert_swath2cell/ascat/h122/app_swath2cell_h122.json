@@ -1,0 +1,40 @@
+{
+    "parameters": {
+        "cells": [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430],
+        "grid": "fibgrid_6.25"
+    },
+    "source": {
+        "folder": "/home/fabio/Desktop/recolour/exec/select_over_domain/h122/{time_step:%Y/%m/%d/%H}/",
+        "filename": "W_IT-HSAF-ROME,SAT,SSM-ASCAT-*_C_LIIB_*.nc" ,
+        "value_col": "surface_soil_moisture",
+        "agg": "first",
+        "include_all_vars": false,
+        "dropna_value": false
+    },
+    "destination": {
+        "folder": "/home/fabio/Desktop/recolour/exec/select_over_domain/h122/cell/{time_run:%Y/%m/%d}/",
+        "filename": "h122_cell_{cell_n}_{time_run:%Y%m%d_%H%M}.nc",
+        "mode": "cell",
+        "dry_run": false,
+        "overwrite": true
+    },
+    "time": {
+        "time_start": null,
+        "time_end": null,
+        "time_delta": "2D",
+        "time_frequency": "H",
+        "floor_start_to_midnight": true,
+        "floor_end_to_midnight": false
+    },
+    "report": {
+        "enabled": true,
+        "folder": "./report/{time_run:%Y/%m/%d}/",
+        "filename": "swath2cell_h122_report_%Y%m%d_%H%M.json"
+    },
+    "logging": {
+        "level": "INFO",
+        "folder": "./log/{time_run:%Y/%m/%d}/",
+        "filename": "swath2cell_h122.log",
+        "rotate_daily": false
+    }
+}

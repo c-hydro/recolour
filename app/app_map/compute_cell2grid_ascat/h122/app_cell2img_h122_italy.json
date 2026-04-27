@@ -1,0 +1,49 @@
+{
+    "parameters": {
+        "cells": [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430],
+        "cell_digits": 4,
+        "mask_file": "/home/fabio/Desktop/recolour/dset/ascat_auxiliary/domain/grid_reference_500m.tiff",
+        "mask_band": 1,
+        "fill_value": -9999.0,
+        "roi_km": 12.5,
+        "apply_mask_extension": true,
+        "extension_pixels": 30,
+        "apply_mask_boundary": true,
+        "boundary_pixels": 15,
+        "apply_smoothing": false,
+        "smoothing_method": "mean",
+        "smoothing_sigma": 1
+    },
+    "source": {
+        "folder": "/home/fabio/Desktop/recolour/exec/select_over_domain/h122/cell/{time_step:%Y/%m/%d}/",
+        "filename": "h122_cell_{cell_n}_{time_run:%Y%m%d_%H%M}.nc",
+        "variable_name": "surface_soil_moisture"
+    },
+    "destination": {
+        "folder": "/home/fabio/Desktop/recolour/exec/cell2img/h122/{time_run:%Y/%m/%d}/",
+        "filename": "h122_img_{time_run:%Y%m%d_%H%M}.tif",
+        "mode": "tiff",
+        "dry_run": false,
+        "overwrite": true,
+        "variable_name": "surface_soil_moisture"
+    },
+    "time": {
+        "time_start": null,
+        "time_end": null,
+        "time_delta": "2D",
+        "time_frequency": "D",
+        "floor_start_to_midnight": true,
+        "floor_end_to_midnight": false
+    },
+    "report": {
+        "enabled": true,
+        "folder": "./report/{time_run:%Y/%m/%d}/",
+        "filename": "cell2img_h122_report_%Y%m%d_%H%M.json"
+    },
+    "logging": {
+        "level": "INFO",
+        "folder": "./log/{time_run:%Y/%m/%d}/",
+        "filename": "cell2img_h122.log",
+        "rotate_daily": false
+    }
+}

@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-RECOLOUR APPS - SSM H122 DOWNLOADER - REprocess paCkage for sOiL mOistUre pRoducts
+RECOLOUR APPS - RZSM H26 DOWNLOADER - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20260415'
+__date__ = '20260423'
 __version__ = '1.0.0'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)'
@@ -14,7 +14,7 @@ General command line:
 python ecmwf_downloader_rzsm.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
-20260415 (1.0.0) --> First development
+20260423 (1.0.0) --> First development
 """
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -30,16 +30,16 @@ import logging
 import argparse
 import subprocess
 
-from datetime import datetime
+from datetime import datetime, timedelta
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # algorithm information
 project_name = 'recolour'
-alg_name = 'Application for downloading ssm h122 files'
+alg_name = 'Application for downloading rzsm h26 files'
 alg_type = 'Package'
 alg_version = '1.0.0'
-alg_release = '2026-04-15'
+alg_release = '2026-04-23'
 
 # algorithm globals
 alg_logger = logging.getLogger('app_downloader')
@@ -207,11 +207,18 @@ def parse_file_time(file_name, settings):
     file_name_regex = re.compile(filter_settings['filename_regex'])
     file_time_format = filter_settings['filename_time_format']
 
-    match = file_name_regex.match(file_name)
+    file_name_clean = os.path.basename(file_name.strip())
+
+    match = file_name_regex.search(file_name_clean)
     if match is None:
+        alg_logger.warning(f' ::: File skipped: regex not matched for "{file_name_clean}"')
         return None
 
-    file_time = datetime.strptime(match.group('stamp'), file_time_format)
+    try:
+        file_time = datetime.strptime(match.group('stamp'), file_time_format)
+    except Exception as exc:
+        alg_logger.warning(f' ::: File skipped: time parsing failed for "{file_name_clean}" -- {exc}')
+        return None
 
     return file_time
 # ----------------------------------------------------------------------------------------------------------------------
@@ -420,6 +427,7 @@ quit
     if stdout:
         for line in stdout.splitlines():
             file_name = line.strip()
+            alg_logger.info(f' ::: RAW REMOTE ENTRY: [{repr(file_name)}]')
             if file_name != '':
                 file_list.append(file_name)
 
@@ -442,6 +450,33 @@ def filter_remote_files_by_time(settings, file_list, time_start, time_end):
             selected_files.append((file_name, file_time))
 
     return selected_files, skipped_files
+
+# method to get recent window from reference time and days back
+def get_recent_time_window(reference_time, n_days):
+
+    time_end = reference_time
+    time_start = reference_time - timedelta(days=n_days)
+
+    return time_start, time_end
+
+# method to get mirror mode type
+def get_mirror_mode_type(settings):
+
+    mirror_settings = settings.get('mirror', {})
+
+    use_remote_mtime_filter = mirror_settings.get('use_remote_mtime_filter', False)
+    use_filename_date_filter = mirror_settings.get('use_filename_date_filter', True)
+
+    if use_remote_mtime_filter and use_filename_date_filter:
+        raise RuntimeError('mirror settings are inconsistent: both remote mtime filter and filename date filter are enabled')
+
+    if use_remote_mtime_filter:
+        return 'recent_by_remote_mtime'
+
+    if use_filename_date_filter:
+        return 'recent_by_filename_date'
+
+    return 'full_sync'
 
 # method to download remote files
 def download_remote_files(settings, remote_folder, selected_files):
@@ -488,10 +523,16 @@ def download_remote_files(settings, remote_folder, selected_files):
     ])
 
     for file_name, file_time in selected_files:
-        remote_file = f'{remote_folder.rstrip("/")}/{file_name}'
-        local_file = os.path.join(local_dir, file_name)
 
-        lftp_lines.append(f'echo GET FILE: {file_name}')
+        file_name_clean = os.path.basename(file_name.strip())
+        if file_name.startswith('/'):
+            remote_file = file_name
+        else:
+            remote_file = f'{remote_folder.rstrip("/")}/{file_name_clean}'
+
+        local_file = os.path.join(local_dir, file_name_clean)
+
+        lftp_lines.append(f'echo GET FILE: {file_name_clean}')
         lftp_lines.append(f'get -c "{remote_file}" -o "{local_file}"')
 
     lftp_lines.extend([
@@ -518,92 +559,52 @@ def download_remote_files(settings, remote_folder, selected_files):
     if return_code != 0:
         raise RuntimeError(f' ===> Download failed for remote folder: {remote_folder}')
 
-# method to download mirror mode
-def download_mode_mirror(settings, n_days):
+# method to download mirror mode using filename timestamps
+def download_mode_mirror(settings, reference_time, n_days):
+
+    product_settings = settings.get('products', {})
+    remote_folders = product_settings['remote_folders']
+
+    time_start, time_end = get_recent_time_window(reference_time, n_days)
 
     alg_logger.info(' ----> Running mirror mode')
-
-    ftp_settings = settings.get('ftp', {})
-    mirror_settings = settings.get('mirror', {})
-    product_settings = settings.get('products', {})
-
-    ftp_url = ftp_settings['ftp_url']
-    remote_folders = product_settings['remote_folders']
-    local_folder_mirror = mirror_settings['local_folder_mirror']
-
-    timeout = ftp_settings.get('timeout', 30)
-    max_retries = ftp_settings.get('max_retries', 5)
-    reconnect_interval_base = ftp_settings.get('reconnect_interval_base', 5)
-    ssl_verify = ftp_settings.get('ssl_verify_certificate', False)
-
-    parallel_transfer_count = mirror_settings.get('parallel_transfer_count', 4)
-    use_pget_n = mirror_settings.get('use_pget_n', 4)
-
-    ssl_verify_value = 'yes' if ssl_verify else 'no'
-
-    mirror_flags = [f'--newer-than={n_days}d']
-
-    if mirror_settings.get('only_newer', True):
-        mirror_flags.append('--only-newer')
-    if mirror_settings.get('continue_download', True):
-        mirror_flags.append('--continue')
-    if mirror_settings.get('no_empty_dirs', True):
-        mirror_flags.append('--no-empty-dirs')
-    if mirror_settings.get('verbose', True):
-        mirror_flags.append('--verbose')
-
-    mirror_flags_string = ' '.join(mirror_flags)
-
-    lftp_lines = [
-        f'open {ftp_url}',
-        f'set net:timeout {timeout}',
-        f'set net:max-retries {max_retries}',
-        f'set net:reconnect-interval-base {reconnect_interval_base}',
-        f'set ssl:verify-certificate {ssl_verify_value}',
-        f'set mirror:parallel-transfer-count {parallel_transfer_count}',
-        f'set mirror:use-pget-n {use_pget_n}',
-        ''
-    ]
+    alg_logger.info(f' ::: Mirror logic: recent files by filename timestamp')
+    alg_logger.info(f' ::: Time start: {time_start.strftime("%Y-%m-%d %H:%M:%S")}')
+    alg_logger.info(f' ::: Time end  : {time_end.strftime("%Y-%m-%d %H:%M:%S")}')
 
     for remote_folder in remote_folders:
 
         product_name = os.path.basename(remote_folder.rstrip('/'))
-        local_dir = os.path.join(local_folder_mirror.rstrip('/'), product_name)
-        make_folder(local_dir)
 
-        start_ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        alg_logger.info(' ')
+        alg_logger.info(f' ::: PRODUCT: {product_name}')
+        alg_logger.info(f' ::: LIST REMOTE FILES: {remote_folder}')
 
-        lftp_lines.extend([
-            'echo =================================================================',
-            f'echo PRODUCT: {product_name}',
-            f'echo Remote : {remote_folder}',
-            f'echo Local  : {local_dir}',
-            f'echo Start  : {start_ts}',
-            'echo -----------------------------------------------------------------',
-            f'mirror {mirror_flags_string} "{remote_folder}" "{local_dir}"',
-            'echo -----------------------------------------------------------------',
-            f'echo PRODUCT DONE: {product_name}',
-            'echo =================================================================',
-            ''
-        ])
+        file_list = list_remote_files(settings, remote_folder)
 
-    lftp_lines.append('quit')
+        alg_logger.info(f' ::: Remote files found: {len(file_list)}')
 
-    lftp_script = '\n'.join(lftp_lines)
-    command = f"lftp <<'EOF'\n{lftp_script}\nEOF"
+        selected_files, skipped_files = filter_remote_files_by_time(
+            settings=settings,
+            file_list=file_list,
+            time_start=time_start,
+            time_end=time_end
+        )
 
-    return_code, stdout, stderr = execute_command(command)
+        alg_logger.info(f' ::: Remote files selected: {len(selected_files)}')
+        alg_logger.info(f' ::: Remote files skipped (no valid timestamp): {len(skipped_files)}')
 
-    if stdout:
-        for line in stdout.splitlines():
-            alg_logger.info(line)
+        if selected_files:
+            for file_name, file_time in selected_files:
+                alg_logger.info(
+                    f' ::: Selected file: {file_name} -- {file_time.strftime("%Y-%m-%d %H:%M:%S")}'
+                )
 
-    if stderr:
-        for line in stderr.splitlines():
-            alg_logger.error(line)
-
-    if return_code != 0:
-        raise RuntimeError('Mirror mode failed')
+        download_remote_files(
+            settings=settings,
+            remote_folder=remote_folder,
+            selected_files=selected_files
+        )
 
 # method to download date filter mode
 def download_mode_date_filter(settings, time_start, time_end):
@@ -695,6 +696,7 @@ def main():
         mode, reference_time, time_start, time_end, n_days = select_run_mode(args, settings)
     except Exception as exc:
         # select download mode - end (failed)
+        time_start, time_end = None, None
         alg_logger.error(f' ===> Error in selecting download mode: {exc}')
         alg_logger.info(f" ---> Select download mode ... FAILED")
         sys.exit(1)
@@ -707,7 +709,9 @@ def main():
         alg_logger.info(' ::: Time end:   ' + time_end.strftime('%Y-%m-%d %H:%M:%S'))
         alg_logger.info(' ::: Time window taken from JSON settings')
     else:
+        mirror_mode_type = get_mirror_mode_type(settings)
         alg_logger.info(' ::: Download mode: mirror')
+        alg_logger.info(' ::: Mirror mode type: ' + mirror_mode_type)
         alg_logger.info(' ::: Days back: ' + str(n_days))
         if args.time_run is not None:
             alg_logger.info(' ::: Reference time taken from command line -time')
@@ -758,7 +762,7 @@ def main():
             # info about mode
             alg_logger.info(' ::: Mode -- mirror')
             # execute mirror
-            download_mode_mirror(settings=settings, n_days=n_days)
+            download_mode_mirror(settings=settings,reference_time=reference_time, n_days=n_days)
 
         # execute the download mode - end (done)
         alg_logger.info(' ::: Timestamp End -- ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
