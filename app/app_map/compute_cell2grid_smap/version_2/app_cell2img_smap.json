@@ -1,0 +1,47 @@
+{
+  "logging": {
+    "folder": "./log/{time_step:%Y/%m/%d}",
+    "filename": "cell2grid_smap.log",
+    "level": "INFO",
+    "rotate_daily": true
+  },
+  "parameters": {
+    "mask_file": "/home/fabio/Desktop/recolour/dset/ascat_auxiliary/domain/grid_reference_500m.tiff",
+    "mask_band": 1,
+    "roi_km": 18,
+    "fill_value": -9999.0,
+    "apply_mask_extension": true,
+    "extension_pixels": 30,
+    "apply_mask_boundary": false,
+    "boundary_pixels": 15,
+    "apply_smoothing": false,
+    "smoothing_method": "mean",
+    "smoothing_sigma": 1,
+    "cells": null,
+    "cell_digits": 2
+  },
+  "source": {
+    "folder": "/home/fabio/Desktop/recolour/exec/smap_cell/{time_step:%Y/%m/%d/}",
+    "filename": "smap_{cell_n}_{time_step:%Y%m%d}.nc",
+    "value_col": "soil_moisture",
+    "variable_name": "soil_moisture"
+  },
+  "destination": {
+    "folder": "/home/fabio/Desktop/recolour/exec/smap_grid/{time_step:%Y/%m/%d/}",
+    "filename": "smap_soil_moisture_{time_step:%Y%m%d}.tif",
+    "variable_name": "soil_moisture",
+    "overwrite": true,
+    "dry_run": false
+  },
+  "time": {
+    "time_delta": "24H",
+    "time_frequency": "1H",
+    "time_start": null,
+    "time_end": null
+  },
+  "report": {
+    "enabled": true,
+    "folder": "./report/{time_step:%Y/%m/%d}",
+    "filename": "cell2grid_smap_report_%Y%m%d_%H%M.json"
+  }
+}
