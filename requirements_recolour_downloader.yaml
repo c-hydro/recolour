@@ -1,0 +1,38 @@
+name: recolour_downloader_libraries
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.11
+  - numpy
+  - scipy
+  - matplotlib
+  - pandas
+  - xarray
+  - dask
+  - bottleneck
+  - cython
+  - "setuptools<81"
+  - wheel
+  - pip
+
+  - gdal
+  - rasterio
+  - cartopy
+  - h5py
+  - netcdf4
+
+  - eccodes
+  - python-eccodes
+  - cfgrib
+  - pygrib
+
+  - pip:
+      - pyresample
+      - repurpose
+      - geopandas
+      - pygeogrids
+      - ascat
+      - gldas
+      - earthaccess
