@@ -25,6 +25,8 @@ conda*/
 *conda*/
 /*conda*/
 old/
+lock/
+*lock*/
 dset/
 dset/
 datasets/
@@ -34,6 +36,7 @@ tmp/
 OLD*/
 *OLD*/
 */tmp/
+*miniconda*/
 miniconda.sh
 *.log
 *.LOG
