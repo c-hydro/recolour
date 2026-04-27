@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-RECOLOUR APPS - SSM H122 TRANSFER - EXECUTION WRAPPER
+RECOLOUR APPS - EXECUTION WRAPPER
 """
 
 import os
@@ -22,7 +22,7 @@ warnings.filterwarnings(
 # ----------------------------------------------------------------------------------------------------------------------
 # algorithm information
 project_name = 'recolour'
-alg_name = 'Execution wrapper for ssm h122 transfer over a time period'
+alg_name = 'Execution wrapper for applications and tools'
 alg_type = 'Exec'
 alg_version = '1.3.0'
 alg_release = '2026-04-20'
