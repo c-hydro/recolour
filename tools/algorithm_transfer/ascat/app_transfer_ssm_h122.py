@@ -67,7 +67,7 @@ def normalize_time_to_hour(time_obj):
 
 def parse_reference_time(time_string=None):
     if time_string is None:
-        return normalize_time_to_hour(datetime.now())
+        return datetime.now().replace(second=0, microsecond=0)
 
     try:
         time_obj = datetime.strptime(time_string, "%Y-%m-%d %H:%M")
@@ -76,7 +76,9 @@ def parse_reference_time(time_string=None):
             'Argument -time must have format "YYYY-MM-DD HH:MM"'
         ) from exc
 
-    return normalize_time_to_hour(time_obj)
+    # Keep minutes because filename_selection="previous_hour_to_reference"
+    # needs, for example, 2026-04-17 04:00 -> 2026-04-17 05:49.
+    return time_obj.replace(second=0, microsecond=0)
 
 def is_template_hourly(path_template):
     return any(token in path_template for token in ["%H", "%M", "%S"])
@@ -308,74 +310,162 @@ def transfer(settings, reference_time):
 
     visited_files = set()
 
-    for source_pattern in iter_source_patterns(settings, reference_time):
-        file_list = sorted(glob(source_pattern))
+    # get selection mode from JSON
+    filename_selection = settings.get("filename_selection", "all").lower()
 
-        for src_path in file_list:
-            if src_path in visited_files:
-                continue
-            visited_files.add(src_path)
+    # compile filename regex
+    filename_regex = re.compile(settings["filename_regex"])
 
-            if not os.path.isfile(src_path):
-                continue
+    # scan source folder broadly; regex will do the real selection
+    src_dir = settings["src_dir"]
+    file_list = sorted(glob(os.path.join(src_dir, "*H122_C_LIIB_*.nc")))
 
-            if not is_recent_by_mtime(src_path, reference_time - timedelta(days=int(settings.get("look_back_days", 3)))):
-                stats["skipped_old"] += 1
-                skipped_files.append({"file": src_path, "reason": "old"})
-                continue
+    logger.info(f" ----> Source folder filled: {src_dir}")
+    logger.info(f" ----> Files found: {len(file_list)}")
+    logger.info(f" ----> Filename selection: {filename_selection}")
 
-            file_name = os.path.basename(src_path)
+    # define time-selection window
+    if filename_selection == "previous_hour_to_reference":
 
-            try:
-                file_time = parse_file_time(
-                    file_name=file_name,
-                    filename_regex=re.compile(settings["filename_regex"]),
-                    filename_time_format=settings.get("filename_time_format")
+        # Example:
+        # reference_time = 2026-04-17 05:49
+        # time_start     = 2026-04-17 04:00
+        # time_end       = 2026-04-17 05:49
+        time_start = reference_time.replace(minute=0, second=0, microsecond=0) - timedelta(hours=1)
+        time_end = reference_time.replace(second=0, microsecond=0)
+
+        logger.info(f" ----> Selection time start: {time_start.strftime('%Y-%m-%d %H:%M:%S')}")
+        logger.info(f" ----> Selection time end:   {time_end.strftime('%Y-%m-%d %H:%M:%S')}")
+
+    elif filename_selection == "previous_hour":
+
+        time_ref = reference_time - timedelta(hours=1)
+        time_start = time_ref.replace(minute=0, second=0, microsecond=0)
+        time_end = time_start + timedelta(hours=1)
+
+        logger.info(f" ----> Selection time start: {time_start.strftime('%Y-%m-%d %H:%M:%S')}")
+        logger.info(f" ----> Selection time end:   {time_end.strftime('%Y-%m-%d %H:%M:%S')}")
+
+    elif filename_selection == "reference_hour":
+
+        time_start = reference_time.replace(minute=0, second=0, microsecond=0)
+        time_end = time_start + timedelta(hours=1)
+
+        logger.info(f" ----> Selection time start: {time_start.strftime('%Y-%m-%d %H:%M:%S')}")
+        logger.info(f" ----> Selection time end:   {time_end.strftime('%Y-%m-%d %H:%M:%S')}")
+
+    elif filename_selection == "all":
+
+        time_start = None
+        time_end = None
+
+    else:
+        raise ValueError(
+            'filename_selection must be one of: "all", "previous_hour", '
+            '"reference_hour", "previous_hour_to_reference"'
+        )
+
+    for src_path in file_list:
+
+        if src_path in visited_files:
+            continue
+        visited_files.add(src_path)
+
+        if not os.path.isfile(src_path):
+            continue
+
+        file_name = os.path.basename(src_path)
+
+        try:
+            file_time = parse_file_time(
+                file_name=file_name,
+                filename_regex=filename_regex,
+                filename_time_format=settings.get("filename_time_format")
+            )
+        except Exception as exc:
+            stats["skipped_no_match"] += 1
+            skipped_files.append({"file": src_path, "reason": f"bad_filename_datetime: {exc}"})
+            continue
+
+        if file_time is None:
+            stats["skipped_no_match"] += 1
+            skipped_files.append({"file": src_path, "reason": "regex_no_match"})
+            continue
+
+        # filter by filename time BEFORE domain check
+        if time_start is not None and not (time_start <= file_time <= time_end):
+            continue
+
+        logger.info(f" -----> Selected file name: {file_name}")
+        logger.info(f" -----> Source file path:   {src_path}")
+        logger.info(f" -----> File time:          {file_time.strftime('%Y-%m-%d %H:%M:%S')}")
+
+        dst_path = build_destination_path(settings["dst_dir"], file_time, file_name)
+
+        logger.info(f" -----> Destination folder: {os.path.dirname(dst_path)}")
+        logger.info(f" -----> Destination file:   {dst_path}")
+
+        try:
+            over_domain, info = check_file_over_domain(src_path, settings)
+
+            logger.info(
+                f" -----> Domain check: {over_domain} | "
+                f"points={info.get('n_points')} inside={info.get('n_inside')}"
+            )
+
+        except Exception as exc:
+            stats["errors"] += 1
+            error_files.append({"file": src_path, "error": str(exc)})
+            logger.error(f" -----> ERROR domain check: {src_path} | {exc}")
+            continue
+
+        if not over_domain:
+            stats["skipped_outside"] += 1
+            skipped_files.append({"file": src_path, "reason": "outside_domain"})
+            logger.info(f" -----> SKIPPED (outside domain): {src_path}")
+            continue
+
+        if os.path.exists(dst_path) and not settings.get("copy", {}).get("overwrite", False):
+            stats["skipped_existing"] += 1
+            skipped_files.append({
+                "file": src_path,
+                "reason": "already_exists",
+                "destination": dst_path
+            })
+            logger.info(f" -----> SKIPPED (already exists): {dst_path}")
+            continue
+
+        try:
+            logger.info(" -----> Transfer file ...")
+            logger.info(f" ------> Source:      {src_path}")
+            logger.info(f" ------> Destination: {dst_path}")
+
+            if not settings.get("copy", {}).get("dry_run", False):
+                transfer_file(
+                    src_path,
+                    dst_path,
+                    action=settings.get("copy", {}).get("action", "copy"),
+                    preserve_metadata=settings.get("copy", {}).get("preserve_metadata", True)
                 )
-            except Exception as exc:
-                stats["skipped_no_match"] += 1
-                skipped_files.append({"file": src_path, "reason": f"bad_filename_datetime: {exc}"})
-                continue
 
-            if file_time is None:
-                stats["skipped_no_match"] += 1
-                skipped_files.append({"file": src_path, "reason": "regex_no_match"})
-                continue
+            stats["processed_ok"] += 1
 
-            dst_path = build_destination_path(settings["dst_dir"], file_time, file_name)
+            logger.info(" -----> Transfer file ... DONE")
 
-            try:
-                over_domain, info = check_file_over_domain(src_path, settings)
-            except Exception as exc:
-                stats["errors"] += 1
-                error_files.append({"file": src_path, "error": str(exc)})
-                continue
+            transferred_files.append({"source": src_path, "destination": dst_path})
 
-            if not over_domain:
-                stats["skipped_outside"] += 1
-                skipped_files.append({"file": src_path, "reason": "outside_domain"})
-                continue
+        except Exception as exc:
+            stats["errors"] += 1
+            error_files.append({"file": src_path, "error": str(exc)})
+            logger.error(f" -----> ERROR transfer: {src_path} -> {dst_path} | {exc}")
 
-            if os.path.exists(dst_path) and not settings.get("copy", {}).get("overwrite", False):
-                stats["skipped_existing"] += 1
-                skipped_files.append({"file": src_path, "reason": "already_exists", "destination": dst_path})
-                continue
-
-            try:
-                if not settings.get("copy", {}).get("dry_run", False):
-                    transfer_file(
-                        src_path,
-                        dst_path,
-                        action=settings.get("copy", {}).get("action", "copy"),
-                        preserve_metadata=settings.get("copy", {}).get("preserve_metadata", True)
-                    )
-
-                stats["processed_ok"] += 1
-                transferred_files.append({"source": src_path, "destination": dst_path})
-
-            except Exception as exc:
-                stats["errors"] += 1
-                error_files.append({"file": src_path, "error": str(exc)})
+    logger.info(" ---> Transfer summary")
+    logger.info(f" ----> processed_ok:      {stats['processed_ok']}")
+    logger.info(f" ----> skipped_existing:  {stats['skipped_existing']}")
+    logger.info(f" ----> skipped_old:       {stats['skipped_old']}")
+    logger.info(f" ----> skipped_no_match:  {stats['skipped_no_match']}")
+    logger.info(f" ----> skipped_outside:   {stats['skipped_outside']}")
+    logger.info(f" ----> errors:            {stats['errors']}")
 
     return stats, transferred_files, skipped_files, error_files
 # ----------------------------------------------------------------------------------------------------------------------
@@ -518,7 +608,7 @@ def get_args():
         "-time",
         dest="time_run",
         default=None,
-        help='Reference time in format "YYYY-MM-DD HH:MM". Minutes are rounded down to 00.',
+        help='Reference time in format "YYYY-MM-DD HH:MM". Minutes are preserved.',
     )
 
     return parser.parse_args()
@@ -563,9 +653,9 @@ def main():
 
         logger.info(f" ----> Get reference time: {reference_time.strftime('%Y-%m-%d %H:%M:%S')}")
         if args.time_run:
-            logger.info(f" ----> Set by user: {args.time_run} (rounded to hour)")
+            logger.info(f" ----> Set by user: {args.time_run} (minutes preserved)")
         else:
-            logger.info(" ----> Set by system (rounded to hour)")
+            logger.info(" ----> Set by system (minutes preserved)")
 
         # get reference time - end (done)
         logger.info(f" ---> Set time ... DONE")
