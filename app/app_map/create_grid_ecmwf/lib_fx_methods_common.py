@@ -26,7 +26,10 @@ from lib_utils_io import create_darray_2d
 warnings.filterwarnings("ignore")
 
 # debug
-import matplotlib.pylab as plt
+try:
+    import matplotlib.pylab as plt
+except ImportError:
+    pass
 # ----------------------------------------------------------------------------------------------------------------------
 
 

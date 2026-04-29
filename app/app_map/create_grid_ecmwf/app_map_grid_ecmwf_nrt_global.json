@@ -17,31 +17,43 @@
     "fx_compute_data": {
       "active": true,
       "name": "compute_rzsm_profile",
-      "parameters": {},
+      "parameters": {
+        "native_layers": {
+          "var40": [0, 7],
+          "var41": [7, 28],
+          "var42": [28, 100],
+          "var43": [100, 289]
+        },
+        "weighted_layers": {
+          "var_10cm": [0, 10],
+          "var_28cm": [0, 28],
+          "var_100cm": [0, 100]
+        }
+      },
       "variables": {
         "in": {
-          "var_data_k1": "var40",
-          "var_data_k2": "var41",
-          "var_data_k3": "var42",
-          "var_data_k4": "var43"
+          "var40": "var40",
+          "var41": "var41",
+          "var42": "var42",
+          "var43": "var43"
         },
         "out": {
-          "var_data_k1": "rzsm_0_7",
-          "var_data_k2": "rzsm_0_28",
-          "var_data_k3": "rzsm_0_100"
+          "var_10cm": "var_10cm",
+          "var_28cm": "var_28cm",
+          "var_100cm": "var_100cm"
         }
       }
     }
   },
   "methods_common": {
     "fx_crop_data": {
-      "active": true,
+      "active": false,
       "name": "crop_data",
       "parameters": {},
       "variables": {"in": null, "out": null}
     },
     "fx_resample_data": {
-      "active": true,
+      "active": false,
       "name": "resample_data",
       "parameters": {
         "min_neighbours": 1,
@@ -53,7 +65,7 @@
       "variables": {"in": {}, "out": {}}
     },
     "fx_mask_data": {
-      "active": true,
+      "active": false,
       "name": "mask_data",
       "parameters": {
         "min_value": 1,
@@ -65,14 +77,15 @@
   "datasets": {
     "static": {
       "grid_reference" : {
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/domain/",
-        "file_name": "grid_reference_500m.tiff"
+        "folder_name": "/home/fabio/Desktop/recolour/dset/ecmwf_static_nrt/",
+        "file_name": "grid_h26.nc",
+        "format": "netcdf"
       }
     },
     "dynamic" : {
       "source": {
       	"__comment__" : "h26: h26_2022112200_R01.nc; h14: ",
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/ecmwf_grid_nrt/h26/",
+        "folder_name": "/home/fabio/Desktop/recolour/dset/ecmwf_grid_nrt/src/{sub_path_source}",
         "file_name": "h26_{datetime_source}_R01.nc",
         "time_period": 0,
         "time_frequency": "D",
@@ -80,18 +93,18 @@
       },
       "ancillary": {
         "raw": {
-      	  "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/ancillary/ecmwf_product_grid_italy/{sub_path_ancillary}",
-      	  "file_name": "ecmwf_{datetime_ancillary}.raw.workspace"
+      	  "folder_name": "/home/fabio/Desktop/recolour/exec/ecmwf_grid_nrt/ancillary/{sub_path_ancillary}",
+      	  "file_name": "h26_{datetime_ancillary}_profile.raw.workspace"
         },
         "def": {
-          "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/ancillary/ecmwf_product_grid_italy/{sub_path_ancillary}",
-      	  "file_name": "ecmwf_{datetime_ancillary}.def.workspace"
+          "folder_name": "/home/fabio/Desktop/recolour/exec/ecmwf_grid_nrt/ancillary/{sub_path_ancillary}",
+      	  "file_name": "h26_{datetime_ancillary}_profile.def.workspace"
         }
       },
       "destination": {
         "__comment__": "format: [netcdf, tiff]",
-        "folder_name": "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/results/ecmwf_product_grid_italy/{sub_path_destination}",
-        "file_name": "ecmwf_{datetime_destination}.nc",
+        "folder_name": "/home/fabio/Desktop/recolour/exec/ecmwf_grid_nrt/destination/{sub_path_destination}",
+        "file_name": "h26_{datetime_destination}_profile.nc",
         "time_period": 0,
         "time_frequency": "H",
         "time_rounding" : "D",
@@ -109,11 +122,11 @@
     "time_rounding" : "D"
   },
   "log": {
-    "folder_name" : "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/log/ecmwf_product_nrt/",
+    "folder_name" : "/home/fabio/Desktop/recolour/dset/ecmwf_grid_nrt/log/",
     "file_name": "app_map_grid_ecmwf_nrt_italy.txt"
   },
   "tmp": {
-    "folder_name" : "/home/fabio/Desktop/Recolour_Workspace/recolour-ws/tmp/ecmwf_product_nrt/",
+    "folder_name" : "/home/fabio/Desktop/recolour/dset/ecmwf_grid_nrt/tmp/",
     "file_name": null
   }
 }

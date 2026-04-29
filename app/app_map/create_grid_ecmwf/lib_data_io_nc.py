@@ -107,46 +107,59 @@ def read_file_nc(file_name, file_variables_selected=None,
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-
 # ----------------------------------------------------------------------------------------------------------------------
 # method to write nc file
 def write_file_nc(file_name, dset_data,
-                  dset_mode='w', dset_engine='netcdf4', dset_compression=0, dset_format='NETCDF4',
+                  dset_mode='w', dset_engine='netcdf4',
+                  dset_compression=6,
+                  dset_format='NETCDF4_CLASSIC',
                   dim_key_time='time', no_data=-9999.0):
 
-    dset_encoded = dict(zlib=True, complevel=dset_compression)
+    dset_encoded = {
+        "zlib": True,
+        "complevel": dset_compression,
+        "shuffle": True
+    }
 
     dset_encoding = {}
+
     for var_name in dset_data.data_vars:
 
         if isinstance(var_name, bytes):
             tmp_name = var_name.decode("utf-8")
-            dset_data.rename({var_name: tmp_name})
-            var_name = deepcopy(tmp_name)
+            dset_data = dset_data.rename({var_name: tmp_name})
+            var_name = tmp_name
 
         var_data = dset_data[var_name]
+
         if len(var_data.dims) > 0:
             dset_encoding[var_name] = deepcopy(dset_encoded)
+        else:
+            dset_encoding[var_name] = {}
 
         var_attrs = dset_data[var_name].attrs
         if var_attrs:
             for attr_key, attr_value in var_attrs.items():
                 if attr_key in attrs_encoded:
 
-                    dset_encoding[var_name][attr_key] = {}
-
                     if isinstance(attr_value, list):
-                        attr_string = [str(value) for value in attr_value]
-                        attr_value = ','.join(attr_string)
+                        attr_value = ",".join(str(value) for value in attr_value)
 
                     dset_encoding[var_name][attr_key] = attr_value
 
-        if '_FillValue' not in list(dset_encoding[var_name].keys()):
-            dset_encoding[var_name]['_FillValue'] = no_data
+        if "_FillValue" not in dset_encoding[var_name]:
+            dset_encoding[var_name]["_FillValue"] = no_data
 
-    if dim_key_time in list(dset_data.coords):
-        dset_encoding[dim_key_time] = {'calendar': 'gregorian'}
+    if dim_key_time in dset_data.coords:
+        dset_encoding[dim_key_time] = {
+            "calendar": "gregorian"
+        }
 
-    dset_data.to_netcdf(path=file_name, format=dset_format, mode=dset_mode,
-                        engine=dset_engine, encoding=dset_encoding)
+    dset_data.to_netcdf(
+        path=file_name,
+        format=dset_format,
+        mode=dset_mode,
+        engine=dset_engine,
+        encoding=dset_encoding
+    )
 # ----------------------------------------------------------------------------------------------------------------------
