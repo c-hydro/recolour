@@ -4,17 +4,20 @@
 """
 RECOLOUR APPS - SSM H122 DOWNLOADER - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20260415'
-__version__ = '1.0.0'
-__author__ =
-    'Fabio Delogu (fabio.delogu@cimafoundation.org)'
-__library__ = 'recolour'
-
 General command line:
 python ecmwf_downloader_rzsm.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
-Version(s):
-20260415 (1.0.0) --> First development
+Mirror mode:
+- If JSON time.time_start and time.time_end are both defined: date_filter mode
+- Otherwise: mirror mode
+
+New mirror option:
+"mirror": {
+  "use_newer_than": true
+}
+
+If true  -> lftp mirror uses --newer-than={n_days}d
+If false -> full mirror without date restriction
 """
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -41,15 +44,13 @@ alg_type = 'Package'
 alg_version = '1.0.0'
 alg_release = '2026-04-15'
 
-# algorithm globals
 alg_logger = logging.getLogger('app_downloader')
 acquired_lock = None
 # ----------------------------------------------------------------------------------------------------------------------
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 # basic utils
-
-# method to read file json
 def read_file_json(file_name):
     if os.path.exists(file_name):
         with open(file_name, "r", encoding="utf-8") as file_handle:
@@ -57,7 +58,7 @@ def read_file_json(file_name):
     else:
         raise FileNotFoundError(f' ===> File "{file_name}" not found. Exit')
 
-# method to get args
+
 def get_args():
 
     parser = argparse.ArgumentParser(
@@ -87,7 +88,7 @@ def get_args():
 
     return parser.parse_args()
 
-# method to get logger
+
 def get_logger(settings):
     log_settings = settings.get("logging", {})
 
@@ -106,7 +107,6 @@ def get_logger(settings):
 
     log_path = os.path.join(log_folder, log_filename)
 
-    # reset handlers (important if script reused)
     alg_logger.handlers = []
     alg_logger.setLevel(level)
 
@@ -115,12 +115,10 @@ def get_logger(settings):
         "%Y-%m-%d %H:%M:%S"
     )
 
-    # file handler
     fh = logging.FileHandler(log_path)
     fh.setLevel(level)
     fh.setFormatter(formatter)
 
-    # console handler
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(level)
     ch.setFormatter(formatter)
@@ -128,28 +126,36 @@ def get_logger(settings):
     alg_logger.addHandler(fh)
     alg_logger.addHandler(ch)
 
-# make folder
-def make_folder(folder_name):
 
+def make_folder(folder_name):
     if folder_name is not None and folder_name != '':
         os.makedirs(folder_name, exist_ok=True)
 
-# execute command--
+
 def execute_command(command_string):
 
-    process = subprocess.run(
-        command_string,
-        shell=True,
-        text=True,
-        capture_output=True
-    )
+    if sys.version_info >= (3, 7):
+        process = subprocess.run(
+            command_string,
+            shell=True,
+            text=True,
+            capture_output=True
+        )
+    else:
+        process = subprocess.run(
+            command_string,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True
+        )
 
     return process.returncode, process.stdout, process.stderr
 # ----------------------------------------------------------------------------------------------------------------------
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 # time utils
-# method to parse time string
 def parse_time_string(time_string):
 
     if time_string is None:
@@ -164,14 +170,11 @@ def parse_time_string(time_string):
 
     return time_obj
 
-# method to round time to hour
+
 def round_time_to_hour(time_obj):
+    return time_obj.replace(minute=0, second=0, microsecond=0)
 
-    time_obj = time_obj.replace(minute=0, second=0, microsecond=0)
 
-    return time_obj
-
-# get reference time
 def get_reference_time(args, settings):
 
     mirror_settings = settings.get('mirror', {})
@@ -187,7 +190,7 @@ def get_reference_time(args, settings):
 
     return reference_time
 
-# get time window
+
 def get_time_window(settings):
 
     time_settings = settings.get('time', {})
@@ -200,7 +203,7 @@ def get_time_window(settings):
 
     return time_start, time_end
 
-# method to parse file time
+
 def parse_file_time(file_name, settings):
 
     filter_settings = settings.get('filter', {})
@@ -216,10 +219,9 @@ def parse_file_time(file_name, settings):
     return file_time
 # ----------------------------------------------------------------------------------------------------------------------
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 # run utils
-
-# method to select run mode
 def select_run_mode(args, settings):
 
     time_start, time_end = get_time_window(settings)
@@ -233,7 +235,7 @@ def select_run_mode(args, settings):
 
     return mode, reference_time, time_start, time_end, n_days
 
-# method to acquire lock-
+
 def acquire_lock(settings, force_lock=False):
 
     global acquired_lock
@@ -277,7 +279,7 @@ def acquire_lock(settings, force_lock=False):
     alg_logger.error(f' ===> All {max_slots} slots are currently in use. Exiting.')
     return False
 
-# method to release lock
+
 def release_lock():
 
     global acquired_lock
@@ -292,17 +294,16 @@ def release_lock():
         finally:
             acquired_lock = None
 
-# method to handle signal
+
 def handle_signal(signum, frame):
     alg_logger.warning(f' ===> Caught signal {signum}. Releasing lock and exiting.')
     release_lock()
     sys.exit(1)
 # ----------------------------------------------------------------------------------------------------------------------
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 # ftp utils
-
-# method to check ftp session
 def check_ftp_session(settings):
 
     ftp_settings = settings.get('ftp', {})
@@ -380,7 +381,7 @@ bye
     alg_logger.error(' ===> ERROR: Authentication may have worked, but remote path access was not confirmed.')
     return False
 
-# method to list remote files
+
 def list_remote_files(settings, remote_folder):
 
     ftp_settings = settings.get('ftp', {})
@@ -425,7 +426,7 @@ quit
 
     return file_list
 
-# method to filter remote files by time window
+
 def filter_remote_files_by_time(settings, file_list, time_start, time_end):
 
     selected_files = []
@@ -443,7 +444,7 @@ def filter_remote_files_by_time(settings, file_list, time_start, time_end):
 
     return selected_files, skipped_files
 
-# method to download remote files
+
 def download_remote_files(settings, remote_folder, selected_files):
 
     ftp_settings = settings.get('ftp', {})
@@ -518,7 +519,7 @@ def download_remote_files(settings, remote_folder, selected_files):
     if return_code != 0:
         raise RuntimeError(f' ===> Download failed for remote folder: {remote_folder}')
 
-# method to download mirror mode
+
 def download_mode_mirror(settings, n_days):
 
     alg_logger.info(' ----> Running mirror mode')
@@ -539,9 +540,20 @@ def download_mode_mirror(settings, n_days):
     parallel_transfer_count = mirror_settings.get('parallel_transfer_count', 4)
     use_pget_n = mirror_settings.get('use_pget_n', 4)
 
+    # NEW OPTION:
+    # true  -> use --newer-than={n_days}d
+    # false -> full mirror without date restriction
+    use_newer_than = mirror_settings.get('use_newer_than', True)
+
     ssl_verify_value = 'yes' if ssl_verify else 'no'
 
-    mirror_flags = [f'--newer-than={n_days}d']
+    mirror_flags = []
+
+    if use_newer_than:
+        mirror_flags.append(f'--newer-than={n_days}d')
+        alg_logger.info(f' ::: Mirror filter: last {n_days} day(s)')
+    else:
+        alg_logger.info(' ::: Mirror filter: FULL mirror, no date restriction')
 
     if mirror_settings.get('only_newer', True):
         mirror_flags.append('--only-newer')
@@ -605,7 +617,7 @@ def download_mode_mirror(settings, n_days):
     if return_code != 0:
         raise RuntimeError('Mirror mode failed')
 
-# method to download date filter mode
+
 def download_mode_date_filter(settings, time_start, time_end):
 
     product_settings = settings.get('products', {})
@@ -644,63 +656,45 @@ def download_mode_date_filter(settings, time_start, time_end):
         )
 # ----------------------------------------------------------------------------------------------------------------------
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 # algorithm main
 def main():
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # set global variables
     global alg_name, alg_version, alg_release
-    # ------------------------------------------------------------------------------------------------------------------
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # get args
     args = get_args()
-    # get settings
     settings = read_file_json(args.settings_file)
-    # initialize logger
     get_logger(settings)
 
-    # set algorithm information
     alg_info = settings.get('algorithm', {})
     alg_name = alg_info.get('name', alg_name)
     alg_version = alg_info.get('version', alg_version)
     alg_release = alg_info.get('release', alg_release)
-    # ------------------------------------------------------------------------------------------------------------------
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # info algorithm (start)
     alg_logger.info(' ============================================================================ ')
     alg_logger.info(' ==> ' + alg_name + ' (Version: ' + alg_version + ' Release_Date: ' + alg_release + ')')
     alg_logger.info(' ==> START ... ')
     alg_logger.info(' ')
 
-    # info settings
     alg_logger.info(' ---> Settings file: ' + args.settings_file)
 
-    # time algorithm
     start_time = time.time()
 
-    # register release handlers
     atexit.register(release_lock)
     signal.signal(signal.SIGINT, handle_signal)
     signal.signal(signal.SIGTERM, handle_signal)
-    # ------------------------------------------------------------------------------------------------------------------
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # select download mode - start
     alg_logger.info(f" ---> Select download mode ... ")
     try:
-        # select download mode
         mode, reference_time, time_start, time_end, n_days = select_run_mode(args, settings)
     except Exception as exc:
-        # select download mode - end (failed)
         alg_logger.error(f' ===> Error in selecting download mode: {exc}')
         alg_logger.info(f" ---> Select download mode ... FAILED")
         sys.exit(1)
 
-    # info run mode
     alg_logger.info(' ::: Reference time: ' + reference_time.strftime('%Y-%m-%d %H:%M:%S'))
+
     if mode == 'date_filter':
         alg_logger.info(' ::: Download mode: date_filter')
         alg_logger.info(' ::: Time start: ' + time_start.strftime('%Y-%m-%d %H:%M:%S'))
@@ -714,66 +708,59 @@ def main():
         else:
             alg_logger.info(' ::: Reference time taken from system time NOW')
 
-    # select download mode - end (done)
     alg_logger.info(f" ---> Select download mode ... DONE")
-    # ------------------------------------------------------------------------------------------------------------------
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # initialize download mode - start
     ftp_settings = settings.get('ftp', {})
     alg_logger.info(' ---> Initialize download mode ... ')
     alg_logger.info(' ')
 
-    # acquire lock
     if not acquire_lock(settings=settings, force_lock=args.force_lock):
         sys.exit(1)
 
-    # check ftp session
     if not check_ftp_session(settings=settings):
-        # initialize download mode - end (failed - errors in ftp session validation)
         alg_logger.error(' ===> Aborting before download because session validation failed.')
         alg_logger.info(' ---> Initialize download mode ... FAILED')
         sys.exit(1)
     else:
-        # initialize download mode - end (done)
         alg_logger.info(' ---> Initialize download mode ... DONE')
 
-    # execute the download mode - start
     alg_logger.info(' ---> Execute download mode ... ')
     alg_logger.info(' ::: Timestamp Start -- ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     alg_logger.info(' ::: Host -- ' + ftp_settings.get('ftp_url', 'undefined'))
+
     try:
 
-        # execute mode
         if mode == 'date_filter':
 
-            # info about mode
             alg_logger.info(' ::: Mode -- filter by dates')
+
             if time_start > time_end:
                 raise RuntimeError('time_start must be less than or equal to time_end')
-            # execute date filter
-            download_mode_date_filter(settings=settings, time_start=time_start, time_end=time_end)
+
+            download_mode_date_filter(
+                settings=settings,
+                time_start=time_start,
+                time_end=time_end
+            )
 
         else:
-            # info about mode
-            alg_logger.info(' ::: Mode -- mirror')
-            # execute mirror
-            download_mode_mirror(settings=settings, n_days=n_days)
 
-        # execute the download mode - end (done)
+            alg_logger.info(' ::: Mode -- mirror')
+
+            download_mode_mirror(
+                settings=settings,
+                n_days=n_days
+            )
+
         alg_logger.info(' ::: Timestamp End -- ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         alg_logger.info(' ---> Execute download mode ... DONE')
 
     except Exception as exc:
 
-        # execute the download mode - end (failed)
         alg_logger.error(f" ===> ERROR in executing download algorithm: {exc}")
         alg_logger.info(' ---> Execute download mode ... FAILED')
         sys.exit(1)
-    # ------------------------------------------------------------------------------------------------------------------
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # info algorithm (end)
     alg_time_elapsed = round(time.time() - start_time, 1)
 
     alg_logger.info(' ')
@@ -782,12 +769,10 @@ def main():
     alg_logger.info(' ==> ... END')
     alg_logger.info(' ==> Bye, Bye')
     alg_logger.info(' ============================================================================ ')
-    # ------------------------------------------------------------------------------------------------------------------
-
 # ----------------------------------------------------------------------------------------------------------------------
 
+
 # ----------------------------------------------------------------------------------------------------------------------
-# call script from external library
 if __name__ == '__main__':
     main()
 # ----------------------------------------------------------------------------------------------------------------------
