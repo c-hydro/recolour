@@ -1,0 +1,43 @@
+{
+  "src_dir": "/home/cfmi.arpal.org/satsuolo/QNAPDEV_SaturazioneSuolo/mirror/h26_cur_mon_nc/",
+  "dst_dir": "/home/cfmi.arpal.org/satsuolo/QNAPDEV_SaturazioneSuolo/datasets/ecmwf/maps/db/h26//%Y/%m/%d",
+
+  "filename_regex": "^h26_(?P<stamp>\\d{10})_R\\d{2}\\.nc$",
+  "filename_time_format": "%Y%m%d%H",
+
+  "filename_selection": "reference_day",
+
+  "domain": {
+    "name": "not_defined",
+    "lat_min": null,
+    "lat_max": null,
+    "lon_min": null,
+    "lon_max": null,
+    "require": "any"
+  },
+
+  "netcdf": {
+    "lat_var_candidates": null,
+    "lon_var_candidates": null
+  },
+
+  "copy": {
+    "overwrite": false,
+    "dry_run": false,
+    "preserve_metadata": true,
+    "action": "copy"
+  },
+
+  "logging": {
+    "level": "INFO",
+    "folder": "/home/cfmi.arpal.org/satsuolo/QNAPDEV_SaturazioneSuolo/logs/transfer/",
+    "filename": "ecmwf_transfer_nrt_rzsm_h26.txt"
+  },
+
+  "report": {
+    "enabled": true,
+    "folder": "/home/cfmi.arpal.org/satsuolo/QNAPDEV_SaturazioneSuolo/info/reports/transfer/",
+    "filename": "ecmwf_transfer_nrt_rzsm_h26_%Y%m%d%H%M.json",
+    "include_file_lists": false
+  }
+}
