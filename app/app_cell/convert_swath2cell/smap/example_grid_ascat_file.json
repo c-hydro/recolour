@@ -1,8 +1,12 @@
+"parameters": {
+  "cells": [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430]
+},
 "grid": {
-  "mode": "grid_ascat",
+  "mode": "grid_ascat_file",
+  "name": "fibgrid_6.25",
   "reference_grid": "/path/to/TUW_WARP5_grid_info_2_3.nc",
   "max_distance_km": 25,
   "use_land_flag": true,
   "output_smap_coordinates": false,
   "id_digits": 4
-}
+},

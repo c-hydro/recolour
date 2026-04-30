@@ -1,0 +1,16 @@
+
+"parameters": {
+  "cell" : null
+},
+
+"grid": {
+  "mode": "ease_grid_9km",
+  "name": "ease2_global_9km",
+  "n_rows": 3,
+  "n_cols": 3,
+  "id_digits": 2
+},
+
+"bounds": {
+  "enabled": true, "lon_min": 6.0, "lon_max": 19.0, "lat_min": 35.0, "lat_max": 48.5
+},

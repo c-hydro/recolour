@@ -1,7 +1,13 @@
+
+"parameters": {
+  "cell" : null
+},
+
 "grid": {
   "mode": "grid_domain",
+  "name": "domain_500m",
   "reference_grid": "/path/to/grid_reference_500m.tiff",
-  "n_rows": 6,
-  "n_cols": 6,
+  "n_rows": 3,
+  "n_cols": 3,
   "id_digits": 2
-}
+},
