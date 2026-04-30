@@ -10,7 +10,7 @@ Version:       '1.0.0'
 # ----------------------------------------------------------------------------------------------------------------------
 # libraries
 import logging
-import os
+import warnings
 import numpy as np
 import xarray as xr
 
@@ -18,7 +18,11 @@ from copy import deepcopy
 
 from lib_utils_io import create_darray_2d
 
-import matplotlib.pylab as plt
+# debug
+try:
+    import matplotlib.pylab as plt
+except ImportError:
+    pass
 # ----------------------------------------------------------------------------------------------------------------------
 
 

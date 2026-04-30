@@ -24,27 +24,42 @@ warnings.filterwarnings(
 project_name = 'recolour'
 alg_name = 'Execution wrapper for ssm h122 transfer over a time period'
 alg_type = 'Exec'
-alg_version = '1.3.0'
-alg_release = '2026-04-20'
+alg_version = '1.5.0'
+alg_release = '2026-04-27'
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # default script and settings file
-default_script_file = "../../tools/algorithm_transfer/h122/app_transfer_ssm_h122.py"
-default_settings_file = "../../tools/algorithm_transfer/h122/app_transfer_ssm_h122.json"
+default_script_file = "app_transfer_ssm_h122.py"
+default_settings_file = "app_transfer_ssm_h122.json"
 
 # default environment settings
-virtual_env_folder = '/home/fabio/Documents/Work_Area/Code_Development/Workspace/recolour/conda_p311/bin/'
-virtual_env_name = 'recolour_converter_libraries'
+virtual_env_folder = "/home/fabio/Desktop/recolour/conda_p311/"
+virtual_env_name = "recolour_downloader_libraries"
 
 # default summary settings
 default_input_summary_folder = None
 default_input_summary_name = None
 
-default_output_summary_folder = "./summary"
-default_output_summary_name = None
+default_output_summary_folder = "./summary/{domain}/{time_workflow:%Y%m%d%H}"
+default_output_summary_name = "run_{mode}_{time_start:%Y%m%d}.json"
 
-default_following_algorithm = "next_algorithm"
+default_algorithm = "algorithm_transfer"
+
+# ENV_NAME -> context variable
+default_summary_env_map = {
+    "TIME_NOW": "time_now",
+    "TIME_WORKFLOW": "time_workflow",
+    "DOMAIN_WORKFLOW": "domain",
+    "TYPE": "mode"
+}
+
+# Extra summary/context variables
+default_summary_extra = {
+    "domain": "italy",
+    "product": "ssm_h122_nrt",
+    "mode": "local"
+}
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -56,6 +71,22 @@ def is_none(value):
     if str(value).lower() in ["none", "null", ""]:
         return True
     return False
+
+
+def format_value(value):
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d %H:%M")
+    return str(value)
+
+
+def format_template(template_string, context_dict=None):
+    if is_none(template_string):
+        return template_string
+
+    if context_dict is None:
+        context_dict = {}
+
+    return template_string.format(**context_dict)
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -93,18 +124,28 @@ def parse_time(time_string, round_option="day"):
     return normalize_time(time_obj, round_option=round_option)
 
 
-def get_time_now(time_string=None, round_option="day", time_utc=False):
+def get_time_now(time_string=None, round_option="day", time_utc=False,
+                 env_var="TIME_NOW"):
 
-    if time_string is None:
+    env_value = os.environ.get(env_var, None)
 
-        if time_utc:
-            time_obj = datetime.utcnow()
-        else:
-            time_obj = datetime.now()
+    if not is_none(env_value):
+        try:
+            return parse_time(env_value, round_option=round_option)
+        except Exception as exc:
+            raise RuntimeError(
+                f'Invalid {env_var} format: "{env_value}". Expected "YYYY-MM-DD HH:MM"'
+            ) from exc
 
-        return normalize_time(time_obj, round_option=round_option)
+    if time_string is not None:
+        return parse_time(time_string, round_option=round_option)
 
-    return parse_time(time_string, round_option=round_option)
+    if time_utc:
+        time_obj = datetime.utcnow()
+    else:
+        time_obj = datetime.now()
+
+    return normalize_time(time_obj, round_option=round_option)
 
 
 def get_time_range(time_now=None, time_period=2, time_start=None, time_end=None,
@@ -156,36 +197,130 @@ def iter_time_steps(time_start, time_end, step_hours=24, reverse=False):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+# summary env/context utils
+def build_summary_context(time_now=None, time_start=None, time_end=None, extra_dict=None):
+
+    context = {
+        "time_now": time_now,
+        "time_workflow": time_now,
+        "time_start": time_start,
+        "time_end": time_end
+    }
+
+    if extra_dict:
+        context.update(extra_dict)
+
+    return context
+
+
+def set_summary_to_env(env_map=None, context_dict=None):
+
+    if env_map is None:
+        return
+
+    if context_dict is None:
+        context_dict = {}
+
+    for env_key, context_key in env_map.items():
+
+        if context_key not in context_dict:
+            raise RuntimeError(
+                f'Context key "{context_key}" not available for env "{env_key}"'
+            )
+
+        value = context_dict[context_key]
+
+        if value is None:
+            continue
+
+        os.environ[env_key] = format_value(value)
+
+
+def get_summary_from_env(env_map=None, round_option="day"):
+
+    summary_dict = {}
+
+    if env_map is None:
+        return summary_dict
+
+    for env_key, context_key in env_map.items():
+
+        env_value = os.environ.get(env_key, None)
+
+        if is_none(env_value):
+            continue
+
+        try:
+            value = parse_time(env_value, round_option=round_option)
+        except Exception:
+            value = env_value
+
+        summary_dict[context_key] = value
+
+    return summary_dict
+
+
+def serialize_summary_context(context_dict):
+
+    if context_dict is None:
+        return {}
+
+    serialized = {}
+
+    for key, value in context_dict.items():
+
+        if isinstance(value, datetime):
+            serialized[key] = value.strftime("%Y-%m-%d %H:%M")
+        else:
+            serialized[key] = value
+
+    return serialized
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
 # summary utils
-def build_input_summary_path(summary_folder=None, summary_name=None):
+def build_input_summary_path(summary_folder=None, summary_name=None, context_dict=None):
 
     if is_none(summary_folder) or is_none(summary_name):
         return None
+
+    summary_folder = format_template(summary_folder, context_dict)
+    summary_name = format_template(summary_name, context_dict)
 
     return os.path.join(summary_folder, summary_name)
 
 
 def build_output_summary_path(summary_folder=None, summary_name=None,
-                              time_end=None, following_algorithm=None):
+                              context_dict=None, algorithm=None):
 
     if is_none(summary_folder):
         return None
 
-    if not os.path.exists(summary_folder):
-        os.makedirs(summary_folder, exist_ok=True)
+    if context_dict is None:
+        context_dict = {}
+
+    summary_folder = format_template(summary_folder, context_dict)
+    os.makedirs(summary_folder, exist_ok=True)
 
     if not is_none(summary_name):
+        summary_name = format_template(summary_name, context_dict)
         return os.path.join(summary_folder, summary_name)
 
-    if time_end is None:
-        time_tag = datetime.now().strftime("%Y%m%d%H%M")
-    else:
+    time_end = context_dict.get("time_end", None)
+    time_now = context_dict.get("time_now", None)
+
+    if time_end is not None:
         time_tag = time_end.strftime("%Y%m%d%H%M")
+    elif time_now is not None:
+        time_tag = time_now.strftime("%Y%m%d%H%M")
+    else:
+        time_tag = datetime.now().strftime("%Y%m%d%H%M")
 
-    if is_none(following_algorithm):
-        following_algorithm = default_following_algorithm
+    if is_none(algorithm):
+        algorithm = default_algorithm
 
-    filename = f"{following_algorithm}_{time_tag}.json"
+    filename = f"{algorithm}_{time_tag}.json"
 
     return os.path.join(summary_folder, filename)
 
@@ -219,8 +354,9 @@ def check_summary_file(summary_file):
 def save_summary_file(summary_file, time_now, time_now_utc, round_option,
                       time_start, time_end, time_steps,
                       n_done, n_failed, status="DONE",
-                      algorithm="ssm_h122_transfer",
-                      following_algorithm=None):
+                      algorithm=None,
+                      summary_context=None,
+                      summary_env_map=None):
 
     if is_none(summary_file):
         return
@@ -229,12 +365,16 @@ def save_summary_file(summary_file, time_now, time_now_utc, round_option,
     if summary_folder:
         os.makedirs(summary_folder, exist_ok=True)
 
+    time_workflow = None
+    if summary_context is not None:
+        time_workflow = summary_context.get("time_workflow", None)
+
     summary_data = {
         "project": project_name,
         "algorithm": algorithm,
-        "following_algorithm": following_algorithm,
         "status": status,
 
+        "time_workflow": time_workflow.strftime("%Y-%m-%d %H:%M") if isinstance(time_workflow, datetime) else time_workflow,
         "time_now": time_now.strftime("%Y-%m-%d %H:%M") if time_now is not None else None,
         "time_now_utc": time_now_utc.strftime("%Y-%m-%d %H:%M") if time_now_utc is not None else None,
         "round_option": round_option,
@@ -248,7 +388,10 @@ def save_summary_file(summary_file, time_now, time_now_utc, round_option,
         "runs_expected": len(time_steps),
         "runs_done": n_done,
         "runs_failed": n_failed,
-        "created": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        "created": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+
+        "summary_context": serialize_summary_context(summary_context),
+        "summary_env_map": summary_env_map if summary_env_map is not None else {}
     }
 
     with open(summary_file, "w") as file_handle:
@@ -327,16 +470,12 @@ def run_command(script_path, settings_path, time_step, python_exe=None, env=None
 # argument parser
 def get_args():
 
-    wrapper_folder = os.path.dirname(os.path.abspath(__file__))
-    wrapper_script_file = os.path.join(wrapper_folder, default_script_file)
-    wrapper_settings_file = os.path.join(wrapper_folder, default_settings_file)
-
     parser = argparse.ArgumentParser(
-        description=f"Wrapper to execute {wrapper_script_file} over a time period"
+        description=f"Wrapper to execute {default_script_file} over a time period"
     )
 
-    parser.add_argument("-script_file", dest="script_file", default=wrapper_script_file)
-    parser.add_argument("-settings_file", dest="settings_file", default=wrapper_settings_file)
+    parser.add_argument("-script_file", dest="script_file", default=default_script_file)
+    parser.add_argument("-settings_file", dest="settings_file", default=default_settings_file)
 
     parser.add_argument("-time_now", dest="time_now", default=None)
     parser.add_argument("-time_period", dest="time_period", type=int, default=2)
@@ -359,35 +498,13 @@ def get_args():
     parser.add_argument("-virtual_env_name", dest="virtual_env_name", default=virtual_env_name)
     parser.add_argument("-use_env_python", dest="use_env_python", action="store_true")
 
-    parser.add_argument(
-        "-input_summary_folder",
-        dest="input_summary_folder",
-        default=default_input_summary_folder
-    )
+    parser.add_argument("-input_summary_folder", dest="input_summary_folder", default=default_input_summary_folder)
+    parser.add_argument("-input_summary_name", dest="input_summary_name", default=default_input_summary_name)
 
-    parser.add_argument(
-        "-input_summary_name",
-        dest="input_summary_name",
-        default=default_input_summary_name
-    )
+    parser.add_argument("-output_summary_folder", dest="output_summary_folder", default=default_output_summary_folder)
+    parser.add_argument("-output_summary_name", dest="output_summary_name", default=default_output_summary_name)
 
-    parser.add_argument(
-        "-output_summary_folder",
-        dest="output_summary_folder",
-        default=default_output_summary_folder
-    )
-
-    parser.add_argument(
-        "-output_summary_name",
-        dest="output_summary_name",
-        default=default_output_summary_name
-    )
-
-    parser.add_argument(
-        "-following_algorithm",
-        dest="following_algorithm",
-        default=default_following_algorithm
-    )
+    parser.add_argument("-algorithm", dest="algorithm", default=default_algorithm)
 
     return parser.parse_args()
 # ----------------------------------------------------------------------------------------------------------------------
@@ -423,13 +540,15 @@ def main():
     time_now_obj = get_time_now(
         time_string=args.time_now,
         round_option=args.round_option,
-        time_utc=args.time_utc
+        time_utc=args.time_utc,
+        env_var="TIME_NOW"
     )
 
     time_now_utc_obj = get_time_now(
         time_string=args.time_now,
         round_option=args.round_option,
-        time_utc=True
+        time_utc=True,
+        env_var="TIME_NOW"
     )
 
     time_start, time_end = get_time_range(
@@ -448,16 +567,36 @@ def main():
         reverse=args.reverse
     )
 
+    summary_context = build_summary_context(
+        time_now=time_now_obj,
+        time_start=time_start,
+        time_end=time_end,
+        extra_dict=default_summary_extra
+    )
+
+    set_summary_to_env(
+        env_map=default_summary_env_map,
+        context_dict=summary_context
+    )
+
+    summary_context_from_env = get_summary_from_env(
+        env_map=default_summary_env_map,
+        round_option=args.round_option
+    )
+
+    summary_context.update(summary_context_from_env)
+
     input_summary_file = build_input_summary_path(
         summary_folder=args.input_summary_folder,
-        summary_name=args.input_summary_name
+        summary_name=args.input_summary_name,
+        context_dict=summary_context
     )
 
     output_summary_file = build_output_summary_path(
         summary_folder=args.output_summary_folder,
         summary_name=args.output_summary_name,
-        time_end=time_end,
-        following_algorithm=args.following_algorithm
+        context_dict=summary_context,
+        algorithm=args.algorithm
     )
 
     run_env = update_env(
@@ -476,10 +615,10 @@ def main():
     print(' ==> ' + alg_name + ' (Version: ' + alg_version + ' Release_Date: ' + alg_release + ')')
     print(' ==> START ... ')
     print(' ')
-    print(f' ---> Wrapper folder:          {os.path.dirname(os.path.abspath(__file__))}')
     print(f' ---> Application folder:      {script_folder}')
     print(f' ---> Script file:             {script_file}')
     print(f' ---> Settings file:           {settings_file}')
+    print(f' ---> Time workflow:           {summary_context["time_workflow"].strftime("%Y-%m-%d %H:%M:%S")}')
     print(f' ---> Time now:                {time_now_obj.strftime("%Y-%m-%d %H:%M:%S")}')
     print(f' ---> Time now UTC:            {time_now_utc_obj.strftime("%Y-%m-%d %H:%M:%S")}')
     print(f' ---> Round option:            {args.round_option}')
@@ -493,13 +632,19 @@ def main():
     print(' ')
     print(f' ---> Input summary file:      {input_summary_file}')
     print(f' ---> Output summary file:     {output_summary_file}')
-    print(f' ---> Following algorithm:     {args.following_algorithm}')
+    print(f' ---> Algorithm:     {args.algorithm}')
+    print(' ')
+    print(f' ---> Summary env map:         {default_summary_env_map}')
+    print(f' ---> Summary extra vars:      {default_summary_extra}')
+    print(f' ---> Summary context:         {serialize_summary_context(summary_context)}')
     print(' ')
     print(f' ---> Virtual env folder:      {env_folder}')
     print(f' ---> Virtual env name:        {args.virtual_env_name}')
     print(f' ---> Use env python:          {args.use_env_python}')
     print(f' ---> Python executable:       {python_exe}')
     print(f' ---> PYTHONPATH:              {run_env.get("PYTHONPATH", "")}')
+    print(f' ---> TIME_NOW:                {run_env.get("TIME_NOW", None)}')
+    print(f' ---> TIME_WORKFLOW:           {run_env.get("TIME_WORKFLOW", None)}')
     print(' ')
 
     start_time = time.time()
@@ -554,8 +699,9 @@ def main():
         n_done=n_done,
         n_failed=n_failed,
         status=summary_status,
-        algorithm="ssm_h122_transfer",
-        following_algorithm=args.following_algorithm
+        algorithm=args.algorithm,
+        summary_context=summary_context,
+        summary_env_map=default_summary_env_map
     )
 
     elapsed = round(time.time() - start_time, 1)

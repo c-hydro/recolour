@@ -134,15 +134,27 @@ def make_folder(folder_name):
     if folder_name is not None and folder_name != '':
         os.makedirs(folder_name, exist_ok=True)
 
-# execute command--
+# execute command
 def execute_command(command_string):
 
-    process = subprocess.run(
-        command_string,
-        shell=True,
-        text=True,
-        capture_output=True
-    )
+    if sys.version_info >= (3, 7):
+
+        process = subprocess.run(
+            command_string,
+            shell=True,
+            text=True,
+            capture_output=True
+        )
+
+    else:
+
+        process = subprocess.run(
+            command_string,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True
+        )
 
     return process.returncode, process.stdout, process.stderr
 # ----------------------------------------------------------------------------------------------------------------------

@@ -21,6 +21,7 @@
     "local_folder_mirror": "/home/fabio/Desktop/recolour/exec/mirror/h122/",
     "parallel_transfer_count": 4,
     "use_pget_n": 4,
+    "use_newer_than": false,
     "only_newer": true,
     "continue_download": true,
     "no_empty_dirs": true,
