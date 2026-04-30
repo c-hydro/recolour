@@ -1,0 +1,7 @@
+"grid": {
+  "mode": "grid_domain",
+  "reference_grid": "/path/to/grid_reference_500m.tiff",
+  "n_rows": 6,
+  "n_cols": 6,
+  "id_digits": 2
+}
