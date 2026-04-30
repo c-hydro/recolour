@@ -3,6 +3,12 @@
 
 """
 RECOLOUR APPS - SSM H122 TRANSFER - EXECUTION WRAPPER
+
+
+python3 exec_algorithm.py \
+    -use_env_python \
+    -virtual_env_name recolour_libraries
+
 """
 
 import os
@@ -420,7 +426,7 @@ def update_env(base_env, script_folder, env_folder=None, env_name=None):
 
     return env
 
-
+# get executable from conda generic
 def get_python_executable(env_folder=None, use_env_python=True):
 
     if use_env_python and not is_none(env_folder):
@@ -431,6 +437,53 @@ def get_python_executable(env_folder=None, use_env_python=True):
             return python_env
 
     return sys.executable
+
+# get executbale from conda libraries
+def get_conda_env_python(env_name, conda_root=None):
+
+    if is_none(env_name):
+        raise RuntimeError("Conda env name is not defined")
+
+    if not is_none(conda_root):
+        conda_exe = os.path.join(conda_root, "bin", "conda")
+    else:
+        conda_exe = "conda"
+
+    result = subprocess.run(
+        [conda_exe, "env", "list", "--json"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True
+    )
+
+    if result.returncode != 0:
+        raise RuntimeError(
+            "Conda env list failed:\n"
+            f"Command: {conda_exe} env list --json\n"
+            f"Error: {result.stderr}"
+        )
+
+    try:
+        data = json.loads(result.stdout)
+    except Exception as exc:
+        raise RuntimeError(
+            "Unable to parse conda env list output:\n"
+            f"{result.stdout}"
+        ) from exc
+
+    for env_path in data.get("envs", []):
+
+        if os.path.basename(env_path) == env_name:
+            python_exe = os.path.join(env_path, "bin", "python")
+
+            if os.path.exists(python_exe):
+                return python_exe
+
+            raise RuntimeError(
+                f"Conda env found but python executable is missing: {python_exe}"
+            )
+
+    raise RuntimeError(f"Conda env '{env_name}' not found")
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -604,10 +657,11 @@ def main():
         env_name=args.virtual_env_name
     )
 
-    python_exe = get_python_executable(
-        env_folder=env_folder,
-        use_env_python=args.use_env_python
-    )
+    # select python executable
+    if args.use_env_python:
+        python_exe = get_conda_env_python(env_name=args.virtual_env_name, conda_root=os.path.dirname(env_folder) if env_folder else None)
+    else:
+        python_exe = get_python_executable(env_folder=env_folder,use_env_python=False)
 
     print(' ============================================================================ ')
     print(' ==> ' + alg_name + ' (Version: ' + alg_version + ' Release_Date: ' + alg_release + ')')
