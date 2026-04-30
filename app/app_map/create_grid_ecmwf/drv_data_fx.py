@@ -47,7 +47,7 @@ class DrvFx:
         # method to map fx collection data
         fx_collections_data = map_fx_kwargs(self.fx_datasets, self.fx_vars_in)
         # method to select fx kwargs data
-        fx_kwargs_data = select_fx_kwargs(self.fx_handle, fx_collections_data)
+        fx_kwargs_data = select_fx_kwargs(self.fx_handle, fx_collections_data, self.fx_params)
         # method to select fx kwargs geo
         fx_kwargs_geo = select_fx_geo(self.fx_datasets, fx_var_geo_x=self.fx_var_geo_x, fx_var_geo_y=self.fx_var_geo_y)
 
@@ -114,9 +114,19 @@ def fill_fx_vars(fx_datasets, fx_vars_in=None, fx_vars_out=None,
 # ----------------------------------------------------------------------------------------------------------------------
 # method to select fx results
 def select_fx_result(fx_result_data, fx_result_geo, fx_variables):
+
+    # search 
     fx_result_output = {}
-    for fx_data, (fx_var_key, fx_var_name) in zip(fx_result_data, fx_variables.items()):
-        fx_result_output[fx_var_name] = fx_data
+    for var_name_in, var_name_out in fx_variables.items():
+
+        if var_name_in in list(fx_result_data.keys()):
+            tmp_data = fx_result_data[var_name_in]
+        else:
+            tmp_data = None
+            logging.warning(
+                f' ===> Variable {var_name_in} not found in datasets computed by method. Initialized to NoneType')
+        fx_result_output[var_name_out] = tmp_data
+    # add geo variables
     fx_result_output = {**fx_result_output, **fx_result_geo}
     return fx_result_output
 # ----------------------------------------------------------------------------------------------------------------------
@@ -145,17 +155,28 @@ def select_fx_geo(fx_datasets_in, fx_var_geo_x='longitude', fx_var_geo_y='latitu
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to select fx args
-def select_fx_kwargs(fx_handle, fx_args):
+def select_fx_kwargs(fx_handle, fx_args, fx_params):
     fx_sign_list = list(inspect.signature(fx_handle).parameters.keys())
-    fx_kwargs = {}
+
+    # Merge args and params
+    fx_args_defined, fx_args_extra = {}, {**fx_args, **fx_params}
+    fx_sign_found = []
     for fx_sign_name in fx_sign_list:
         if fx_sign_name != 'kwargs':
-            if fx_sign_name in list(fx_args.keys()):
-                fx_kwargs[fx_sign_name] = fx_args[fx_sign_name]
+            if fx_sign_name in fx_args_extra:
+                # pop removes from all_kwargs and returns the value
+                fx_args_defined[fx_sign_name] = fx_args_extra.pop(fx_sign_name)
             else:
-                logging.error(' ===> Function argument "' + fx_sign_name + '" is not available in the function signature')
-                raise RuntimeError('Argument is needed in the signature by the method')
-    return fx_kwargs
+                logging.warning(
+                    f' ===> Method arg "{fx_sign_name}" is not defined in datasets or parameters'
+                )
+                fx_args_defined[fx_sign_name] = None
+
+            fx_sign_found.append(fx_sign_name)
+
+    fx_args_common = {**fx_args_defined, **fx_args_extra}
+
+    return fx_args_common
 # ----------------------------------------------------------------------------------------------------------------------
 
 

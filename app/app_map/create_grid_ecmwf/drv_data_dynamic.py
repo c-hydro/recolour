@@ -32,8 +32,12 @@ import lib_fx_methods_datasets as fx_methods_datasets
 import lib_fx_methods_common as fx_methods_common
 
 from drv_data_fx import DrvFx, get_fx_method, get_fx_settings
+
 # debug
-import matplotlib.pylab as plt
+try:
+    import matplotlib.pylab as plt
+except ImportError:
+    pass
 # -------------------------------------------------------------------------------------
 
 
