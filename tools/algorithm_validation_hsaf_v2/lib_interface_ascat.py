@@ -3,8 +3,8 @@ Library Features:
 
 Name:          lib_interface_ascat
 Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:          '20240502'
-Version:       '1.5.0'
+Date:          '20260506'
+Version:       '1.6.0'
 """
 # ----------------------------------------------------------------------------------------------------------------------
 # libraries
@@ -16,9 +16,13 @@ import glob
 import numpy as np
 import pandas as pd
 
+from pathlib import Path
+
 from pygeobase.io_base import GriddedTsBase
 from ascat.read_native.cdr import StaticLayers, load_grid
-from pynetcf.time_series import OrthoMultiTs, ContiguousRaggedTs
+
+# from pynetcf.time_series import OrthoMultiTs, ContiguousRaggedTs # library from env
+from pynetcf_time_series import OrthoMultiTs, ContiguousRaggedTs  # library modified
 
 from ascat.read_native.cdr import AscatGriddedNcTs
 
@@ -169,14 +173,40 @@ class GriddedNcTs(GriddedTsBase):
 
         time = self.dates
 
+        # Convert only CFTime objects
+        if len(time) > 0:
+
+            first_time = time[0]
+
+            # already pandas datetime -> keep as is
+            if isinstance(first_time, pd.Timestamp):
+                pass
+
+            # CFTime objects -> convert to pandas datetime
+            elif "cftime" in str(type(first_time)):
+                time = pd.to_datetime([
+                    f"{t.year:04d}-{t.month:02d}-{t.day:02d} "
+                    f"{t.hour:02d}:{t.minute:02d}:{t.second:02d}"
+                    for t in time
+                ])
+
         # remove time column from dataframe, only index should contain time
         try:
             data.pop('time')
         except KeyError:
-            # if the time value is not found then do nothing
             pass
 
         ts = pd.DataFrame(data, index=time)
+
+        # check original order
+        original_index = ts.index.copy()
+        # ensure monotonic datetime index
+        ts = ts.sort_index()
+        # print if order changed
+        if not original_index.equals(ts.index):
+            logging.info(" --------> Datetime index order changed")
+        else:
+            logging.info(" --------> Datetime index already sorted")
 
         if period is not None:
             ts = ts[period[0]:period[1]]
@@ -296,6 +326,11 @@ class AscatGriddedNcTs(GriddedNcContiguousRaggedTs):
         mask_ssf = kwargs.pop('mask_ssf', None)
 
         data = super()._read_gp(gpi, **kwargs)
+
+        if data is None:
+            print(f'Data fdr gpi {gpi} is None')
+            return None
+
         data.attrs = {}
         data.attrs['gpi'] = gpi
         data.attrs['lon'], data.attrs['lat'] = self.grid.gpi2lonlat(gpi)
@@ -406,10 +441,20 @@ class AscatCdr(AscatGriddedNcTs):
             raise FileNotFoundError('File must be available in the selected folder')
 
         first_file = list_file[0]
-        version = os.path.basename(first_file).rsplit('_', 1)[0]
-        fn_format = '{:}_{{:04d}}'.format(version)
-        grid_filename = os.path.join(grid_path, grid_filename)
 
+        # get file folder and name to set the correct product
+        file_obj = Path(first_file)
+        file_folder, file_name = file_obj.parent, file_obj.name
+
+        # define version (H119, h120 ... or not for nrt datasets)
+        if '_' in file_name:
+            version = os.path.basename(file_name).rsplit('_', 1)[0]
+            fn_format = '{:}_{{:04d}}'.format(version)
+        else:
+            version = ''
+            fn_format = '{{:04d}}'.format(version)
+
+        grid_filename = os.path.join(grid_path, grid_filename)
         kwargs = {'read_bulk': read_bulk}  # add options to read_bulk to speed up the reading of the file(s)
 
         super(AscatCdr, self).__init__(cdr_path, fn_format, grid_filename, static_layer_path, **kwargs)
