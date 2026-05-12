@@ -11,7 +11,9 @@ Version:       '1.0.0'
 import logging
 import os
 
-from pynetcf.time_series import GriddedNcOrthoMultiTs
+# from pynetcf.time_series import GriddedNcOrthoMultiTs
+
+from pynetcf_time_series import GriddedNcOrthoMultiTs
 from pygeogrids.netcdf import load_grid
 # -------------------------------------------------------------------------------------
 

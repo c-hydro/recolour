@@ -12,7 +12,7 @@ Version:       '1.0.0'
 import logging
 import inspect
 
-from lib_utils_metrics import BasicMetrics, ExtendedMetrics
+from lib_utils_metrics import BasicMetrics, ExtendedMetrics, HSAFMetrics
 from lib_utils_generic import get_dataset_modes, get_dataset_names
 # -------------------------------------------------------------------------------------
 
@@ -34,6 +34,8 @@ class CplMetrics:
             self.metrics_class = ExtendedMetrics
         elif metrics_type == 'basic':
             self.metrics_class = BasicMetrics
+        elif metrics_type == 'hsaf':
+            self.metrics_class = HSAFMetrics
         else:
             logging.error(' ===> Dateset metrics "' + metrics_type + '" is not expected by the metrics driver')
             raise NotImplemented('Case not implemented yet')

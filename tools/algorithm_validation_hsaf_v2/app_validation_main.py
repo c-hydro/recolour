@@ -3,8 +3,8 @@
 """
 RECOLOUR TOOLS - VALIDATION APP - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20230719'
-__version__ = '1.0.0'
+__date__ = '20260506'
+__version__ = '1.3.0'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)',
     'Martina Natali (martina01.natali@edu.unife.it)'
@@ -15,6 +15,7 @@ General command line:
 python app_validation_main.py -settings_file configuration.json
 
 Version(s):
+20260506 (1.3.0) --> Update to HSAF validation 2026 (fix libraries changes and object format, fix metrics bugs)
 20240411 (1.2.0) --> Update to HSAF validation (ecmwf products)
 20240229 (1.1.0) --> Update to HSAF validation (ascat products)
 20230726 (1.0.1) --> Update to read SMAP data
@@ -34,6 +35,9 @@ import os
 import sys
 import time
 
+import matplotlib
+matplotlib.use("Agg")
+
 from copy import deepcopy
 
 from drv_process_main import DrvProcess
@@ -52,8 +56,8 @@ from lib_utils_generic import get_grid_reference, get_grid_cells
 project_name = 'recolour'
 alg_name = 'validation'
 alg_type = 'Package'
-alg_version = '1.2.0'
-alg_release = '2024-04-11'
+alg_version = '1.3.0'
+alg_release = '2026-05-06'
 # -------------------------------------------------------------------------------------
 
 
@@ -94,18 +98,21 @@ def main():
         cells_list=alg_settings['domain']['cell_list'],
         path_grid=alg_path_grid,
         file_grid=alg_file_grid)
+    alg_debug = False
     # -------------------------------------------------------------------------------------
 
-    # -------------------------------------------------------------------------------------
     '''
     # set algorithm for debugging in sequential mode
-    alg_cells = [1394, 1395] # italy case
-    alg_cells = [31, 32]     # other case
+    # TEST 2128135 2128139
+    alg_cells = [1394]  # italy case
     alg_settings['mode']['mp_mode'] = False
+    alg_gpis = [2128135]
+    alg_debug = True
     '''
 
+    # -------------------------------------------------------------------------------------
     # configure driver
-    drv_process = DrvProcess(alg_cells, alg_settings)
+    drv_process = DrvProcess(alg_cells, alg_settings, alg_gpis=alg_gpis, alg_debug=alg_debug)
     # setup process
     drv_process.setup_process()
     # execute process (sequential or parallel execution)

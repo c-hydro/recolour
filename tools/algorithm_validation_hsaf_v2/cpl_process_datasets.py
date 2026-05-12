@@ -211,7 +211,15 @@ class CplDatasets:
         if dset_tmp is None:
             dset_tmp = {}
 
-        path_ts, path_grid, path_static = dset_obj['path_ts'], dset_obj['path_static'], dset_obj['path_static']
+        # get path ts (cells) and path static (grids)
+        path_ts, path_grid = dset_obj['path_ts'], dset_obj['path_static']
+
+        # path geo (for example ascat porosity.nc)
+        if 'path_geo' in list(dset_obj.keys()):
+            path_static = dset_obj['path_geo']
+        else:
+            path_static = dset_obj['path_static']
+
         path_stack = None
         if 'path_stack' in list(dset_obj.keys()):
             path_stack = dset_obj['path_stack']

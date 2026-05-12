@@ -3,18 +3,65 @@ Library Features:
 
 Name:          lib_utils_generic
 Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:          '20230719'
-Version:       '1.0.0'
+Date:          '20260506'
+Version:       '1.1.0'
 """
 # ----------------------------------------------------------------------------------------------------------------------
 # libraries
 import logging
 import pickle
 import os
+import errno
+import json
+import shutil
 import numpy as np
 
+from pathlib import Path
 from netCDF4 import Dataset
 from pytesmo.validation_framework.data_manager import get_result_names
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to dump file workspace
+def dump_file_workspace(file_name, datasets, attributes, results):
+
+    print('save file pickle')
+
+    workspace = {
+        'datasets': datasets,
+        'attributes': attributes,
+        'results': results
+    }
+
+    with open(file_name, 'wb') as file_handle:
+        pickle.dump(workspace, file_handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    print(f'pickle file saved: {file_name}')
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to open log file
+def manage_file_workspace(file_name_tmpl, file_gpi, file_cell, fill_cell=4, file_update=True):
+
+    file_format_tmpl = {'cell': str(file_cell).zfill(fill_cell), 'gpi': str(file_gpi)}
+    file_string = file_name_tmpl.format(**file_format_tmpl)
+    file_obj = Path(file_string)
+
+    if file_obj.parent == Path("."):
+        file_name = file_obj.name
+        folder_name = None
+        path_name = file_name
+    else:
+        folder_name = file_obj.parent
+        file_name = file_obj.name
+        path_name = os.path.join(folder_name, file_name)
+
+    # create folder (if needed)
+    if folder_name is not None:
+        os.makedirs(folder_name, exist_ok=True)
+
+    return path_name
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -78,8 +125,9 @@ def get_grid_cells(cell_start=0, cell_end=2566, cells_list=None,
     if cells_list is None:
 
         # use grid file
-        logging.info(' ----> Use information defined in the grid files ... ')
         file_path = os.path.join(path_grid, file_grid)
+
+        logging.info(f' ----> Use information defined in the grid files {file_path} ... ')
         if os.path.exists(file_path):
 
             file_handle = Dataset(os.path.join(path_grid, file_grid), mode='r')
@@ -98,18 +146,30 @@ def get_grid_cells(cell_start=0, cell_end=2566, cells_list=None,
                 cells = np.unique(cell)
 
             # set idx start and end
-            try:
-                idx_start = np.where(cells == cell_start)[0][0]
-            except BaseException as base_exp:
-                logging.warning(' ===> Idx start is not available in the cells obj. Start is set to 0.')
-                logging.warning(' Warning "' + str(base_exp) + '" found')
+            if cell_start is not None:
+                try:
+                    idx_start = np.where(cells == cell_start)[0][0]
+                except BaseException as base_exp:
+                    logging.warning(' ===> Idx start is not available in the cells obj. Start is set to 0.')
+                    logging.warning(' Warning "' + str(base_exp) + '" found')
+                    idx_start = 0
+            else:
+                logging.warning(
+                    ' ===> Idx start equal to cell start selected from grid file. Cell start is null in settings file')
                 idx_start = 0
-            try:
-                idx_end = np.where(cells == cell_end)[0][0] + 1
-            except BaseException as base_exp:
-                logging.warning(' ===> Idx end is not available in the cells obj. End is set to cell maximum length.')
-                logging.warning(' Warning "' + str(base_exp) + '" found')
-                idx_end = cells.shape[0]
+
+            if cell_end is not None:
+                try:
+                    idx_end = np.where(cells == cell_end)[0][0] + 1
+                except BaseException as base_exp:
+                    logging.warning(' ===> Idx end is not available in the cells obj. End is set to cell maximum length.')
+                    logging.warning(' Warning "' + str(base_exp) + '" found')
+                    idx_end = cells.shape[0]
+
+            else:
+                logging.warning(
+                    ' ===> Idx end equal to cell start selected from grid file. Cell end is null in settings file')
+                idx_end = cell_end
 
             # select cells
             cells_obj = cells[idx_start:idx_end]
@@ -120,7 +180,7 @@ def get_grid_cells(cell_start=0, cell_end=2566, cells_list=None,
             else:
                 gpis = gpi
 
-            logging.info(' ----> Use information defined in the grid files ... DONE')
+            logging.info(f' ----> Use information defined in the grid files {file_path} ... DONE')
 
         else:
 
@@ -161,6 +221,27 @@ def slice_list(elements, step):
     return [elements[x:x + step] for x in list(range(0, len(elements), step))]
 # ----------------------------------------------------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------------------------------------------------------
+# method to clean folder
+def clean_folder(path):
+
+    for name in os.listdir(path):
+        file_path = os.path.join(path, name)
+
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.remove(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except FileNotFoundError:
+            pass
+
+        except OSError as e:
+            if e.errno == errno.EBUSY and name.startswith(".nfs"):
+                logging.warning(f" ===> Skipping busy NFS file: {file_path}")
+            else:
+                logging.error(f" ===> Failed removing {file_path}: {e}")
+# ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to make folder

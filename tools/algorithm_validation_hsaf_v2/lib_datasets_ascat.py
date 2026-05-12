@@ -392,6 +392,10 @@ class ASCAT_Dataset_DR(AscatCdr):
                         logging.info(' --------> Data valid for ASCAT dataset (N: "' + str(valid_value) + '")')
                         logging.info(' --------> Time valid for ASCAT dataset from "' + start_index +
                                      '" to "' + end_index + '"')
+
+                        # add gpi reference
+                        ts_dframe.attrs['gpi_point'] = gpi
+
                         logging.info(' -------> Check data ... DONE')
 
                 # save time-series if flag is active

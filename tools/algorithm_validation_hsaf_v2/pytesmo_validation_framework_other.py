@@ -245,11 +245,37 @@ class Validation(object):
             # if no data is available continue with the next gpi
             if len(df_dict) == 0:
                 continue
+
+            ## NOTE: CHECK THE ORDER OF DATASETS AS IN PYTESMO VALIDATION FRAMEWORK HSAF
+            ## the order must be ref, k1, k2 in the perform_validation (also check in perform validation)
+
+            # enforce order: ref -> k1 -> k2 -> ...
+            priority = ['ref', 'k1', 'k2']
+            # check requested keys
+            missing_keys = [k for k in priority if k not in df_dict]
+            if missing_keys:
+                raise KeyError(
+                    f"Requested keys are missing in df_dict: {missing_keys}"
+                )
+
+            # keep original dictionary
+            df_dict_src = df_dict.copy()
+            # reorder dictionary
+            df_dict = OrderedDict()
+
+            # add priority keys first
+            for k in priority:
+                df_dict[k] = df_dict_src[k]
+            # append remaining keys
+            for k, v in df_dict_src.items():
+                if k not in priority:
+                    df_dict[k] = v
+
+            # compute validation metrics
             matched_data, result, used_data = self.perform_validation(
                 df_dict,
                 gpi_info,
-                rename_cols=rename_cols,
-                only_with_temporal_ref=only_with_temporal_ref,
+                rename_cols=rename_cols, only_with_temporal_ref=only_with_temporal_ref,
             )
 
             # add result of one gpi to global results dictionary
@@ -327,9 +353,30 @@ class Validation(object):
             n_matched_data = matched_n[(n, k)]
             if len(n_matched_data) == 0:
                 continue
+
             result_names = get_result_combinations(
                 self.data_manager.ds_dict, n=k
             )
+
+            # reorder the result names (according to the datasets)
+            priority = ['ref', 'k1', 'k2']
+            result_names_ordered = []
+            for columns in result_names:
+
+                # check availability
+                available = [c[0] for c in columns]
+                missing = [k for k in priority if k not in available]
+
+                if missing:
+                    raise KeyError(f"Requested keys are missing: {missing}")
+
+                # reorder
+                columns = tuple(sorted(columns,key=lambda x: priority.index(x[0])))
+                result_names_ordered.append(columns)
+
+            result_names = result_names_ordered
+
+
             for data, result_key in self.k_datasets_from(
                 n_matched_data, result_names
             ):

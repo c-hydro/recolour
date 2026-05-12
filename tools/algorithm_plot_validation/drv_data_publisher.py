@@ -14,7 +14,7 @@ import os
 import shutil
 
 from lib_utils_generic import make_folder
-from lib_utils_datasets import organize_datasets_cell, organize_datasets_grid, convert_datasets_obj
+from lib_utils_datasets import filter_datasets_cell, organize_datasets_cell, organize_datasets_grid, convert_datasets_obj
 from lib_data_io_pickle import read_file_obj, write_file_obj
 from lib_data_io_nc import read_file_collection, write_file_collection
 
@@ -178,7 +178,7 @@ class DrvData:
         logging.info(' ---> Organize datasets ... ')
 
         # get cells
-        alg_cells = self.alg_cells
+        alg_cells_default = self.alg_cells
         # get file variables
         variables_src, variables_dst = self.variables_src, self.variables_dst
         # get file path
@@ -200,9 +200,13 @@ class DrvData:
         # check cell obj availability
         if not os.path.exists(file_path_anc):
 
-            # join cell object(s)
+            # select cell object(s) (file available)
+            alg_cells_filtered = filter_datasets_cell(alg_cells_default, cell_digits=4,
+                                 folder_name_datasets=self.folder_name_src, file_name_datasets=self.file_name_src,)
+
+            # join cell object(s) (file joining)
             cell_obj_dict = organize_datasets_cell(
-                cell_list=alg_cells, cell_digits=4, cell_grid=self.alg_cell_grid,
+                cell_list=alg_cells_filtered, cell_digits=4, cell_grid=self.alg_cell_grid,
                 list_variable_in=variables_src, list_variable_out=variables_dst,
                 folder_name_datasets=self.folder_name_src, file_name_datasets=self.file_name_src,
                 )

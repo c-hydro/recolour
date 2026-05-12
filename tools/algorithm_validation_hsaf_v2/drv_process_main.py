@@ -4,18 +4,18 @@ Class Features
 Name:          drv_process_main
 Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
                Martina Natali (martina01.natali@edu.unife.it)
-Date:          '20230719'
-Version:       '1.0.0'
+Date:          '20260508'
+Version:       '1.1.0'
 """
 
 # -------------------------------------------------------------------------------------
 # libraries
 import logging
 import os
-import shutil
 import netCDF4
 import multiprocessing as mp
 
+from copy import deepcopy
 from datetime import datetime
 from itertools import repeat
 
@@ -26,6 +26,7 @@ from cpl_process_analysis import CplAnalysis
 from cpl_process_mode import CplMode
 from cpl_process_logs import CplLog
 
+from lib_utils_generic import clean_folder, manage_file_workspace
 from lib_utils_log import open_file_log, dump_message_to_file, close_file_log
 
 from pygeogrids.grids import CellGrid
@@ -37,13 +38,24 @@ from pygeogrids.grids import CellGrid
 class DrvProcess:
 
     # method to initialize class
-    def __init__(self, alg_cells, alg_settings,
+    def __init__(self, alg_cells, alg_settings, alg_gpis=None, alg_debug=False,
                  tag_section_mode='mode', tag_section_flags='flags',
                  tag_section_domain='domain',
                  tag_section_params='parameters', tag_section_datasets='datasets',
-                 tag_section_time='time', tag_section_log='log'):
+                 tag_section_time='time', tag_section_log='log', tag_section_workspace='workspace'):
+
+        self.alg_debug = alg_debug
+        if self.alg_debug:
+            logging.warning(
+                "\n"
+                "############################################################\n"
+                "### ⚠️ WARNING: DEBUG MODE ACTIVE                         ###\n"
+                "### ⚠️ RESULTS ARE FOR TESTING CELLS, GPIS ARE SET BY USER  ###\n"
+                "############################################################"
+            )
 
         self.alg_cells = alg_cells
+        self.alg_gpis = alg_gpis
 
         self.alg_mode = alg_settings[tag_section_mode]
         self.alg_flags = alg_settings[tag_section_flags]
@@ -52,6 +64,8 @@ class DrvProcess:
         self.alg_time = alg_settings[tag_section_time]
         self.alg_datasets_src = alg_settings[tag_section_datasets]['source']
         self.alg_datasets_dst = alg_settings[tag_section_datasets]['destination']
+
+        self.alg_workspace = alg_settings[tag_section_workspace]
 
         if 'swi' in alg_settings[tag_section_datasets]['source']['k2']:
             self.swi_option = alg_settings[tag_section_datasets]['source']['k2']['swi']
@@ -95,9 +109,18 @@ class DrvProcess:
                                       dset_key_root='path_log', dset_key_sub=None,
                                       dset_clean=self.reset_logs)
 
+        # file datasets (store all datasets in one file)
+        self.update_workspace = self.alg_workspace.get('update', False)
+        self.active_workspace = self.alg_workspace.get('active', False)
+        self.folder_workspace_tmpl = self.alg_workspace.get('path_workspace_tmpl', None)
+        self.file_workspace_tmpl = self.alg_workspace.get('file_workspace_tmpl', '{cell}_{gpi}.workspace')
+        if self.folder_workspace_tmpl is not None:
+            self.path_workspace_tmpl = os.path.join(self.folder_workspace_tmpl, self.file_workspace_tmpl)
+        else:
+            self.path_workspace_tmpl = self.file_workspace_tmpl
+
     # method to check datasets (if clean or not)
-    def _clean_ancillary_folders(self, dset_obj, dset_key_root=None, dset_key_sub=None,
-                        dset_clean=True):
+    def _clean_ancillary_folders(self, dset_obj, dset_key_root=None, dset_key_sub=None, dset_clean=True):
 
         if (dset_key_root is not None) and (dset_key_sub is not None):
             for dset_key, dset_fields in dset_obj.items():
@@ -119,7 +142,7 @@ class DrvProcess:
     def _remove_datasets(dset_path, dset_clean=True):
         if os.path.exists(dset_path):
             if dset_clean:
-                shutil.rmtree(dset_path)
+                clean_folder(dset_path)
         os.makedirs(dset_path, exist_ok=True)
 
     # method to setup process
@@ -141,12 +164,23 @@ class DrvProcess:
         dset_interfaces, dset_modes = self.coupler_datasets.setup_datasets_src()
         self.dset_path_dst = self.coupler_datasets.setup_datasets_dst()
 
-        if len(dset_interfaces) == 3:
-            metrics_type = 'extended'
-        elif len(dset_interfaces) == 2:
-            metrics_type = 'basic'
+        # get the metrics mode (hsaf, default)
+        metrics_mode = self.alg_params.get('metrics_mode', 'default')
+
+        # define metrics type
+        if metrics_mode == 'hsaf':
+            metrics_type = 'hsaf'
+        elif metrics_mode == 'default':
+            if len(dset_interfaces) == 3:
+                metrics_type = 'extended'
+            elif len(dset_interfaces) == 2:
+                metrics_type = 'basic'
+            else:
+                logging.error(f' ===> Metrics mode default allowed tags: [extended, basic] for 3 or 2 datasets')
+                raise NotImplemented('Case not implemented yet')
         else:
-            raise NotImplemented('Case not implemented yet.')
+            logging.error(f' ===> Metrics mode allowed tags: [hsaf, default]. Algorithm is set to {metrics_mode}')
+            raise NotImplemented('Case not implemented yet')
 
         # method to set and organize metrics information
         self.coupler_metrics = CplMetrics(dset_interfaces,
@@ -243,6 +277,21 @@ class DrvProcess:
 
         # set and define process obj and jobs
         dset_process_obj, dset_process_jobs = self.coupler_analysis.setup_analysis(dset_cell)
+
+        # flag debug active (to gpis selection)
+        if self.alg_debug:
+            logging.warning(
+                "\n"
+                "############################################################\n"
+                "### ⚠️ WARNING: DEBUG MODE ACTIVE                         ###\n"
+                "### ⚠️ Processing LIMITED to selected CELLS and GPIs ONLY ###\n"
+                "############################################################"
+            )
+            if self.alg_gpis is not None:
+                dset_process_tmp = [row for row in dset_process_jobs if row[0] in self.alg_gpis]
+                dset_process_jobs = deepcopy(dset_process_tmp)
+
+        # compute jobs n
         dset_job_n = dset_process_jobs.__len__()
 
         # iterate over jobs
@@ -256,34 +305,42 @@ class DrvProcess:
 
             # info start process job
             logging.info(
-                ' -----> Process Info :: IDX: ' + file_job_idx + ' of ' + str(dset_job_n) + ' :: JOB: "' +
+                ' -----> Process Info CELL [' + file_log_cell + '] :: IDX: ' + file_job_idx + ' of ' +
+                str(dset_job_n) + ' :: JOB: "' +
                 str(dset_job_step) + '" :: STEP: ' + file_job_percentage + ' [%] ... ')
 
             dump_message_to_file(
                 file_log_handle, line_arrow='---->', line_break=True,
-                line_msg='Process Info :: IDX: ' + file_job_idx + ' of ' + str(dset_job_n) + ' :: JOB: ' +
+                line_msg='Process Info CELL [' + file_log_cell + '] :: IDX: ' + file_job_idx + ' of ' +
+                         str(dset_job_n) + ' :: JOB: ' +
                 str(dset_job_step) + '" :: STEP: ' + file_job_percentage + ' [%] ... ')
 
             # debug
             # dset_job_step = dset_process_jobs[43]
             # dset_job_step = dset_process_jobs[10]
 
-            # ***********************************************************
-            # execute process core                                      #
-            # ***********************************************************
-            results = self.exec_process_core(dset_job_step, dset_process_obj, self.dset_path_dst)
-            # ***********************************************************
-            #                                                           #
-            # ***********************************************************
+            # get gpi info
+            gpi_id, gpi_lon, gpi_lat = dset_job_step[0], dset_job_step[1], dset_job_step[2]
+
+            # manage workspace
+            workspace_obj = {
+                'file_name_tmpl': self.path_workspace_tmpl,
+                'workspace_update': self.update_workspace, 'workspace_active': self.active_workspace}
+
+            # EXECUTE PROCESS JOB                                  #
+            results = self.exec_process_core(
+                dset_job_step, dset_process_obj, self.dset_path_dst, workspace_obj=workspace_obj)
 
             # info start process job
             logging.info(
-                ' -----> Process Info :: IDX: ' + file_job_idx + ' of ' + str(dset_job_n) + ' :: JOB: "' +
+                ' -----> Process Info CELL [' + file_log_cell + '] :: IDX: ' + file_job_idx + ' of ' +
+                str(dset_job_n) + ' :: JOB: "' +
                 str(dset_job_step) + '" :: STEP: ' + file_job_percentage + ' [%] ... DONE')
 
             dump_message_to_file(
                 file_log_handle, line_arrow='---->', line_break=True,
-                line_msg='Process Info :: IDX: ' + file_job_idx + ' of ' + str(dset_job_n) + ' :: JOB: ' +
+                line_msg='Process Info CELL [' + file_log_cell + '] :: IDX: ' + file_job_idx + ' of ' +
+                         str(dset_job_n) + ' :: JOB: ' +
                 str(dset_job_step) + ' :: STEP: ' + file_job_percentage + ' [%] ... DONE')
 
         # get process time end, time_diff and time_elapsed
@@ -308,15 +365,16 @@ class DrvProcess:
 
     # method to execute process core
     @staticmethod
-    def exec_process_core(job, process, save_path=None, write_to_cells=True, handle_errors='ignore'):
+    def exec_process_core(job, process, save_path=None, write_to_cells=True, handle_errors='ignore',
+                          workspace_obj=None):
 
         # run computation(s) over datasets
         if not write_to_cells:
             # return results
-            return process.calc(*job, handle_errors=handle_errors)
+            return process.calc(*job, workspace=workspace_obj, handle_errors=handle_errors)
         else:
             # dump results in separate files per cell
-            result = process.calc(*job, handle_errors=handle_errors)
+            result = process.calc(*job, workspace=workspace_obj, handle_errors=handle_errors)
             if save_path is None:
                 return result
 

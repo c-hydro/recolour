@@ -2,9 +2,9 @@
 """
 Library Features:
 
-Name:          lib_datasets_gldas
+Name:          lib_datasets_cci
 Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:          '20230719'
+Date:          '20240318'
 Version:       '1.0.0'
 """
 # ----------------------------------------------------------------------------------------------------------------------
@@ -17,28 +17,43 @@ import numpy as np
 import pandas as pd
 
 from lib_utils_generic import read_obj, write_obj
-from lib_interface_gldas import GLDASTs
+from lib_interface_cci import CCITs
 # ----------------------------------------------------------------------------------------------------------------------
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# class to wrap GLDAS time series
-class GLDAS_Dataset(GLDASTs):
+# class to wrap CCI time series
+class CCI_Dataset(CCITs):
 
     # method to init class
-    def __init__(self, gldas_data_folder, **kwargs):
+    def __init__(self, cci_data_folder, **kwargs):
 
-        self.gldas_data_folder = gldas_data_folder
+        self.cci_data_folder = cci_data_folder
 
-        if 'mask_snow' in kwargs:
-            self.mask_snow = kwargs.pop('mask_snow')
+        if 'only_valid' in kwargs:
+            self.only_valid = kwargs.pop('only_valid')
         else:
-            self.mask_snow = 0
+            self.only_valid = True
 
-        if 'mask_soil_temp' in kwargs:
-            self.mask_soil_temp = kwargs.pop('mask_soil_temp')
+        if 'mask_sm_nan' in kwargs:
+            self.mask_sm_nan = kwargs.pop('mask_sm_nan')
         else:
-            self.mask_soil_temp = 277.15    # kelvin degree in gldas data (= 4 celsius degree)
+            self.mask_sm_nan = False
+
+        if 'mask_invalid_flags' in kwargs:
+            self.mask_invalid_flags = kwargs.pop('mask_invalid_flags')
+        else:
+            self.mask_invalid_flags = False
+
+        if 'sm_nan' in kwargs:
+            self.sm_nan = kwargs.pop('sm_nan')
+        else:
+            self.sm_nan = -9999.0
+
+        if 'valid_flag' in kwargs:
+            self.valid_flag = kwargs.pop('valid_flag')
+        else:
+            self.valid_flag = 0
 
         # set tmp info
         tmp_info = {}
@@ -46,7 +61,7 @@ class GLDAS_Dataset(GLDASTs):
             tmp_info = kwargs.pop('tmp_info')
         self.active_tmp, self.file_tmp, self.clean_tmp = self._set_tmp_info(tmp_info)
 
-        super(GLDAS_Dataset, self).__init__(ts_path=gldas_data_folder, **kwargs)
+        super(CCI_Dataset, self).__init__(ts_path=cci_data_folder, **kwargs)
 
     # method to set tmp info
     @staticmethod
@@ -58,7 +73,7 @@ class GLDAS_Dataset(GLDASTs):
         path_tmp = tempfile.mkdtemp()
         if 'path_tmp' in list(tmp_info.keys()):
             path_tmp = tmp_info['path_tmp']
-        temp_obj = tempfile.NamedTemporaryFile(prefix='gldas_', suffix='.dframe')
+        temp_obj = tempfile.NamedTemporaryFile(prefix='cci_', suffix='.dframe')
         _, file_tmp = os.path.split(temp_obj.name)
         if 'file_tmp' in list(tmp_info.keys()):
             file_tmp = tmp_info['file_tmp']
@@ -71,7 +86,7 @@ class GLDAS_Dataset(GLDASTs):
 
         return active_tmp, os.path.join(path_tmp, file_tmp), clean_tmp
 
-    # method to read GLDAS time-series
+    # method to read CCI time-series
     def read(self, *args, **kwargs):
 
         # get tmp information
@@ -79,7 +94,7 @@ class GLDAS_Dataset(GLDASTs):
         gpi = args[0]
 
         # info time-series
-        logging.info(' ------> Read GLDAS time-series for GPI "' + str(gpi) + '" ... ')
+        logging.info(' ------> Read CCI time-series for GPI "' + str(gpi) + '" ... ')
 
         # organize dataframe
         try:
@@ -95,19 +110,17 @@ class GLDAS_Dataset(GLDASTs):
 
                 # read time-series
                 logging.info(' -------> Get data ... ')
-                ts_dframe = super(GLDAS_Dataset, self).read(*args)
-
+                ts_dframe = super(CCI_Dataset, self).read(*args)
                 # check time-series extracted using gpi
                 if ts_dframe is not None:
-                    ts_dframe[ts_dframe['SoilMoi0_10cm_inst'] < 0] = np.nan
+                    ts_dframe[ts_dframe['sm'] < 0] = np.nan
                     ts_dframe.dropna(inplace=True)
                     if ts_dframe.empty:
                         lon, lat = self.grid.gpi2lonlat(gpi)
                         logging.warning(' ===> ALL DATA ARE DEFINED BY NAN(S) :: POINT :: LON: ' +
                                         str(lon) + ' -- LAT: ' + str(lat) + ' -- GPI: ' + str(gpi))
                         logging.warning(' ===> All data for this gpi are defined by no_data time-series')
-                        logging.info(
-                            ' -------> Get data ... FAILED. Time-series will be initialized by empty dataframe')
+                        logging.info(' -------> Get data ... FAILED. Time-series will be initialized by empty dataframe')
                         ts_dframe = pd.DataFrame()
                     else:
                         logging.info(' -------> Get data ... DONE')
@@ -121,50 +134,43 @@ class GLDAS_Dataset(GLDASTs):
 
                 # testing for debugging
                 # lon, lat = self.grid.gpi2lonlat(gpi)
-                # ts_dframe_test = super(GLDAS_Dataset, self).read(lon, lat)
-
-                # info apply conversion start
-                logging.info(' -------> Apply conversion ...')
-                # soil moisture [kg/m^2] converted into [m^3/m^3]
-                if not ts_dframe.empty:
-                    d = 0.10  # thickness of soil layer in m
-                    ts_dframe['SoilMoi0_10cm_inst'] = ts_dframe['SoilMoi0_10cm_inst'] * 0.001 * 1 / d
-                    # info apply conversion end
-                    logging.info(' -------> Apply conversion ... DONE')
-                else:
-                    logging.info(' -------> Apply conversion ... SKIPPED. Dataframe is empty')
+                # ts_dframe_test = super(CCI_Dataset, self).read(lon, lat)
 
                 # info apply filter(s) start
                 logging.info(' -------> Apply filter(s) ...')
-                # apply filter(s)
                 if not ts_dframe.empty:
-                    ts_dframe = ts_dframe[ts_dframe['SWE_inst'] == self.mask_snow]
-                    if 'SoilTMP0_10cm_inst' in ts_dframe.columns:
-                        ts_dframe = ts_dframe[ts_dframe['SoilTMP0_10cm_inst'] > self.mask_soil_temp]
-                    elif 'Tair_f_inst' in ts_dframe.columns:
-                        ts_dframe = ts_dframe[ts_dframe['Tair_f_inst'] > self.mask_soil_temp]
-                    else:
-                        logging.error(' ===> GLDAS temperature variable is not expected.')
-                        raise NotImplemented('Case not implemented yet')
+                    # filter datasets
+                    if self.only_valid:
+                        self.mask_sm_nan = True
+                        self.mask_invalid_flags = True
+                    if self.mask_sm_nan:
+                        ts_dframe = ts_dframe[ts_dframe['sm'] != self.sm_nan]
+                    if self.mask_invalid_flags:
+                        ts_dframe = ts_dframe[ts_dframe['flag'] == self.valid_flag]
                     # info apply filter(s) end
                     logging.info(' -------> Apply filter(s) ... DONE')
                 else:
+                    # info apply filter(s) end
                     logging.info(' -------> Apply filter(s) ... SKIPPED. Dataframe is empty')
 
                 # check data valid
                 logging.info(' -------> Check data ... ')
                 if ts_dframe.size == 0:
-                    logging.warning(' ===> No data valid for GLDAS dataset')
-                    logging.warning(' ===> GLDAS time-series will be initialized by empty dataframe')
+                    logging.warning(' ===> No data valid for CCI dataset')
+                    logging.warning(' ===> CCI time-series will be initialized by empty dataframe')
                     ts_dframe = pd.DataFrame()
                     logging.info(' -------> Check data ... FAILED. No data available')
                 else:
                     valid_value = ts_dframe.shape[0]
                     start_index = ts_dframe.index[0].strftime('%Y-%m-%d %H:%M:%S')
                     end_index = ts_dframe.index[-1].strftime('%Y-%m-%d %H:%M:%S')
-                    logging.info(' -------> Data valid for GLDAS dataset (N: "' + str(valid_value) + '")')
-                    logging.info(' -------> Time valid for GLDAS dataset from "' + start_index +
+                    logging.info(' -------> Data valid for CCI dataset (N: "' + str(valid_value) + '")')
+                    logging.info(' -------> Time valid for CCI dataset from "' + start_index +
                                  '" to "' + end_index + '"')
+
+                    # add gpi reference
+                    ts_dframe.attrs['gpi_point'] = gpi
+
                     logging.info(' -------> Check data ... DONE')
 
                 # save time-series if flag is active
@@ -172,7 +178,7 @@ class GLDAS_Dataset(GLDASTs):
                     write_obj(file_gpi, ts_dframe)
 
                 # info time-series
-                logging.info(' ------> Read GLDAS time-series for GPI "' + str(gpi) + '" ... DONE ')
+                logging.info(' ------> Read CCI time-series for GPI "' + str(gpi) + '" ... DONE ')
 
             else:
 
@@ -181,33 +187,28 @@ class GLDAS_Dataset(GLDASTs):
 
                 # check data valid
                 if ts_dframe.size == 0:
-                    logging.warning(' ===> No data valid for GLDAS dataset')
-                    logging.warning(' ===> GLDAS time-series will be initialized by empty dataframe')
+                    logging.warning(' ===> No data valid for CCI dataset')
+                    logging.warning(' ===> CCI time-series will be initialized by empty dataframe')
                     ts_dframe = pd.DataFrame()
                 else:
                     valid_value = ts_dframe.shape[0]
                     start_index = ts_dframe.index[0].strftime('%Y-%m-%d %H:%M:%S')
                     end_index = ts_dframe.index[-1].strftime('%Y-%m-%d %H:%M:%S')
-                    logging.info(' -------> Data valid for GLDAS dataset (N: "' + str(valid_value) + '")')
-                    logging.info(' -------> Time valid for GLDAS dataset from "' + start_index +
+                    logging.info(' -------> Data valid for CCI dataset (N: "' + str(valid_value) + '")')
+                    logging.info(' -------> Time valid for CCI dataset from "' + start_index +
                                  '" to "' + end_index + '"')
 
                 # info time-series
-                logging.info(' ------> Read GLDAS time-series for GPI "' + str(gpi) + '" ... PREVIOUSLY SAVED')
+                logging.info(' ------> Read CCI time-series for GPI "' + str(gpi) + '" ... PREVIOUSLY SAVED')
 
         except BaseException as base_exc:
 
-            logging.warning(' ===> Error in reading GLDAS time-series "' + repr(base_exc) + '"')
-            logging.warning(' ===> GLDAS time-series will be initialized by empty dataframe')
+            logging.warning(' ===> Error in reading CCI time-series "' + repr(base_exc) + '"')
+            logging.warning(' ===> CCI time-series will be initialized by empty dataframe')
             ts_dframe = pd.DataFrame()
 
             # info time-series
-            logging.info(' ------> Read GLDAS time-series for GPI "' + str(gpi) + '" ... FAILED')
-
-        # ts must be defined by dataframe
-        if ts_dframe is None:
-            logging.warning(' ===> GLDAS time-series is defined by NoneType. It will be format using DataFrame')
-            ts_dframe = pd.DataFrame()
+            logging.info(' ------> Read CCI time-series for GPI "' + str(gpi) + '" ... FAILED')
 
         return ts_dframe
 # ----------------------------------------------------------------------------------------------------------------------

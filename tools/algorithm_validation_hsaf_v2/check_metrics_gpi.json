@@ -1,0 +1,13 @@
+{
+    "datasets": [
+        {
+            "file": "/share/VALIDATION_SM_HSAF/results/2026/GLOBAL_H16_V0/1394.nc",
+            "gpis": [2128135]
+        }
+    ],
+
+    "out_folder": "gpis_metrics/",
+
+    "gpi_var": "gpi",
+    "cell_var": "cell"
+}

@@ -14,7 +14,7 @@ import numpy as np
 
 # NOTE custom import to avoid errors in the package versions
 # from pytesmo.validation_framework.validation import Validation # errors in the gpis with no data
-from pytesmo_validation_framework import Validation         # version 14.x
+from pytesmo_validation_framework_hsaf import Validation         # version 14.x
 # from pytesmo_validation_framework_other import Validation # version 13.4
 
 from lib_utils_generic import get_dataset_modes, get_dataset_names
