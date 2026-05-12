@@ -1,0 +1,21 @@
+{
+  "ascat_path_ts": "/home/fabio/Desktop/recolour/dset/validation_hsaf/cell/ascat/",
+  "passive_path_ts": "/home/fabio/Desktop/recolour/dset/validation_hsaf/cell/cci/",
+  "gldas_path_ts": "/home/fabio/Desktop/recolour/dset/validation_hsaf/cell/gldas/",
+  "ascat_path_grid": "/home/fabio/Desktop/recolour/dset/ascat_static/",
+  "ascat_path_static": "/home/fabio/Desktop/recolour/dset/ascat_static/",
+  "results_path": "/home/fabio/Desktop/recolour/exec/validation_hsaf/results/alg_version_1/",
+  "logs_path": "/home/fabio/Desktop/recolour/exec/validation_hsaf/log/",
+  "ascat_type_ts": "data_nrt",
+  "time_start": "2023-06-01",
+  "time_end": "2025-06-01",
+  "time_format": "%Y-%m-%d",
+  "temporal_window": "12",
+  "lut_max_dist": "35000",
+  "anomaly": false,
+  "seasonal_metrics": false,
+  "mp_alg": true,
+  "mp_cpu": "100",
+  "cell_start": "0",
+  "cell_end": "2588"
+}

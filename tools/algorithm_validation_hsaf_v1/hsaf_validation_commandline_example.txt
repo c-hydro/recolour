@@ -1,0 +1,5 @@
+
+# h16
+source run_recolour_system_env_validation_tools.sh
+python hsaf_validation_main_ascat_sm.py -configfile validation_configuration_h16_2026.json 
+
