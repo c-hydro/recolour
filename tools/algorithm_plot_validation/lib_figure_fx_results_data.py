@@ -48,7 +48,9 @@ def plot_results_data(fig_file_name, fig_dframe, fig_kwargs, fig_committed_area=
     # get figure lons, lats and data
     fig_lons = fig_dframe['lon'].values
     fig_lats = fig_dframe['lat'].values
+
     fig_data = fig_dframe[fig_kwargs['parameter']].values
+    fig_data = np.array(fig_data, copy=True)
 
     tmp_dframe = fig_dframe.loc[fig_dframe['cell'] == 808]
 

@@ -42,6 +42,45 @@ def get_datasets_committed(df_globals, field='committed_area'):
     return df_committed
 # -----------------------------------------------------------------------------
 
+# -----------------------------------------------------------------------------
+# method to filter datasets cell
+def filter_datasets_cell(cell_list_in=None, cell_digits=4,
+                         folder_name_datasets='', file_name_datasets='{cell}.nc'):
+
+        # info script start
+        logging.info(' ----> Filter cell datasets ... ')
+
+        # iterate over cell(s)
+        cell_list_out = []
+        for cell_n in cell_list_in:
+
+            # format cell
+            cell_n = int(cell_n)
+            cell_string = str(cell_n).zfill(cell_digits)
+
+            # info start cell
+            logging.info(' -----> Cell "' + cell_string + '" ... ')
+
+            # compose file name
+            file_path_datasets = os.path.join(folder_name_datasets, file_name_datasets)
+            file_path_datasets = file_path_datasets.format(cell=cell_string)
+
+            # search file name (if exists or not)
+            logging.info(' ------> File "' + file_path_datasets + '" ...')
+            if os.path.exists(file_path_datasets):
+                logging.info(' ------> File "' + file_path_datasets + '" ... EXISTS. Cell selected.')
+                cell_list_out.append(cell_n)
+            else:
+                logging.info(' ------> File "' + file_path_datasets + '" ... DOES NOT EXISTS. Cell removed')
+
+            logging.info(' -----> Cell "' + cell_string + '" ... DONE')
+
+        # info script end
+        logging.info(' ----> Filter cell datasets ... DONE')
+
+        return cell_list_out
+# -----------------------------------------------------------------------------
+
 
 # -----------------------------------------------------------------------------
 # method to organize datasets cells
@@ -70,96 +109,49 @@ def organize_datasets_cell(
         cell_string = str(cell_n).zfill(cell_digits)
 
         # info start cell
-        logging.info(' ----> Cell "' + cell_string + '" ... ')
+        logging.info(' -----> Cell "' + cell_string + '" ... ')
 
+        # define folder and file name
         file_path_datasets = os.path.join(folder_name_datasets, file_name_datasets)
         file_path_datasets = file_path_datasets.format(cell=cell_string)
 
-        if os.path.exists(file_path_datasets) or active_fill_cell:
+        # info start read
+        logging.info(' ------> Read datasets ... ')
+        # check if file exists or not
+        if os.path.exists(file_path_datasets):
+
             # init datasets out
             if cell_datasets_out is None:
                 cell_datasets_out = {}
 
             # get datasets in
-            if os.path.exists(file_path_datasets):
-                cell_datasets_in = read_file_cell(file_path_datasets, file_variables=list_variable_in)
-                if var_list is None:
-                    var_list = list(cell_datasets_in.keys())
+            cell_datasets_in = read_file_cell(file_path_datasets, expected_variables=list_variable_in)
+            if var_list is None:
+                var_list = list(cell_datasets_in.keys())
+
+            # check datasets in
+            if cell_datasets_in is None or not cell_datasets_in:
+
+                # info end read - failed
+                logging.warning(' ===> Cell datasets are defined by NoneType')
+                logging.info(' ------> Read datasets ... FAILED')
+                logging.info(' -----> Cell "' + cell_string + '" ... SKIPPED')
+
             else:
-                if var_list is not None:
-                    gpis, lons, lats = cell_grid.grid_points_for_cell(cell_n)
-                    cell_n = gpis.__len__()
-                    cell_datasets_tmp = {}
-                    for var_name in var_list:
-                        if var_name == 'lon':
-                            cell_datasets_tmp[var_name] = lons.data
-                        elif var_name == 'lat':
-                            cell_datasets_tmp[var_name] = lats.data
-                        elif var_name == 'gpi':
-                            cell_datasets_tmp[var_name] = gpis.data
-                        elif var_name == 'ALL_n_obs':
-                            empty_arr = np.zeros(cell_n)
-                            cell_datasets_tmp[var_name] = empty_arr
-                        else:
-                            empty_arr = np.zeros(cell_n)
-                            empty_arr[:] = np.nan
-                            cell_datasets_tmp[var_name] = empty_arr
-                    cell_datasets_in = deepcopy(cell_datasets_tmp)
-                else:
-                    logging.warning(' ===> Variable list is not defined. Cell datasets wont be filled by zeros')
-                    logging.info(' ----> Cell "' + cell_string + '" ... SKIPPED')
-                    continue
 
-            flag_n_obs = True
-            if 'ALL_n_obs' in list(cell_datasets_in.keys()):
-                n_obs = cell_datasets_in['ALL_n_obs']
-                if np.all(n_obs == 0):
-                    logging.warning(' ===> Cell "' + cell_string +
-                                    '" is empty. All gpi(s) have observations equal to zero')
-                    if active_empty_cell:
-                        flag_n_obs = False
+                # info end read - done
+                logging.info(' ------> Read datasets ... DONE')
 
-                    if active_fill_cell:
-
-                        if var_list is not None:
-                            gpis, lons, lats = cell_grid.grid_points_for_cell(cell_n)
-                            cell_n = gpis.__len__()
-
-                            cell_datasets_tmp = {}
-                            for var_name in var_list:
-                                if var_name == 'lon':
-                                    cell_datasets_tmp[var_name] = lons.data
-                                elif var_name == 'lat':
-                                    cell_datasets_tmp[var_name] = lats.data
-                                elif var_name == 'gpi':
-                                    cell_datasets_tmp[var_name] = gpis.data
-                                elif var_name == 'ALL_n_obs':
-                                    empty_arr = np.zeros(cell_n)
-                                    cell_datasets_tmp[var_name] = empty_arr
-                                else:
-                                    empty_arr = np.zeros(cell_n)
-                                    empty_arr[:] = np.nan
-                                    cell_datasets_tmp[var_name] = empty_arr
-                            cell_datasets_in = deepcopy(cell_datasets_tmp)
-                        else:
-                            logging.warning(' ===> Variable list is not defined. Cell datasets wont be filled by zeros')
-                            logging.info(' ----> Cell "' + cell_string + '" ... SKIPPED')
-                            continue
-
-            # check if samples are empty or not
-            if flag_n_obs:
+                # info start organize
+                logging.info(' ------> Organize datasets ... ')
                 # iterate over variables
-                var_n = None
+                var_n = len(cell_datasets_in['gpi'])
                 for var_name_in, var_name_out in zip(list_variable_in, list_variable_out):
 
+                    # check variable in datasets in
                     if var_name_in in list(cell_datasets_in.keys()):
+
                         var_data_in = cell_datasets_in[var_name_in]
-
-                        if isinstance(var_data_in, np.ma.MaskedArray):
-                            var_data_in = var_data_in.data
-
-                        if var_n is None:
-                            var_n = var_data_in.shape[0]
 
                         # Save variable(s) defined in list (or save all variable(s)
                         if var_name_out not in cell_datasets_out:
@@ -169,16 +161,6 @@ def organize_datasets_cell(
                             var_data_tmp = cell_datasets_out[var_name_out]
                             var_data_tmp = np.concatenate([var_data_tmp, var_data_in])
                             cell_datasets_out[var_name_out] = var_data_tmp
-
-                    else:
-                        if variable_not_found == 'warning':
-                            logging.warning(' ===> Variable "' + var_name_in + '" not found in file "' +
-                                            file_path_datasets + '"')
-                            logging.warning(' ===> Variable "' + var_name_out + '" not saved in datasets')
-                        elif variable_not_found == 'error':
-                            logging.error(' ===> Variable "' + var_name_in + '" not found in file "' +
-                                          file_path_datasets + '"')
-                            raise RuntimeError('Variable "' + var_name_out + '" not saved in datasets')
 
                 # Save extra variable(s)
                 var_cell_out = [int(cell_string)] * var_n
@@ -190,22 +172,25 @@ def organize_datasets_cell(
                     var_cell_tmp = np.concatenate([var_cell_tmp, var_cell_out])
                     cell_datasets_out['cell'] = var_cell_tmp
 
-                # info end cell
-                logging.info(' ----> Cell "' + cell_string + '" ... DONE')
+                # info end organize
+                logging.info(' ------> Organize datasets ... DONE')
 
-            else:
                 # info end cell
-                logging.warning(' ===> File cell "' + file_path_datasets + '" samples are always zeros')
-                logging.info(' ----> Cell "' + cell_string + '" ... SKIPPED')
+                logging.info(' -----> Cell "' + cell_string + '" ... DONE')
 
         else:
             # info end cell
             logging.warning(' ===> File cell "' + file_path_datasets + '" not found')
-            logging.info(' ----> Cell "' + cell_string + '" ... SKIPPED')
+            logging.info(' ------> Read datasets ... FAILED')
+            logging.info(' -----> Cell "' + cell_string + '" ... SKIPPED')
 
-    if cell_datasets_out is None:
+    # check if datasets out is None or not defined
+    if cell_datasets_out is None or not cell_datasets_out:
         logging.error(' ===> Cell datasets is defined by NoneType. All cells are not found or empty')
         raise RuntimeError('Cell datasets is empty. Check your datasets path(s)')
+
+    # info script end
+    logging.info(' ----> Get cell datasets ... DONE')
 
     return cell_datasets_out
 
@@ -216,6 +201,9 @@ def organize_datasets_cell(
 # method to add datasets grid
 def organize_datasets_grid(data_obj, data_type='ASCAT',
                            file_name_grid='TUW_WARP5_grid_info_2_3.nc'):
+
+    # info script start
+    logging.info(' ----> Organize cell datasets ... ')
 
     # get reference grid
     if os.path.exists(file_name_grid):
@@ -260,6 +248,9 @@ def organize_datasets_grid(data_obj, data_type='ASCAT',
     else:
         logging.error(' ===> Grid fields are not available in the grid file "' + file_name_grid + '" ')
         raise RuntimeError('Fields must be defined in the grid obj')
+
+    # info script end
+    logging.info(' ----> Organize cell datasets ... DONE')
 
     return data_obj
 # -----------------------------------------------------------------------------

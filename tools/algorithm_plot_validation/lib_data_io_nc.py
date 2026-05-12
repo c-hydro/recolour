@@ -24,31 +24,90 @@ from lib_utils_grid import read_grid_file, find_grid_idx_to_data
 
 # -----------------------------------------------------------------------------
 # method to read file cell in netcdf format
-def read_file_cell(file_name, file_variables=None):
+def read_file_cell(file_name, expected_variables=None):
 
+    # initialize variable workspace
     variable_workspace = None
+
+    # check expected variables
+    if expected_variables is None or not expected_variables:
+        logging.error(
+            f' ===> Expected variables for selecting in cell files are not defined. Exit.')
+        raise SystemExit
+
+    # open the cell file
     with netCDF4.Dataset(file_name) as file_handle:
 
-        for variable_id, variable_name in enumerate(file_handle.variables):
+        # define file variables
+        file_variables = list(file_handle.variables)
 
-            if file_variables is not None:
-                if variable_name in file_variables:
+        # analyze found or missing variables
+        variables_found = [var for var in expected_variables if var in file_variables]
+        variables_missing = [var for var in expected_variables if var not in file_variables]
+
+        # print info
+        logging.info(f' ::: File variables: {file_variables}')
+        logging.info(f' ::: Expected variables: {expected_variables}')
+        logging.info(f' ::: Variables found: {variables_found}')
+        if variables_missing:
+            logging.warning(f' ::: Variables missing: {variables_missing}')
+        else:
+            logging.info(' ::: All expected variables were found')
+
+        # check file variables
+        if file_variables is None or not file_variables:
+            logging.warning(
+                f' ===> Expected variables for selecting in cell files are not defined. Return NoneType.')
+            return None
+
+        # iterate over expected variable(s)
+        for variable_id, variable_name in enumerate(expected_variables):
+
+            # initialize workspace
+            if variable_workspace is None:
+                variable_workspace = {}
+
+            # check if expected variables is in the file variable list
+            if variable_name in file_variables:
+
+                try:
                     variable_tmp = file_handle.variables[variable_name][:]
-                else:
+                except Exception as exc:
+                    logging.warning(
+                        f' ===> Reading variable "{variable_name}": {exc}. File not correctly saved. Return NoneType')
                     variable_tmp = None
-
             else:
-                variable_tmp = file_handle.variables[variable_name][:]
+                logging.warning(
+                    f' ===> Variable name "{variable_name}" not in {file_variables}. Return NoneType')
+                variable_tmp = None
 
+            # check if variables is defined or not
             if variable_tmp is not None:
+                # get values from masked arrays (if defined by mask)
                 if isinstance(variable_tmp, np.ma.MaskedArray):
                     variable_data = variable_tmp.data
                 else:
                     variable_data = deepcopy(variable_tmp)
 
-                if variable_workspace is None:
-                    variable_workspace = {}
+                # saved variable
                 variable_workspace[variable_name] = variable_data
+            else:
+                # saved nonetype if variable are not available
+                variable_workspace[variable_name] = None
+
+    # check workspace content
+    variables_none = [
+        variable_name
+        for variable_name, variable_data in variable_workspace.items()
+        if variable_data is None
+    ]
+
+    if variables_none:
+        logging.warning(
+            f' ===> One or more variables are NoneType: {variables_none}. '
+            f'Set variable workspace to NoneType.')
+
+        variable_workspace = None
 
     return variable_workspace
 # -----------------------------------------------------------------------------

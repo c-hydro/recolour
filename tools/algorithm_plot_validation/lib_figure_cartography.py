@@ -449,7 +449,12 @@ class CartoMap():
         self.ax = self.fig.add_axes(map_pos, projection=map_crs)
 
         if not frame:
-            self.ax.outline_patch.set_visible(False)
+            # hide map border
+            try:
+                self.ax.spines['geo'].set_visible(False)
+            except Exception:
+                if hasattr(self.ax, 'outline_patch'):
+                    self.ax.outline_patch.set_visible(False)
 
         self.coast = cartopy.feature.NaturalEarthFeature(
             category='physical', scale='50m', name='coastline',

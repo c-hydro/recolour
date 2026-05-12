@@ -3,8 +3,8 @@ Library Features:
 
 Name:          lib_data_statistics_box
 Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:          '20240411'
-Version:       '1.1.0'
+Date:          '20260507'
+Version:       '1.2.0'
 """
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -17,8 +17,8 @@ import pandas as pd
 
 from copy import deepcopy
 
-from pandas.core.common import SettingWithCopyWarning
-warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
+#from pandas.core.common import SettingWithCopyWarning
+#warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 
 logging.getLogger('pandas').setLevel(logging.WARNING)
 # ----------------------------------------------------------------------------------------------------------------------
