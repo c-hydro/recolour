@@ -2,13 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-RECOLOUR APPS - SSM H122 TRANSFER - EXECUTION WRAPPER
-
-
-python3 exec_algorithm.py \
-    -use_env_python \
-    -virtual_env_name recolour_libraries
-
+RECOLOUR APPS - ASCAT SWATH2CELL H122 - ORGANIZER_CELL - EXECUTION WRAPPER
 """
 
 import os
@@ -26,43 +20,38 @@ warnings.filterwarnings(
 )
 
 # ----------------------------------------------------------------------------------------------------------------------
-# algorithm information
 project_name = 'recolour'
-alg_name = 'Execution wrapper for ssm h122 transfer over a time period'
+alg_name = 'Execution wrapper for ECMWF PROFILE H26 over a time period'
 alg_type = 'Exec'
-alg_version = '1.5.0'
-alg_release = '2026-04-27'
+alg_version = '1.6.0'
+alg_release = '2026-04-30'
 # ----------------------------------------------------------------------------------------------------------------------
 
-# ----------------------------------------------------------------------------------------------------------------------
-# default script and settings file
-default_script_file = "/home/cfmi.arpal.org/satsuolo/library/package_recolour/tools/algorithm_downloader/ascat/h122/ascat_downloader_ssm_h122.py"
-default_settings_file = "/home/cfmi.arpal.org/satsuolo/Umidita_suolo/script/algorithm_downloader/ascat/h122/ascat_downloader_ssm_h122.json"
+default_script_file = "/home/cfmi.arpal.org/satsuolo/library/package_recolour/app/app_cell/convert_swath2cell/ascat/h122/app_swath2cell_h122.py"
+default_settings_file = "/home/cfmi.arpal.org/satsuolo/Umidita_suolo/script/algorithm_organizer_cell/convert_swath2cell/ascat/h122/ascat_swath2cell_nrt_ssm_h122.json"
 
-# default environment settings
-virtual_env_folder = '/home/cfmi.arpal.org/satsuolo/library/conda_recolour_downloader/bin/'
-virtual_env_name = 'recolour_downloader_libraries'
+virtual_env_folder = '/home/cfmi.arpal.org/satsuolo/library/conda_recolour_converter/bin/'
+virtual_env_name = 'recolour_converter_libraries'
 
-# default summary settings
 default_input_summary_folder = None
 default_input_summary_name = None
 
-default_output_summary_folder = "./summary/{domain}/{time_workflow:%Y%m%d%H}"
-default_output_summary_name = "run_{run_id}_{time_start:%Y%m%d}.json"
+default_output_summary_folder = "/home/cfmi.arpal.org/satsuolo/QNAPDEV_SaturazioneSuolo/info/execution/organizer_cell/{time_workflow:%Y%m%d}/"
+default_output_summary_name = "ascat_organizer_swath2cell_nrt_h122_{time_workflow:%Y%m%d_%H}.json"
 
-default_algorithm = "algorithm_transfer"
+default_algorithm = "algorithm_organizer_cell"
 
-# ENV_NAME -> context variable
 default_summary_env_map = {
-    "TIME_NOW": "time_now",
-    "TIME_WORKFLOW": "time_workflow",
-    "DOMAIN_WORKFLOW": "domain"
+    "H122_TIME_NOW": "time_now",
+    "H122_TIME_WORKFLOW": "time_workflow",
+    "H122_DOMAIN_WORKFLOW": "domain"
 }
 
-# Extra summary/context variables
 default_summary_extra = {
     "domain": "italy",
-    "product": "ssm_h122_nrt"
+    "product": "cell_h122",
+    "mode": "nrt",
+    "algorithm": "organizer_from_swath_to_cell"
 }
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -96,76 +85,186 @@ def format_template(template_string, context_dict=None):
 
 # ----------------------------------------------------------------------------------------------------------------------
 # time utils
-def normalize_time(time_obj, round_option="day"):
+def normalize_time(
+        time_obj,
+        round_mode="day",
+        round_hour_step=None,
+        round_flat=None
+):
 
-    round_option = round_option.lower()
+    round_mode = round_mode.lower()
 
-    if round_option == "day":
-        return time_obj.replace(hour=0, minute=0, second=0, microsecond=0)
-
-    elif round_option in ["hour", "hour_floor"]:
+    if round_mode in ["hour", "hour_floor"]:
         return time_obj.replace(minute=0, second=0, microsecond=0)
 
-    elif round_option == "hour_ceil":
+    elif round_mode == "hour_ceil":
         time_floor = time_obj.replace(minute=0, second=0, microsecond=0)
+
         if time_obj == time_floor:
             return time_floor
+
         return time_floor + timedelta(hours=1)
+
+    elif round_mode == "hour_nearest":
+        time_floor = time_obj.replace(minute=0, second=0, microsecond=0)
+
+        if time_obj.minute < 30:
+            return time_floor
+
+        return time_floor + timedelta(hours=1)
+
+    elif round_mode == "hour_step":
+
+        if round_hour_step is None:
+            raise ValueError('round_hour_step must be defined when round_mode="hour_step"')
+
+        step = int(round_hour_step)
+
+        if step <= 0 or 24 % step != 0:
+            raise ValueError("round_hour_step must be a divisor of 24, for example 1, 3, 6, 12, 24")
+
+        hour_floor = int(time_obj.hour / step) * step
+
+        return time_obj.replace(
+            hour=hour_floor,
+            minute=0,
+            second=0,
+            microsecond=0
+        )
+
+    elif round_mode == "flat":
+
+        if round_flat is None:
+            raise ValueError('round_flat must be defined when round_mode="flat"')
+
+        flat_hour = int(round_flat)
+
+        if flat_hour < 0 or flat_hour > 23:
+            raise ValueError("round_flat must be between 0 and 23")
+
+        time_ref = time_obj.replace(
+            hour=flat_hour,
+            minute=0,
+            second=0,
+            microsecond=0
+        )
+
+        if time_ref <= time_obj:
+            return time_ref
+
+        return time_ref - timedelta(days=1)
+
+    elif round_mode == "day":
+        return time_obj.replace(hour=0, minute=0, second=0, microsecond=0)
 
     else:
         raise ValueError(
-            'round_option must be one of: "day", "hour", "hour_floor", "hour_ceil"'
+            'round_mode must be one of: '
+            '"day", "hour", "hour_floor", "hour_ceil", '
+            '"hour_nearest", "hour_step", "flat"'
         )
 
 
-def parse_time(time_string, round_option="day"):
+def parse_time(
+        time_string,
+        round_mode="day",
+        round_hour_step=None,
+        round_flat=None
+):
 
     try:
         time_obj = datetime.strptime(time_string, "%Y-%m-%d %H:%M")
     except ValueError as exc:
         raise ValueError('Time must have format "YYYY-MM-DD HH:MM"') from exc
 
-    return normalize_time(time_obj, round_option=round_option)
+    return normalize_time(
+        time_obj,
+        round_mode=round_mode,
+        round_hour_step=round_hour_step,
+        round_flat=round_flat
+    )
 
 
-def get_time_now(time_string=None, round_option="day", time_utc=False,
-                 env_var="TIME_NOW"):
+def get_time_now(
+        time_string=None,
+        round_mode="day",
+        time_utc=False,
+        env_var="TIME_NOW",
+        round_hour_step=None,
+        round_flat=None
+):
 
     env_value = os.environ.get(env_var, None)
 
     if not is_none(env_value):
         try:
-            return parse_time(env_value, round_option=round_option)
+            return parse_time(
+                env_value,
+                round_mode=round_mode,
+                round_hour_step=round_hour_step,
+                round_flat=round_flat
+            )
         except Exception as exc:
             raise RuntimeError(
                 f'Invalid {env_var} format: "{env_value}". Expected "YYYY-MM-DD HH:MM"'
             ) from exc
 
     if time_string is not None:
-        return parse_time(time_string, round_option=round_option)
+        return parse_time(
+            time_string,
+            round_mode=round_mode,
+            round_hour_step=round_hour_step,
+            round_flat=round_flat
+        )
 
     if time_utc:
         time_obj = datetime.utcnow()
     else:
         time_obj = datetime.now()
 
-    return normalize_time(time_obj, round_option=round_option)
+    return normalize_time(
+        time_obj,
+        round_mode=round_mode,
+        round_hour_step=round_hour_step,
+        round_flat=round_flat
+    )
 
 
-def get_time_range(time_now=None, time_period=2, time_start=None, time_end=None,
-                   round_option="day", time_utc=False):
+def get_time_range(
+        time_now=None,
+        time_period=2,
+        time_start=None,
+        time_end=None,
+        round_mode="day",
+        time_utc=False,
+        round_hour_step=None,
+        round_flat=None
+):
 
     if (time_start is not None) and (time_end is not None):
 
-        time_from = parse_time(time_start, round_option=round_option)
-        time_to = parse_time(time_end, round_option=round_option)
+        time_from = parse_time(
+            time_start,
+            round_mode=round_mode,
+            round_hour_step=round_hour_step,
+            round_flat=round_flat
+        )
+
+        time_to = parse_time(
+            time_end,
+            round_mode=round_mode,
+            round_hour_step=round_hour_step,
+            round_flat=round_flat
+        )
 
     elif (time_start is None) and (time_end is None):
 
         time_to = get_time_now(
             time_string=time_now,
-            round_option=round_option,
-            time_utc=time_utc
+            round_mode=round_mode,
+            time_utc=time_utc,
+            round_hour_step=round_hour_step,
+            round_flat=round_flat
         )
 
         time_from = time_to - timedelta(days=int(time_period))
@@ -240,7 +339,12 @@ def set_summary_to_env(env_map=None, context_dict=None):
         os.environ[env_key] = format_value(value)
 
 
-def get_summary_from_env(env_map=None, round_option="day"):
+def get_summary_from_env(
+        env_map=None,
+        round_mode="day",
+        round_hour_step=None,
+        round_flat=None
+):
 
     summary_dict = {}
 
@@ -255,7 +359,12 @@ def get_summary_from_env(env_map=None, round_option="day"):
             continue
 
         try:
-            value = parse_time(env_value, round_option=round_option)
+            value = parse_time(
+                env_value,
+                round_mode=round_mode,
+                round_hour_step=round_hour_step,
+                round_flat=round_flat
+            )
         except Exception:
             value = env_value
 
@@ -355,12 +464,14 @@ def check_summary_file(summary_file):
     return False
 
 
-def save_summary_file(summary_file, time_now, time_now_utc, round_option,
+def save_summary_file(summary_file, time_now, time_now_utc, round_mode,
                       time_start, time_end, time_steps,
                       n_done, n_failed, status="DONE",
                       algorithm=None,
                       summary_context=None,
-                      summary_env_map=None):
+                      summary_env_map=None,
+                      round_hour_step=None,
+                      round_flat=None):
 
     if is_none(summary_file):
         return
@@ -381,7 +492,10 @@ def save_summary_file(summary_file, time_now, time_now_utc, round_option,
         "time_workflow": time_workflow.strftime("%Y-%m-%d %H:%M") if isinstance(time_workflow, datetime) else time_workflow,
         "time_now": time_now.strftime("%Y-%m-%d %H:%M") if time_now is not None else None,
         "time_now_utc": time_now_utc.strftime("%Y-%m-%d %H:%M") if time_now_utc is not None else None,
-        "round_option": round_option,
+
+        "round_mode": round_mode,
+        "round_hour_step": round_hour_step,
+        "round_flat": round_flat,
 
         "time_start": time_start.strftime("%Y-%m-%d %H:%M"),
         "time_end": time_end.strftime("%Y-%m-%d %H:%M"),
@@ -426,7 +540,7 @@ def update_env(base_env, script_folder, env_folder=None, env_name=None):
 
     return env
 
-# get executable from conda generic
+
 def get_python_executable(env_folder=None, use_env_python=True):
 
     if use_env_python and not is_none(env_folder):
@@ -438,7 +552,7 @@ def get_python_executable(env_folder=None, use_env_python=True):
 
     return sys.executable
 
-# get executbale from conda libraries
+
 def get_conda_env_python(env_name, conda_root=None):
 
     if is_none(env_name):
@@ -536,10 +650,41 @@ def get_args():
     parser.add_argument("-reverse", dest="reverse", action="store_true")
 
     parser.add_argument(
-        "-round_option",
-        dest="round_option",
+        "-round_mode",
+        dest="round_mode",
         default="day",
-        choices=["day", "hour", "hour_floor", "hour_ceil"]
+        choices=[
+            "day",
+            "hour",
+            "hour_floor",
+            "hour_ceil",
+            "hour_nearest",
+            "hour_step",
+            "flat"
+        ],
+        help=(
+            "Rounding mode. "
+            "day=midnight, hour/hour_floor=previous full hour, "
+            "hour_ceil=next full hour, hour_nearest=nearest hour, "
+            "hour_step=latest cycle using round_hour_step, "
+            "flat=fixed daily reference hour using round_flat."
+        )
+    )
+
+    parser.add_argument(
+        "-round_hour_step",
+        dest="round_hour_step",
+        type=int,
+        default=None,
+        help="Hour step for round_mode=hour_step. Example: 6 gives cycles 00,06,12,18."
+    )
+
+    parser.add_argument(
+        "-round_flat",
+        dest="round_flat",
+        type=int,
+        default=None,
+        help="Flat daily reference hour for round_mode=flat. Example: 6 gives latest 06:00 <= time_now."
     )
 
     parser.add_argument("-time_utc", dest="time_utc", action="store_true")
@@ -583,6 +728,12 @@ def main():
     if args.step_hours <= 0:
         raise RuntimeError("step_hours must be > 0")
 
+    if args.round_mode == "hour_step" and args.round_hour_step is None:
+        raise RuntimeError('round_hour_step must be defined when round_mode="hour_step"')
+
+    if args.round_mode == "flat" and args.round_flat is None:
+        raise RuntimeError('round_flat must be defined when round_mode="flat"')
+
     if not is_none(args.virtual_env_folder):
         env_folder = os.path.abspath(args.virtual_env_folder)
     else:
@@ -590,16 +741,20 @@ def main():
 
     time_now_obj = get_time_now(
         time_string=args.time_now,
-        round_option=args.round_option,
+        round_mode=args.round_mode,
         time_utc=args.time_utc,
-        env_var="TIME_NOW"
+        env_var="TIME_NOW",
+        round_hour_step=args.round_hour_step,
+        round_flat=args.round_flat
     )
 
     time_now_utc_obj = get_time_now(
         time_string=args.time_now,
-        round_option=args.round_option,
+        round_mode=args.round_mode,
         time_utc=True,
-        env_var="TIME_NOW"
+        env_var="TIME_NOW",
+        round_hour_step=args.round_hour_step,
+        round_flat=args.round_flat
     )
 
     time_start, time_end = get_time_range(
@@ -607,8 +762,10 @@ def main():
         time_period=args.time_period,
         time_start=args.time_start,
         time_end=args.time_end,
-        round_option=args.round_option,
-        time_utc=args.time_utc
+        round_mode=args.round_mode,
+        time_utc=args.time_utc,
+        round_hour_step=args.round_hour_step,
+        round_flat=args.round_flat
     )
 
     time_steps = iter_time_steps(
@@ -632,7 +789,9 @@ def main():
 
     summary_context_from_env = get_summary_from_env(
         env_map=default_summary_env_map,
-        round_option=args.round_option
+        round_mode=args.round_mode,
+        round_hour_step=args.round_hour_step,
+        round_flat=args.round_flat
     )
 
     summary_context.update(summary_context_from_env)
@@ -657,11 +816,16 @@ def main():
         env_name=args.virtual_env_name
     )
 
-    # select python executable
     if args.use_env_python:
-        python_exe = get_conda_env_python(env_name=args.virtual_env_name, conda_root=os.path.dirname(env_folder) if env_folder else None)
+        python_exe = get_conda_env_python(
+            env_name=args.virtual_env_name,
+            conda_root=os.path.dirname(env_folder) if env_folder else None
+        )
     else:
-        python_exe = get_python_executable(env_folder=env_folder,use_env_python=False)
+        python_exe = get_python_executable(
+            env_folder=env_folder,
+            use_env_python=False
+        )
 
     print(' ============================================================================ ')
     print(' ==> ' + alg_name + ' (Version: ' + alg_version + ' Release_Date: ' + alg_release + ')')
@@ -673,7 +837,9 @@ def main():
     print(f' ---> Time workflow:           {summary_context["time_workflow"].strftime("%Y-%m-%d %H:%M:%S")}')
     print(f' ---> Time now:                {time_now_obj.strftime("%Y-%m-%d %H:%M:%S")}')
     print(f' ---> Time now UTC:            {time_now_utc_obj.strftime("%Y-%m-%d %H:%M:%S")}')
-    print(f' ---> Round option:            {args.round_option}')
+    print(f' ---> Round mode:              {args.round_mode}')
+    print(f' ---> Round hour step:         {args.round_hour_step}')
+    print(f' ---> Round flat:              {args.round_flat}')
     print(f' ---> Time start:              {time_start.strftime("%Y-%m-%d %H:%M:%S")}')
     print(f' ---> Time end:                {time_end.strftime("%Y-%m-%d %H:%M:%S")}')
     print(f' ---> Step hours:              {args.step_hours}')
@@ -684,7 +850,7 @@ def main():
     print(' ')
     print(f' ---> Input summary file:      {input_summary_file}')
     print(f' ---> Output summary file:     {output_summary_file}')
-    print(f' ---> Algorithm:     {args.algorithm}')
+    print(f' ---> Algorithm:               {args.algorithm}')
     print(' ')
     print(f' ---> Summary env map:         {default_summary_env_map}')
     print(f' ---> Summary extra vars:      {default_summary_extra}')
@@ -744,7 +910,9 @@ def main():
         summary_file=output_summary_file,
         time_now=time_now_obj,
         time_now_utc=time_now_utc_obj,
-        round_option=args.round_option,
+        round_mode=args.round_mode,
+        round_hour_step=args.round_hour_step,
+        round_flat=args.round_flat,
         time_start=time_start,
         time_end=time_end,
         time_steps=time_steps,
@@ -768,6 +936,7 @@ def main():
     print(' ==> Bye, Bye')
     print(' ============================================================================ ')
 
+# ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
