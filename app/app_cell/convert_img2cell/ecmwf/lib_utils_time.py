@@ -92,7 +92,7 @@ def set_time_info(time_run_args=None, time_run_file=None, time_format='%Y-%m-%d 
         time_day_end = time_tmp.floor(time_rounding)
         if time_frequency == 'D':
             time_day_start = time_now - timedelta(hours=24*time_period)
-        if time_frequency == 'H':
+        if time_frequency in ['h', 'H'] :
             time_day_start = time_now - timedelta(hours=time_period)
 
         if time_period > 1:
@@ -137,8 +137,8 @@ def set_time_info(time_run_args=None, time_run_file=None, time_format='%Y-%m-%d 
 
             time_tmp = pd.Timestamp(time_run)
 
-            time_period_run = time_tmp.floor('H')
-            time_period_end = time_tmp.floor('H')
+            time_period_run = time_tmp.floor('h')
+            time_period_end = time_tmp.floor('h')
             time_period_start = pd.date_range(end=time_period_end, periods=time_period, freq=time_frequency)[0]
             time_period_start = time_period_start.floor(time_rounding)
 
