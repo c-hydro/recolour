@@ -3,8 +3,8 @@ Library Features:
 
 Name:          lib_utils_grid
 Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:          '20230727'
-Version:       '1.0.0'
+Date:          '20260512'
+Version:       '1.1.0'
 """
 
 # -----------------------------------------------------------------------------
@@ -16,7 +16,11 @@ import time
 import pandas as pd
 import numpy as np
 
+from copy import deepcopy
+
 import pygeogrids.grids as grids
+
+from lib_data_io_pickle import read_file_obj, write_file_obj
 
 # set default values
 committed_area_default, land_data_default = 1, 1
@@ -101,18 +105,35 @@ def get_grid_reference(dset_obj, dset_key_root='reference',
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to define grid cells
-def get_grid_cells(cell_start=0, cell_end=2566, cells_list=None,
-                   path_grid='', file_grid='TUW_WARP5_grid_info_2_2.nc'):
+def get_grid_objects(cell_start=0, cell_end=2566, cells_list=None, land_filter=True,
+                     path_grid='', file_grid='TUW_WARP5_grid_info_2_2.nc',
+                     reset_anc=True,
+                     path_anc=None, file_anc='TUW_WARP5_grid_info_2_2.workspace'):
 
     # info start
-    logging.info(' ---> Compute cells list ... ')
+    logging.info(' ---> Get grid objects ... ')
 
-    # check if cell list is defined or not
-    if cells_list is None:
+    # manage paths source and ancillary
+    file_path = (
+        os.path.join(path_grid, file_grid)
+        if path_grid is not None else file_grid
+    )
 
-        # use grid file
-        logging.info(' ----> Use information defined in the grid files ... ')
-        file_path = os.path.join(path_grid, file_grid)
+    path_anc = (
+        os.path.join(path_anc, file_anc)
+        if path_anc is not None else file_anc
+    )
+    if path_anc is not None:
+        os.makedirs(os.path.dirname(path_anc), exist_ok=True)
+
+    # remove ancillary file (if needed)
+    if reset_anc:
+        if os.path.exists(path_anc):
+            os.remove(path_anc)
+
+    # get grid files - start
+    logging.info(f' ----> Get information from grid file {file_path} ... ')
+    if not os.path.exists(path_anc):
         if os.path.exists(file_path):
 
             file_handle = netCDF4.Dataset(os.path.join(path_grid, file_grid), mode='r')
@@ -120,73 +141,119 @@ def get_grid_cells(cell_start=0, cell_end=2566, cells_list=None,
             gpi = file_handle['gpi'][:]
             lons = file_handle['lon'][:]
             lats = file_handle['lat'][:]
+            ca = file_handle['committed_area'][:]
 
-            land_gp = np.where(file_handle.variables['land_flag'][:] == 1)[0]
-            grid = grids.CellGrid(lons[land_gp], lats[land_gp], cell[land_gp],
-                                  gpi[land_gp])
-
-            land = None
-            if 'land_flag' in list(file_handle.variables):
-                land = file_handle['land_flag'][:]
-            file_handle.close()
-
-            # get cells
-            if land is not None:
-                cells = np.unique(cell[land == 1])
+            # apply filtering or not
+            if land_filter:
+                idx = np.where(file_handle.variables['land_flag'][:] == 1)[0]
             else:
-                cells = np.unique(cell)
+                idx = slice(None)
 
-            # set idx start and end
-            try:
-                idx_start = np.where(cells == cell_start)[0][0]
-            except BaseException as base_exp:
-                logging.warning(' ===> Idx start is not available in the cells obj. Start is set to 0.')
-                logging.warning(' ===> Warning "' + str(base_exp) + '" found')
-                idx_start = 0
-            try:
-                idx_end = np.where(cells == cell_end)[0][0] + 1
-            except BaseException as base_exp:
-                logging.warning(' ===> Idx end is not available in the cells obj. End is set to cell maximum length.')
-                logging.warning(' ===> Warning "' + str(base_exp) + '" found')
-                idx_end = cells.shape[0]
+            # create grid
+            grid = grids.CellGrid(lons[idx], lats[idx], cell[idx], gpi[idx])
 
-            # select cells
-            cells_obj = cells[idx_start:idx_end]
-            cells_array = cells_obj.data
-            # select gpis
-            if land is not None:
-                gpis = gpi[land == 1]
-            else:
-                gpis = gpi
+            # selected gpis and committed are
+            gpi = grid.activegpis.data
+            ca = ca[idx]
 
-            logging.info(' ----> Use information defined in the grid files ... DONE')
+            # store data in workspace files
+            collections_anc = {'grid': grid, 'gpi': gpi, 'committed_area': ca}
+            write_file_obj(path_anc, collections_anc)
 
+            # get grid files - end (done)
+            logging.info(f' ----> Get information from grid file {file_path} ... DONE')
         else:
 
-            logging.warning(' ===> Open grid file "' + file_path + '" ... FILE NOT FOUND')
-            logging.info(' ----> Use information defined in the grid files ... FAILED')
-            logging.info(' ----> Use information defined by "cell_start" and "cell_end"')
+            # get grid files - end (failed)
+            logging.error(' ===> Open grid file "' + file_path + '" ... FILE NOT FOUND')
+            logging.info(f' ----> Get information from grid file {file_path} ... FAILED')
+            raise RuntimeError('File grid is mandatory. Check your settings.')
 
-            # grid file is not defined
-            cells_array = range(cell_start, cell_end)
-            gpis, grid = None, None
+    else:
+
+        # get grid files - end (previously saved)
+        logging.info(f' ----> Get information from grid file {file_path} ... PREVIOUSLY SAVED')
+        collections_anc = read_file_obj(path_anc)
+        grid, gpi, ca = collections_anc['grid'], collections_anc['gpi'], collections_anc['committed_area']
+
+    # compute grid objects - start
+    logging.info(' ----> Compute objects ... ')
+    if cells_list is None:
+
+        # info
+        logging.info(' ::: List of cell: NOT DEFINED')
+        logging.info(' ::: Domain: GLOBAL')
+
+        cell = grid.arrcell
+        active_cells = np.unique(cell)
+
+        # set idx start and end
+        if cell_start is None:
+            idx_start = 0
+        else:
+            idx_start = np.where(active_cells == cell_start)[0][0]
+
+        if cell_end is None:
+            idx_end = active_cells.shape[0]
+        else:
+            idx_end = np.where(active_cells == cell_end)[0][0] + 1
+
+        # select cells
+        cells_select = active_cells[idx_start:idx_end]
+        cells_array = cells_select.data
 
         # transform array to list
         cells_list = cells_array.tolist()
 
+        # grid
+        grid_selected = deepcopy(grid)
+        # info
+        info_selected = pd.DataFrame({"gpi": gpi, "ca": ca, 'cell': cell})
+
     else:
-        # use cell list defined in the settings file
-        logging.info(' ----> Use information defined in the settings file ... ')
-        if not isinstance(cells_list, list):
-            cells_list = [cells_list]
-        gpis = None
-        grid = None
-        logging.info(' ----> Use information defined in the settings file ... DONE')
+
+        # info
+        logging.info(' ::: List of cell: DEFINED')
+
+        # check if cell_list or cell_start/cell_end are defined
+        if cells_list is None:
+            if cell_start is None or cell_end is None:
+                logging.error(' ===> The cell_start and cell_end must be defined in the datasets collection')
+                raise RuntimeError('The cell_start and cell_end must be defined in the datasets collection')
+            else:
+                # grid file is not defined
+                cells_array = range(cell_start, cell_end)
+                # transform array to list
+                cells_list = cells_array.tolist()
+
+            logging.info(f' ::: Domain: CELLS RANGE :: {cells_list}')
+
+        else:
+            logging.info(f' ::: Domain: CELLS LIST :: {cells_list}')
+
+        # mask over the grid cells
+        mask = np.isin(grid.arrcell, cells_list)
+
+        # create filtered grid
+        grid_selected = grids.CellGrid(
+            grid.activearrlon[mask],
+            grid.activearrlat[mask],
+            grid.arrcell[mask],
+            grid.activegpis[mask]
+        )
+
+        # create filtered gpis
+        gpi = grid.activegpis[mask]
+        cell = grid.arrcell[mask]
+        ca = ca[mask]
+
+        # info
+        info_selected = pd.DataFrame({"gpi": gpi, "ca": ca, 'cell': cell})
 
     # info end
-    logging.info(' ---> Compute cells list ... DONE')
+    logging.info(' ---> Compute grid objects ... DONE')
 
-    return cells_list, gpis, grid
+    return cells_list, info_selected, grid_selected
 
 # ----------------------------------------------------------------------------------------------------------------------
 

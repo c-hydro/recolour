@@ -18,6 +18,11 @@ Version(s):
 20260512 (1.2.0) --> Update codes for plotting calibration results
 20240410 (1.1.0) --> Add codes for boxplot, update codes and fix bugs
 20230727 (1.0.0) --> First development
+
+Note(s):
+    add in environment variables for PROJ errors
+    PROJ_LIB= ... /envs/recolour_validation_libraries/share/proj
+    GDAL_DATA= .../envs/recolour_validation_libraries/share/gdal
 """
 
 # -------------------------------------------------------------------------------------
@@ -41,7 +46,7 @@ import argparse
 from lib_info_args import logger_name as logger_name_def
 from lib_info_args import logger_format as logger_format_def
 from lib_info_settings import get_data_settings
-from lib_utils_grid import get_grid_cells
+from lib_utils_grid import get_grid_objects
 
 from drv_data_publisher import DrvData
 # -------------------------------------------------------------------------------------
@@ -84,17 +89,21 @@ def main():
 
     # -------------------------------------------------------------------------------------
     # generate reference cells and gpis
-    alg_cell_list, alg_gpis, alg_cell_grid = get_grid_cells(
+    alg_cell_list, alg_cell_info, alg_cell_grid = get_grid_objects(
         cell_start=alg_settings['domain']['cell_start'],
         cell_end=alg_settings['domain']['cell_end'],
         cells_list=alg_settings['domain']['cell_list'],
-        path_grid=alg_settings['grid']['folder_name'],
-        file_grid=alg_settings['grid']['file_name'])
+        path_grid=alg_settings['grid']['source']['folder_name'],
+        file_grid=alg_settings['grid']['source']['file_name'],
+        reset_anc=alg_settings['flags']['reset_ancillary_grid'],
+        path_anc=alg_settings['grid']['ancillary']['folder_name'],
+        file_anc=alg_settings['grid']['ancillary']['file_name']
+    )
     # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------
     # configure driver
-    drv_driver_publisher = DrvData(alg_cell_list, alg_cell_grid, alg_settings)
+    drv_driver_publisher = DrvData(alg_cell_list, alg_cell_info, alg_cell_grid, alg_settings)
     # organize datasets
     dframe_cells = drv_driver_publisher.organize_data()
     # publish datasets

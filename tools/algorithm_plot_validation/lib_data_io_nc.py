@@ -3,8 +3,8 @@ Library Features:
 
 Name:          lib_utils_io_nc
 Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:          '20230727'
-Version:       '1.0.0'
+Date:          '20260512'
+Version:       '1.1.0
 """
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -15,6 +15,7 @@ import netCDF4
 import time
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_integer_dtype, is_float_dtype, is_string_dtype, is_object_dtype
 
 from copy import deepcopy
 
@@ -110,17 +111,6 @@ def read_file_cell(file_name, expected_variables=None):
         variable_workspace = None
 
     return variable_workspace
-# -----------------------------------------------------------------------------
-
-
-# -----------------------------------------------------------------------------
-# method to get variable name
-def get_variable_name_OLD(variable_list_in, variable_list_out, variable_name='gpi'):
-
-    variable_idx = variable_list_out.index(variable_name)
-    variable_name = variable_list_in[variable_idx]
-
-    return variable_name
 # -----------------------------------------------------------------------------
 
 
@@ -237,30 +227,75 @@ def read_file_collection(file_name_data, file_name_grid,
 def write_file_collection(file_name, file_data, file_tag_location='gpi'):
 
     # get data dimension
-    file_n = file_data[file_tag_location].__len__()
+    file_n = len(file_data[file_tag_location])
 
     # open and init file
     file_handle = netCDF4.Dataset(file_name, 'w')
     file_handle.createDimension('data', file_n)
+
     # add attr(s)
     file_handle.file_date = 'Created ' + time.ctime(time.time())
 
-    # iterate over datasets
-    for file_key, file_dict in file_data.items():
+    try:
 
-        file_values = list(file_dict.data)
-        if isinstance(file_values[0], str):
-            file_data = np.array(file_values, dtype=object)
-            file_var = file_handle.createVariable(varname=file_key, dimensions=('data',), datatype='str')
-        elif isinstance(file_values[0], (int, float, np.integer, np.floating)):
-            file_data = file_values
-            file_var = file_handle.createVariable(varname=file_key, dimensions=('data',), datatype='f4')
-        else:
-            logging.error(' ===> Datasets format is not expected')
-            raise IOError('Dump datasets failed due to the datasets format')
+        # iterate over dataframe columns
+        for file_key in file_data.columns:
 
-        file_var[:] = file_data
+            file_series = file_data[file_key]
+            file_dtype = file_series.dtype
 
-    file_handle.close()
+            # string / object variables
+            if is_string_dtype(file_dtype) or is_object_dtype(file_dtype):
+
+                file_values = file_series.astype(str).values
+
+                file_var = file_handle.createVariable(
+                    varname=file_key,
+                    dimensions=('data',),
+                    datatype=str
+                )
+
+                # VLEN strings must be assigned element by element
+                for i, value in enumerate(file_values):
+                    file_var[i] = value
+
+            # integer variables
+            elif is_integer_dtype(file_dtype):
+
+                file_values = file_series.values.astype(np.int32)
+
+                file_var = file_handle.createVariable(
+                    varname=file_key,
+                    dimensions=('data',),
+                    datatype='i4'
+                )
+
+                file_var[:] = file_values
+
+            # float variables
+            elif is_float_dtype(file_dtype):
+
+                file_values = file_series.values.astype(np.float32)
+
+                file_var = file_handle.createVariable(
+                    varname=file_key,
+                    dimensions=('data',),
+                    datatype='f4'
+                )
+
+                file_var[:] = file_values
+
+            # unsupported variables
+            else:
+                logging.error(
+                    f' ===> Datasets format for "{file_key}" '
+                    f'is not expected: {file_dtype}'
+                )
+                raise IOError(
+                    'Dump datasets failed due to the datasets format'
+                )
+
+    finally:
+        file_handle.close()
 
 # -----------------------------------------------------------------------------

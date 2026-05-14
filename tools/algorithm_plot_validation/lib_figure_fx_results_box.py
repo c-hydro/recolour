@@ -58,7 +58,8 @@ def plot_results_box_snr(fig_file_name,
         palette=fig_palette_type,
         saturation=1., linewidth=1.5, width=0.2,
         ax=ax,
-        flierprops=flierprops, showfliers=False, whis=[5, 95], )
+        flierprops=flierprops, showfliers=False,
+        whis=[5, 95] )
 
     xticklabels = []
     for label in ax.get_xticklabels():
@@ -108,26 +109,32 @@ def plot_results_box_snr(fig_file_name,
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to plot results box pearson
-def plot_results_box_pearson(fig_file_name,
-                             fig_df_obj, fig_perc_obj, fig_kwargs,
-                             variable_data="xy_r", variable_p_r="xy_p_r", variable_r="xy_r",
-                             variable_type='type'):
+def plot_results_box_pearson(
+        fig_file_name,
+        fig_df_obj,
+        fig_perc_obj,
+        fig_kwargs,
+        variable_data="xy_r",
+        variable_p_r="xy_p_r",
+        variable_r="xy_r",
+        variable_type='type'):
 
     # sub dataframe obj
     if variable_data == variable_r:
-        fig_df_sub = fig_df_obj.loc[:, [variable_data, variable_p_r, variable_type]].dropna()
+        fig_df_sub = fig_df_obj.loc[
+            :, [variable_data, variable_p_r, variable_type]
+        ].dropna()
     else:
-        fig_df_sub = fig_df_obj.loc[:, [variable_data, variable_p_r, variable_r, variable_type]].dropna()
-
-    # active filter(s)
-    # fig_df_sub = fig_df_sub.loc[fig_df_sub[variable_p_r] > 0.05]
-    # df_obj = df_obj.loc[(df_obj[variable_p_r] > 0.05) | (df_obj[variable_r] < 0.5), variable_data] = np.nan
+        fig_df_sub = fig_df_obj.loc[
+            :, [variable_data, variable_p_r, variable_r, variable_type]
+        ].dropna()
 
     # define folder to save figure
     folder_name, file_name = os.path.split(fig_file_name)
     os.makedirs(folder_name, exist_ok=True)
 
-    fig_size = get_field(fig_kwargs, field_name='fig_size')
+    # get settings
+    fig_size = get_field(fig_kwargs, field_name='fig_size', field_mandatory=False, field_default=(3, 6))
     fig_x_label = get_field(fig_kwargs, field_name='x_label')
     fig_y_label = get_field(fig_kwargs, field_name='y_label')
     fig_palette_type = get_field(fig_kwargs, field_name='palette_type')
@@ -140,16 +147,70 @@ def plot_results_box_pearson(fig_file_name,
     fig_suptitle = get_field(fig_kwargs, field_name='suptitle', field_mandatory=False, field_default=None)
     fig_dpi = get_field(fig_kwargs, field_name='fig_dpi')
 
-    fig, ax = plt.subplots(1, sharey=True, figsize=(3, 6))
+
+
+    whis_global = get_field(
+        fig_kwargs,
+        field_name='whis_global',
+        field_mandatory=False,
+        field_default=[1, 95]
+    )
+
+    whis_carea = get_field(
+        fig_kwargs,
+        field_name='whis_carea',
+        field_mandatory=False,
+        field_default=[7, 95]
+    )
+
+    # figure
+    fig, ax = plt.subplots(1, sharey=True, figsize = (3, 6))
     flierprops = dict(markerfacecolor='0.75', markersize=5, linestyle='none')
 
-    sns.boxplot(
-        data=fig_df_sub, y=variable_data, x=variable_type,
-        palette=fig_palette_type,
-        saturation=1., linewidth=1.5, width=0.2,
-        ax=ax,
-        flierprops=flierprops, showfliers=False, whis=[5, 95], )
+    # split data
+    df_global = fig_df_sub.loc[
+        fig_df_sub[variable_type] == 'global'
+    ].copy()
 
+    df_carea = fig_df_sub.loc[
+        fig_df_sub[variable_type] == 'committed_area'
+    ].copy()
+
+    order = ['global', 'committed_area']
+
+    # plot global with independent whiskers
+    sns.boxplot(
+        data=df_global,
+        y=variable_data,
+        x=variable_type,
+        order=order,
+        palette=fig_palette_type,
+        saturation=1.,
+        linewidth=1.5,
+        width=0.2,
+        ax=ax,
+        flierprops=flierprops,
+        showfliers=False,
+        whis=whis_global
+    )
+
+    # plot committed area with independent whiskers
+    sns.boxplot(
+        data=df_carea,
+        y=variable_data,
+        x=variable_type,
+        order=order,
+        palette=fig_palette_type,
+        saturation=1.,
+        linewidth=1.5,
+        width=0.2,
+        ax=ax,
+        flierprops=flierprops,
+        showfliers=False,
+        whis=whis_carea
+    )
+
+    # x labels
     xticklabels = []
     for label in ax.get_xticklabels():
         xticklabels.append('{:}'.format(label.get_text()))
@@ -158,11 +219,13 @@ def plot_results_box_pearson(fig_file_name,
         ax.set_xticklabels(fig_x_label, fontsize=13)
     else:
         ax.set_xticklabels(xticklabels, fontsize=13)
+
     ax.set_ylabel(fig_y_label, fontsize=13)
     ax.set_xlabel('')
 
     if fig_title is not None:
         ax.set_title(fig_title)
+
     if fig_suptitle is not None:
         fig.suptitle(fig_suptitle)
 
@@ -173,27 +236,62 @@ def plot_results_box_pearson(fig_file_name,
     ax.spines['bottom'].set_visible(True)
     ax.spines['left'].set_visible(True)
 
-    plt.axhline(y=fig_lim_optimal, linewidth=2, color='b', linestyle='-', label='optimal')
-    plt.axhline(y=fig_lim_target, linewidth=2, color='g', linestyle='-', label='target')
-    plt.axhline(y=fig_lim_thr, linewidth=2, color='r', linestyle='-', label='threshold')
+    # threshold lines
+    ax.axhline(y=fig_lim_optimal, linewidth=2, color='b', linestyle='-', label='optimal')
+    ax.axhline(y=fig_lim_target, linewidth=2, color='g', linestyle='-', label='target')
+    ax.axhline(y=fig_lim_thr, linewidth=2, color='r', linestyle='-', label='threshold')
 
+    # percentages
     for idx, label in enumerate(fig_perc_obj):
+
         label_perc = fig_perc_obj[label]
 
-        plt.text(idx + 0.25, fig_lim_optimal + 0.02, label_perc['optimal'], color='b', fontsize=8)
-        plt.text(idx + 0.25, fig_lim_target + 0.02, label_perc['target'], color='g', fontsize=8)
-        plt.text(idx + 0.25, fig_lim_thr + 0.02, label_perc['threshold'], color='r', fontsize=8)
+        ax.text(
+            idx + 0.25,
+            fig_lim_optimal + 0.02,
+            label_perc['optimal'],
+            color='b',
+            fontsize=8
+        )
 
+        ax.text(
+            idx + 0.25,
+            fig_lim_target + 0.02,
+            label_perc['target'],
+            color='g',
+            fontsize=8
+        )
+
+        ax.text(
+            idx + 0.25,
+            fig_lim_thr + 0.02,
+            label_perc['threshold'],
+            color='r',
+            fontsize=8
+        )
+
+    # legend
     handles, labels = ax.get_legend_handles_labels()
     lgd = ax.legend(
-        handles, labels,
-        ncol=3, loc='lower center', bbox_to_anchor=(0.5, 1), prop={'size': 6})
+        handles,
+        labels,
+        ncol=3,
+        loc='lower center',
+        bbox_to_anchor=(0.5, 1),
+        prop={'size': 6}
+    )
 
     lgd.get_frame().set_linewidth(0.0)
+
     ax.grid('off')
 
     plt.show()
 
-    fig.savefig(fig_file_name, dpi=fig_dpi, bbox_extra_artists=(lgd,), bbox_inches='tight')
+    fig.savefig(
+        fig_file_name,
+        dpi=fig_dpi,
+        bbox_extra_artists=(lgd,),
+        bbox_inches='tight'
+    )
 
 # ----------------------------------------------------------------------------------------------------------------------

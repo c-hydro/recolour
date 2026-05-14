@@ -1,7 +1,8 @@
 {
   "flags": {
-    "reset_ancillary_datasets": true,
-    "reset_destination_datasets": true,
+    "reset_ancillary_grid": false,
+    "reset_ancillary_datasets": false,
+    "reset_destination_datasets": false,
     "reset_logs": true
   },
   "info": {
@@ -16,7 +17,9 @@
     "cell_list": null
   },
   "parameters": {
-    "datasets": {},
+    "datasets": {
+      "fill_empty_data": true
+    },
     "figure": {
       "figure_size": 455.24411,
       "figure_dpi": 500,
@@ -31,8 +34,14 @@
     }
   },
   "grid": {
-    "folder_name": "/home/fabio/Desktop/recolour/dset/ascat_static/",
-    "file_name": "TUW_WARP5_grid_info_2_3.nc"
+    "source": {
+      "folder_name": "/home/fabio/Desktop/recolour/dset/ascat_static/",
+      "file_name": "TUW_WARP5_grid_info_2_3.nc"
+    },
+    "ancillary": {
+      "folder_name": "/home/fabio/Desktop/recolour/dset/ascat_static/",
+      "file_name": "TUW_WARP5_grid_info_2_3.workspace"
+    }
   },
   "datasets": {
     "source": {
@@ -45,11 +54,12 @@
     },
     "ancillary": {
       "folder_name": "/home/fabio/Desktop/recolour/exec/validation_hsaf/ancillary/2026/GLOBAL_H16_V2/",
-      "file_name": "validation_hsaf_results_global.pkl"
+      "file_name": "validation_hsaf_results_global.workspace"
     },
     "destination": {
       "folder_name": "/home/fabio/Desktop/recolour/exec/validation_hsaf/results/netcdf/2026/GLOBAL_H16_V2/",
       "file_name": "validation_hsaf_results_global.nc",
+      "active": false,
       "variables": [
         "gpi", "lon", "lat", "x_snr", "obs",
         "xy_r", "xz_r",
@@ -63,18 +73,47 @@
         "variables" : ["gpi", "lon", "lat", "obs", "committed_area"],
         "active": false
     },
-    "pearson_data_map": {
+    "pearson_data_map_ca": {
         "folder_name": "/home/fabio/Desktop/recolour/exec/validation_hsaf/results/figure/2026/GLOBAL_H16_V2/",
-        "file_name": "map_reference_vs_gldas_pearson_r_{data_type}.png",
+        "file_name": "map_reference_vs_gldas_pearson_r_committed_area.png",
         "variables" : ["gpi", "lon", "lat", "obs", "xy_r"],
-        "active": true
+        "active": false
     },
-    "snr_data_map": {
+    "pearson_data_map_global": {
         "folder_name": "/home/fabio/Desktop/recolour/exec/validation_hsaf/results/figure/2026/GLOBAL_H16_V2/",
-        "file_name": "map_reference_snr_{data_type}.png",
-        "variables" : ["gpi", "lon", "lat", "obs", "x_snr"],
+        "file_name": "map_reference_vs_gldas_pearson_r_global.png",
+        "variables" : ["gpi", "lon", "lat", "obs", "xy_r"],
+        "active": false
+    },
+
+    "pearson_classes_map": {
+        "folder_name": "/home/fabio/Desktop/recolour/exec/validation_hsaf/results/figure/2026/GLOBAL_H16_V2/",
+        "file_name": "classes_reference_pearson.png",
+        "variables" : ["gpi", "lon", "lat", "obs", "x_snr", "xy_r", "xy_p_r"],
         "active": true
     },
+
+    "snr_data_map_ca": {
+        "folder_name": "/home/fabio/Desktop/recolour/exec/validation_hsaf/results/figure/2026/GLOBAL_H16_V2/",
+        "file_name": "map_reference_snr_committed_area.png",
+        "variables" : ["gpi", "lon", "lat", "obs", "x_snr", "xy_r", "xy_p_r"],
+        "active": false
+    },
+
+    "snr_data_map_global": {
+        "folder_name": "/home/fabio/Desktop/recolour/exec/validation_hsaf/results/figure/2026/GLOBAL_H16_V2/",
+        "file_name": "map_reference_snr_global.png",
+        "variables" : ["gpi", "lon", "lat", "obs", "x_snr", "xy_r", "xy_p_r"],
+        "active": false
+    },
+
+    "snr_classes_map": {
+        "folder_name": "/home/fabio/Desktop/recolour/exec/validation_hsaf/results/figure/2026/GLOBAL_H16_V2/",
+        "file_name": "classes_reference_snr.png",
+        "variables" : ["gpi", "lon", "lat", "obs", "x_snr", "xy_r", "xy_p_r"],
+        "active": false
+    },
+
     "snr_stats_pie": {
         "folder_name": "/home/fabio/Desktop/recolour/exec/validation_hsaf/results/figure/2026/GLOBAL_H16_V2/",
         "file_name": "pie_reference_snr.png",
@@ -110,8 +149,8 @@
       "vmin": 0, "vmax": 1, "clip": null,
       "cmap_type": "tab20c_committed_area", "cmap_n": 3
     },
-    "pearson_data_map": {
-      "type": "data", "committed_area": [false, true],
+    "pearson_data_map_ca": {
+      "type": "person_map", "committed_area": [true],
       "variable_in": "xy_r", "variable_out": null,
       "title_label": "Pearson Correlation Coefficient (R)",
       "cbar_label": "Pearson R [-]", "cbar_extent": false,
@@ -119,8 +158,30 @@
       "vmin": -1, "vmax": 1, "clip": null,
       "cmap_type": "vik_r", "cmap_n": 32
     },
-    "snr_data_map": {
-      "type": "data", "committed_area": [false, true],
+    "pearson_data_map_global": {
+      "type": "person_map", "committed_area": [false],
+      "variable_in": "xy_r", "variable_out": null,
+      "title_label": "Pearson Correlation Coefficient (R)",
+      "cbar_label": "Pearson R [-]", "cbar_extent": false,
+      "cbar_ticks": false, "cbar_show": true,
+      "vmin": -1, "vmax": 1, "clip": null,
+      "cmap_type": "vik_r", "cmap_n": 32
+    },
+
+    "pearson_classes_map": {
+      "type": "pearson_map_classes", "committed_area": false,
+      "variable_in_data": "x_snr", "variable_in_p_r": "xy_p_r", "variable_in_r": "xy_r",
+      "variable_in": "xy_r", "variable_out": "classes_r",
+      "title_label": "Pearson Correlation Coefficient (R)",
+      "cbar_label": "-", "cbar_extent": "both",
+      "cbar_ticks": {"tick_min": 0, "tick_max": 9, "tick_step": 1}, "cbar_show": false,
+      "vmin": 0, "vmax": 8, "clip": [-8.9, 8.9],
+      "cmap_type": "tab20c_classes_pearson", "cmap_n": 8
+    },
+
+    "snr_data_map_ca": {
+      "type": "snr_map", "committed_area": true,
+      "variable_in_data": "x_snr", "variable_in_p_r": "xy_p_r", "variable_in_r": "xy_r",
       "variable_in": "x_snr", "variable_out": null,
       "title_label": "Signal-to-Noise Ratio (SNR)",
       "cbar_label": "SNR [dB]", "cbar_extent": "both",
@@ -128,6 +189,29 @@
       "vmin": -9, "vmax": 9, "clip": [-8.9, 8.9],
       "cmap_type": "bam", "cmap_n": 24
     },
+
+    "snr_classes_map": {
+      "type": "snr_map_classes", "committed_area": false,
+      "variable_in_data": "x_snr", "variable_in_p_r": "xy_p_r", "variable_in_r": "xy_r",
+      "variable_in": "x_snr", "variable_out": "classes_snr",
+      "title_label": "Signal-to-Noise Ratio (SNR)",
+      "cbar_label": "-", "cbar_extent": "both",
+      "cbar_ticks": {"tick_min": 0, "tick_max": 9, "tick_step": 1}, "cbar_show": false,
+      "vmin": 0, "vmax": 8, "clip": [-8.9, 8.9],
+      "cmap_type": "tab20c_classes_snr", "cmap_n": 8
+    },
+
+    "snr_data_map_global": {
+      "type": "snr_map", "committed_area": false,
+      "variable_in_data": "x_snr", "variable_in_p_r": "xy_p_r", "variable_in_r": "xy_r",
+      "variable_in": "x_snr", "variable_out": null,
+      "title_label": "Signal-to-Noise Ratio (SNR) classes",
+      "cbar_label": "SNR [dB]", "cbar_extent": "both",
+      "cbar_ticks": {"tick_min": -9, "tick_max": 9, "tick_step": 3}, "cbar_show": true,
+      "vmin": -9, "vmax": 9, "clip": [-8.9, 8.9],
+      "cmap_type": "bam", "cmap_n": 24
+    },
+
     "pearson_stats_pie": {
       "type": "stats_pearson_pie", "committed_area": null,
       "variable_in": "xy_r", "variable_out": "stats_pr",
@@ -138,7 +222,7 @@
       "cmap_type": "tab20c_pie", "cmap_n": 8
     },
     "snr_stats_pie": {
-      "type": "stats_snr_pie", "committed_area": null,
+      "type": "stats_snr_pie", "committed_area": true,
       "variable_in": "x_snr", "variable_out": "stats_snr",
       "title_label": "Signal-to-Noise Ratio (SNR)",
       "cbar_label": "SNR [dB]", "cbar_extent": "both",

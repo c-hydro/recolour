@@ -52,7 +52,9 @@ def plot_results_data(fig_file_name, fig_dframe, fig_kwargs, fig_committed_area=
     fig_data = fig_dframe[fig_kwargs['parameter']].values
     fig_data = np.array(fig_data, copy=True)
 
-    tmp_dframe = fig_dframe.loc[fig_dframe['cell'] == 808]
+    # debug
+    tmp_dframe_773 = fig_dframe.loc[fig_dframe['cell'] == 773][fig_kwargs['parameter']]
+    tmp_dframe_1394 = fig_dframe.loc[fig_dframe['cell'] == 1394][fig_kwargs['parameter']]
 
     # clip data (if activated)
     fig_clip = get_field(fig_kwargs, field_name='clip')
