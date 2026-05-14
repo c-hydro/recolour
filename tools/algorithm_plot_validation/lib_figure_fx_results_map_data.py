@@ -1,15 +1,16 @@
 """
 Library Features:
 
-Name:          lib_figure_fx_results_data
+Name:          lib_figure_fx_results_map_data
 Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:          '20230727'
-Version:       '1.0.0'
+Date:          '20260514'
+Version:       '1.1.0'
 """
 
 # ----------------------------------------------------------------------------------------------------------------------
 # libraries
 import logging
+import warnings
 import os
 import numpy as np
 
@@ -32,6 +33,18 @@ land = cartopy.feature.NaturalEarthFeature(
 
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
 logging.getLogger('fiona').setLevel(logging.WARNING)
+
+warnings.filterwarnings(
+    "ignore",
+    message="Longitude values have been transformed to be in \\(-180, 180\\]",
+    category=UserWarning
+)
+
+warnings.filterwarnings(
+    "ignore",
+    message="Less than k=.* points found within max_dist=.*",
+    category=UserWarning
+)
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -60,6 +73,19 @@ def plot_results_data(fig_file_name, fig_dframe, fig_kwargs, fig_committed_area=
     fig_clip = get_field(fig_kwargs, field_name='clip')
     if fig_clip is not None:
         fig_data = np.clip(fig_data, fig_clip[0], fig_clip[1])
+
+    # title size
+    fig_title_size = get_field(
+        fig_kwargs, field_name='title_fontsize', field_mandatory=False)
+    if fig_title_size is None:
+        fig_title_size = 8
+
+    # set colorbar tick fontsize
+    fig_cbar_tick_size = get_field(
+        fig_kwargs, field_name='cb_tick_fontsize', field_mandatory=False)
+    if fig_cbar_tick_size is None:
+        fig_cbar_tick_size = 4
+
     # organize nan(s)
     idx_nan = np.isnan(fig_data)
     fig_data[idx_nan] = 100.5
@@ -103,33 +129,37 @@ def plot_results_data(fig_file_name, fig_dframe, fig_kwargs, fig_committed_area=
 
     fig_data_extent = get_field(fig_kwargs, field_name='data_extent')
 
+    # plot img
     m.plot_img(color_arr[x - 1], fig_data_extent, **plot_kwargs)
+    # set title fontsize
+    if m.ax.get_title():
+        m.ax.set_title(m.ax.get_title(), fontsize=fig_title_size)
+
+    # last axis is usually the colorbar axis
+    if len(m.fig.axes) > 1:
+        cbar_ax = m.fig.axes[-1]
+        cbar_ax.tick_params(labelsize=fig_cbar_tick_size)
+
     # m.ax.add_feature(land, lw=0.3, zorder=0.5)
     m.ax.add_feature(coast, lw=0.3, zorder=0.5)
 
-    # define patch(es) for nan and land
+    # define patch(es) for nan and non-committed area
     color = (0.4, 0.4, 0.4)
     patch_result_nan = mpatches.Patch(color=color, label='NaN')
-    color = '#aaaaaa'
-    patch_land = mpatches.Patch(color=color, label='Land')
 
     if fig_committed_area:
-        # color = (0.9098, 0.8253, 0.5176)
-        # color = (0.866, 0.235, 0.235)
         color = (0.8, 0.8, 0.8)
-        patch_not_committed = mpatches.Patch(
-            color=color, label='Non-committed area')
-
-        # handles = [patch_land, patch_result_nan, patch_not_committed]
-        handles = [patch_land, patch_result_nan, patch_not_committed]
+        patch_not_committed = mpatches.Patch(color=color, label='Non-committed area')
+        handles = [patch_result_nan, patch_not_committed]
     else:
-        # handles = [patch_land, patch_result_nan]
-        handles = [patch_land, patch_result_nan]
+        handles = [patch_result_nan]
 
     # add legend to map
     m.ax.legend(handles=handles, loc='lower center',
                 borderaxespad=0., bbox_to_anchor=(0, -.03, 1., .102),
-                ncol=4, frameon=False, prop={'size': 4})
+                ncol=len(handles), frameon=False, prop={'size': 4})
+
+
     # save figure
     fig_dpi = get_field(fig_kwargs, field_name='fig_dpi')
     m.export_fig(fig_file_name, dpi=fig_dpi)

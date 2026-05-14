@@ -132,10 +132,10 @@ def organize_figure_settings(
         figure_parameter_data='data', figure_parameter_p_r='p_r', figure_parameter_r='r',
         figure_title_label='title', figure_x_label='x_label', figure_y_label='y_label',
         figure_colorbar_label='colorbar', figure_colorbar_show=True,
-        figure_colorbar_extent=None, figure_colorbar_ticks=None,
+        figure_colorbar_extent=None, figure_colorbar_ticks=None, figure_colorbar_tick_fontsize=4,
         figure_cmap_type='vik_r', figure_cmap_n=32,
         figure_vmin=0, figure_vmax=1, figure_data_extent=None,
-        figure_title_fontsize=14, figure_title_fontweight=None,
+        figure_title_fontsize=8, figure_title_fontweight=None,
         figure_cbar_fontsize=6, figure_cbar_fontweight=None,
         figure_lim_min=-10, figure_lim_max=10,
         figure_lim_thr=0, figure_lim_target=3, figure_lim_optimal=6,
@@ -191,23 +191,23 @@ def organize_figure_settings(
         file_name_tmpl=figure_filename_tmpl, file_filter_committed_area=figure_committed_area)
 
     # define figure file and committed area flag
-    if figure_type == 'snr_map':
+    if figure_type == 'snr_map_data':
         figure_file_obj = deepcopy(figure_file_list)
         figure_committed_area_obj = deepcopy(figure_committed_area)
     elif figure_type == 'snr_map_classes':
         figure_file_obj = deepcopy(figure_file_list)
         figure_committed_area_obj = deepcopy(figure_committed_area)
-    elif figure_type == 'pearson_map':
+    elif figure_type == 'pearson_map_data':
         figure_file_obj = deepcopy(figure_file_list)
         figure_committed_area_obj = deepcopy(figure_committed_area)
     elif figure_type == 'pearson_map_classes':
         figure_file_obj = deepcopy(figure_file_list)
         figure_committed_area_obj = deepcopy(figure_committed_area)
     elif figure_type == 'stats_pearson_pie' or figure_type == 'stats_snr_pie':
-        figure_file_obj = figure_file_list[0]
-        figure_committed_area_obj = figure_committed_area[0]
+        figure_file_obj = figure_file_list
+        figure_committed_area_obj = figure_committed_area
     elif figure_type == 'stats_pearson_box' or figure_type == 'stats_snr_box':
-        figure_file_obj = figure_file_list[0]
+        figure_file_obj = figure_file_list
         figure_committed_area_obj = deepcopy(figure_committed_area)
     elif figure_type == 'committed_area':
         figure_file_obj = deepcopy(figure_file_list)[0]
@@ -232,6 +232,7 @@ def organize_figure_settings(
         'cb_label': figure_colorbar_label, 'show_cb': figure_colorbar_show,
         'cb_extend': figure_colorbar_extent, 'cb_ticks': figure_colorbar_ticks,
         'cb_fontsize': figure_cbar_fontsize, 'cb_fontweight': figure_cbar_fontweight,
+        'cb_tick_fontsize': figure_colorbar_tick_fontsize,
         'parameter': figure_parameter,
         'parameter_data': figure_parameter_data,
         'parameter_p_r': figure_parameter_p_r, 'parameter_r': figure_parameter_r,

@@ -110,7 +110,7 @@ def get_grid_objects(cell_start=0, cell_end=2566, cells_list=None, land_filter=T
                      reset_anc=True,
                      path_anc=None, file_anc='TUW_WARP5_grid_info_2_2.workspace'):
 
-    # info start
+    # get grid objects - start
     logging.info(' ---> Get grid objects ... ')
 
     # manage paths source and ancillary
@@ -176,8 +176,11 @@ def get_grid_objects(cell_start=0, cell_end=2566, cells_list=None, land_filter=T
         collections_anc = read_file_obj(path_anc)
         grid, gpi, ca = collections_anc['grid'], collections_anc['gpi'], collections_anc['committed_area']
 
+    # get grid objects - end
+    logging.info(' ---> Get grid objects ... DONE')
+
     # compute grid objects - start
-    logging.info(' ----> Compute objects ... ')
+    logging.info(' ---> Compute grid objects ... ')
     if cells_list is None:
 
         # info
@@ -250,7 +253,7 @@ def get_grid_objects(cell_start=0, cell_end=2566, cells_list=None, land_filter=T
         # info
         info_selected = pd.DataFrame({"gpi": gpi, "ca": ca, 'cell': cell})
 
-    # info end
+    # compute grid objects - end
     logging.info(' ---> Compute grid objects ... DONE')
 
     return cells_list, info_selected, grid_selected

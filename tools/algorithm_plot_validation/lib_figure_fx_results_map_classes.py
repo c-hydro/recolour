@@ -60,6 +60,18 @@ def plot_results_classes_pearson(fig_file_name, fig_dframe, fig_kwargs, fig_comm
     if fig_size is None:
         fig_size = get_field(fig_kwargs, field_name='figsize')
 
+    # title size
+    fig_title_size = get_field(
+        fig_kwargs, field_name='title_fontsize', field_mandatory=False)
+    if fig_title_size is None:
+        fig_title_size = 8
+
+    # set colorbar tick fontsize
+    fig_cbar_tick_size = get_field(
+        fig_kwargs, field_name='cb_tick_fontsize', field_mandatory=False)
+    if fig_cbar_tick_size is None:
+        fig_cbar_tick_size = 4
+
     fig_map_pos = get_field(fig_kwargs, field_name='map_pos')
 
     m = CartoMap(figsize=fig_size, map_pos=fig_map_pos)
@@ -113,6 +125,15 @@ def plot_results_classes_pearson(fig_file_name, fig_dframe, fig_kwargs, fig_comm
     ])
 
     m.plot_img(color_arr[x - 1], fig_data_extent, **plot_kwargs)
+
+    # set title fontsize
+    if m.ax.get_title():
+        m.ax.set_title(m.ax.get_title(), fontsize=fig_title_size)
+
+    # last axis is usually the colorbar axis
+    if len(m.fig.axes) > 1:
+        cbar_ax = m.fig.axes[-1]
+        cbar_ax.tick_params(labelsize=fig_cbar_tick_size)
 
     m.ax.add_feature(coast, lw=0.3, zorder=0.5)
 
@@ -174,6 +195,18 @@ def plot_results_classes_snr(fig_file_name, fig_dframe, fig_kwargs, fig_committe
     if fig_size is None:
         fig_size = get_field(fig_kwargs, field_name='figsize')
 
+    # title size
+    fig_title_size = get_field(
+        fig_kwargs, field_name='title_fontsize', field_mandatory=False)
+    if fig_title_size is None:
+        fig_title_size = 8
+
+    # set colorbar tick fontsize
+    fig_cbar_tick_size = get_field(
+        fig_kwargs, field_name='cb_tick_fontsize', field_mandatory=False)
+    if fig_cbar_tick_size is None:
+        fig_cbar_tick_size = 4
+
     fig_map_pos = get_field(fig_kwargs, field_name='map_pos')
 
     m = CartoMap(figsize=fig_size, map_pos=fig_map_pos)
@@ -209,6 +242,15 @@ def plot_results_classes_snr(fig_file_name, fig_dframe, fig_kwargs, fig_committe
     ])
 
     m.plot_img(color_arr[x - 1], fig_data_extent, **plot_kwargs)
+
+    # set title fontsize
+    if m.ax.get_title():
+        m.ax.set_title(m.ax.get_title(), fontsize=fig_title_size)
+
+    # last axis is usually the colorbar axis
+    if len(m.fig.axes) > 1:
+        cbar_ax = m.fig.axes[-1]
+        cbar_ax.tick_params(labelsize=fig_cbar_tick_size)
 
     m.ax.add_feature(coast, lw=0.3, zorder=0.5)
 

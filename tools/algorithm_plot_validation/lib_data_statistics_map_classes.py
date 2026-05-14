@@ -56,11 +56,33 @@ def compute_pearson_classes(
         variable_data
     ] = np.nan
 
+     #exclude in map pearson classes
+    #df_obj.loc[
+    #    df_obj[variable_p_r] > p_r_thr,
+    #    variable_data
+    #] = np.nan
+    # ------------------------------------------------------------------------------------------------------------------
+
+    idx_global = df_obj[variable_carea] == 0
+
+    # Sahara - remove negative Pearson R values
     df_obj.loc[
-        df_obj[variable_p_r] > p_r_thr,
+        (df_obj[variable_lon] > -25) & (df_obj[variable_lon] < 45) &
+        (df_obj[variable_lat] > 12) & (df_obj[variable_lat] < 34) &
+        idx_global &
+        (df_obj[variable_data] < 0),
         variable_data
     ] = np.nan
-    # ------------------------------------------------------------------------------------------------------------------
+
+    # Arabia - remove negative Pearson R values
+    df_obj.loc[
+        (df_obj[variable_lon] > 30) & (df_obj[variable_lon] < 68) &
+        (df_obj[variable_lat] > 8) & (df_obj[variable_lat] < 34) &
+        idx_global &
+        (df_obj[variable_data] < 0),
+        variable_data
+    ] = np.nan
+
 
     # ------------------------------------------------------------------------------------------------------------------
     # classify Pearson R values for map
@@ -158,7 +180,7 @@ def compute_snr_classes(
     #    variable_data
     #] = np.nan
 
-    # Sahara
+    # Sahara -- ACTIVATED FOR CLASSES SNR
     df_obj.loc[
         (df_obj[variable_lon] > -20) & (df_obj[variable_lon] < 40) &
         (df_obj[variable_lat] > 17.7) & (df_obj[variable_lat] < 30) &
@@ -167,7 +189,7 @@ def compute_snr_classes(
         variable_data
     ] = np.nan
 
-    # Arabia
+    # Arabia -- ACTIVATED FOR CLASSES SNR
     df_obj.loc[
         (df_obj[variable_lon] > 40) & (df_obj[variable_lon] < 63) &
         (df_obj[variable_lat] > 11) & (df_obj[variable_lat] < 22) &
@@ -225,6 +247,7 @@ def compute_snr_classes(
     ] = np.nan
     # ------------------------------------------------------------------------------------------------------------------
     '''
+
     # ------------------------------------------------------------------------------------------------------------------
     # classify SNR values for map
     # same classes as compute_stats_snr

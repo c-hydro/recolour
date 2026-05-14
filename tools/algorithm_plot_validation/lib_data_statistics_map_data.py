@@ -1,9 +1,9 @@
 """
 Library Features:
 
-Name:          lib_data_statistics_map
+Name:          lib_data_statistics_map_data
 Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:          '20260507'
+Date:          '20260514'
 Version:       '1.2.0'
 """
 
@@ -26,7 +26,55 @@ logging.getLogger('pandas').setLevel(logging.WARNING)
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------------------------------------------
-# compute for snr map
+# method to compute pearson map
+def compute_pearson_map(
+        df_obj,
+        variable_data='xy_r',
+        variable_lon='lon',
+        variable_lat='lat',
+        variable_carea='committed_area',
+        variable_n_obs='obs',
+        variable_p_r='xy_p_r',
+        n_sampling=10,
+        p_r_thr=0.05):
+    df_obj = df_obj.copy()
+
+    # metric filters
+    df_obj.loc[
+        df_obj[variable_n_obs] < n_sampling,
+        variable_data
+    ] = np.nan
+
+    #df_obj.loc[
+    #    df_obj[variable_p_r] > p_r_thr,
+    #    variable_data
+    #] = np.nan
+
+    idx_global = df_obj[variable_carea] == 0
+
+    # Sahara - remove negative Pearson R values
+    df_obj.loc[
+        (df_obj[variable_lon] > -25) & (df_obj[variable_lon] < 45) &
+        (df_obj[variable_lat] > 12) & (df_obj[variable_lat] < 34) &
+        idx_global &
+        (df_obj[variable_data] < 0),
+        variable_data
+    ] = np.nan
+
+    # Arabia - remove negative Pearson R values
+    df_obj.loc[
+        (df_obj[variable_lon] > 30) & (df_obj[variable_lon] < 68) &
+        (df_obj[variable_lat] > 8) & (df_obj[variable_lat] < 34) &
+        idx_global &
+        (df_obj[variable_data] < 0),
+        variable_data
+    ] = np.nan
+
+    return df_obj
+# ------------------------------------------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------------------------------------------
+# method to compute snr map
 def compute_snr_map(
         df_obj,
         variable_carea='committed_area',

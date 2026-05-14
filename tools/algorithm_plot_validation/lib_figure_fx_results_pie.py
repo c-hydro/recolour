@@ -65,7 +65,7 @@ def plot_results_pie_pearson(fig_file_name, fig_perc_comm, fig_perc_global, fig_
 
     ax[0].legend([wedges[3], wedges[2], wedges[1], wedges[0], wedges[4]],
                  [labels[3], labels[2], labels[1], labels[0], labels[4]],
-                 title="Global", loc="center",
+                 title="Non-committed area", loc="center",
                  fontsize=7, title_fontsize=8, bbox_to_anchor=(-0.3, 0.5))
 
     # committed case

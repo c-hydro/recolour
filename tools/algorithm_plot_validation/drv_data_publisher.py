@@ -26,12 +26,12 @@ from lib_data_statistics_pie import compute_stats_snr as compute_stats_snr_pie
 from lib_data_statistics_box import compute_stats_pearson as compute_stats_pearson_box
 from lib_data_statistics_box import compute_stats_snr as compute_stats_snr_box
 
-from lib_data_statistics_map import compute_snr_map
+from lib_data_statistics_map_data import compute_snr_map, compute_pearson_map
 from lib_data_statistics_map_classes import compute_snr_classes, compute_pearson_classes
 
 from lib_figure_settings import organize_figure_settings, organize_figure_extent
 from lib_figure_fx_results_generic import plot_committed_area
-from lib_figure_fx_results_data import plot_results_data
+from lib_figure_fx_results_map_data import plot_results_data
 from lib_figure_fx_results_map_classes import plot_results_classes_snr, plot_results_classes_pearson
 from lib_figure_fx_results_pie import plot_results_pie_pearson, plot_results_pie_snr
 from lib_figure_fx_results_box import plot_results_box_pearson, plot_results_box_snr
@@ -202,12 +202,19 @@ class DrvData:
                 os.remove(file_path_anc)
             if os.path.exists(file_path_dst):
                 os.remove(file_path_dst)
-        # clean ancillary and destination datasets if are not available together
-        if (not os.path.exists(file_path_anc)) or (not os.path.exists(file_path_dst)):
+        # clean destination datasets (if destination flag is activated
+        if self.reset_datasets_dst:
             if os.path.exists(file_path_anc):
                 os.remove(file_path_anc)
             if os.path.exists(file_path_dst):
                 os.remove(file_path_dst)
+        # if destination is active and ancillary or destination don't exists remove all
+        if self.active_dst:
+            if (not os.path.exists(file_path_anc)) or (not os.path.exists(file_path_dst)):
+                if os.path.exists(file_path_anc):
+                    os.remove(file_path_anc)
+                if os.path.exists(file_path_dst):
+                    os.remove(file_path_dst)
 
         # check cell obj availability
         if not os.path.exists(file_path_anc):
@@ -265,14 +272,14 @@ class DrvData:
             logging.info(' ----> Get datasets cells ... DONE. Previously saved.')
 
         # convert from dict to dframe
-        cell_obj_dframe = convert_datasets_obj(cell_obj_datasets)
+        variables_dframe = convert_datasets_obj(cell_obj_datasets)
         # info end method
         logging.info(' ---> Organize datasets ... DONE')
 
-        return cell_obj_dframe
+        return variables_dframe
 
     # method to plot data
-    def plot_data(self, figure_dframe_tmp):
+    def plot_data(self, variables_dframe):
 
         # info start method
         logging.info(' ---> Plot datasets ... ')
@@ -288,10 +295,10 @@ class DrvData:
         figure_collection = self.figure_collection
 
         # method to get figure dataframe
-        variables_dframe = read_file_collection(
-            file_path_dst, file_path_grid,
-            variable_type=datasets_name,
-            variable_list=variables_dst)
+        #variables_dframe = read_file_collection(
+        #    file_path_dst, file_path_grid,
+        #    variable_type=datasets_name,
+        #    variable_list=variables_dst)
 
         # iterate over figure(s)
         for figure_key, figure_fields in figure_collection.items():
@@ -324,6 +331,7 @@ class DrvData:
                 figure_title_fontweight = figure_settings['title_fontweight']
                 figure_cbar_fontsize = figure_settings['cb_fontsize']
                 figure_cbar_fontweight = figure_settings['cb_fontweight']
+                figure_cbar_tick_fontsize = figure_settings['cb_tick_fontsize']
                 figure_cbar_show = figure_settings['cbar_show']
                 figure_committed_area = figure_settings['committed_area']
                 figure_lim_thr, figure_lim_target = figure_settings['lim_threshold'], figure_settings['lim_target']
@@ -360,11 +368,11 @@ class DrvData:
                     figure_dframe, figure_data_extent_default, fig_ext_domain=figure_data_extent_over_domain)
 
                 # select figure parameter
-                if figure_type == 'snr_map':
+                if figure_type == 'snr_map_data':
                     figure_parameter = figure_var_in
                 elif figure_type == 'snr_map_classes':
                     figure_parameter = figure_var_out
-                elif figure_type == 'pearson_map':
+                elif figure_type == 'pearson_map_data':
                     figure_parameter = figure_var_in
                 elif figure_type == 'pearson_map_classes':
                     figure_parameter = figure_var_out
@@ -390,6 +398,7 @@ class DrvData:
                     figure_data_extent=figure_data_extent_def,
                     figure_colorbar_label=figure_cbar_label, figure_colorbar_show=figure_cbar_show,
                     figure_colorbar_extent=figure_cbar_extent, figure_colorbar_ticks=figure_cbar_ticks,
+                    figure_colorbar_tick_fontsize=figure_cbar_tick_fontsize,
                     figure_vmin=figure_vmin, figure_vmax=figure_vmax,
                     figure_cmap_type=figure_cmap_type, figure_cmap_n=figure_cmap_n,
                     figure_title_fontsize=figure_title_fontsize, figure_title_fontweight=figure_title_fontweight,
@@ -401,10 +410,18 @@ class DrvData:
                     )
 
                 # select plotting fx according to expected data
-                if figure_type == 'snr_map':
+                if figure_type == 'snr_map_data':
 
                     # compute snr (classes and selection)
                     figure_dframe = compute_snr_map(figure_dframe)
+                    # plot figure data
+                    plot_results_data(figure_file_obj, figure_dframe, figure_kwargs, figure_flag_carea_obj)
+
+                elif figure_type == 'pearson_map_data':
+
+                    # compute pearson (classes and selection)
+                    figure_dframe = compute_pearson_map(figure_dframe)
+
                     # plot figure data
                     plot_results_data(figure_file_obj, figure_dframe, figure_kwargs, figure_flag_carea_obj)
 
@@ -415,7 +432,6 @@ class DrvData:
                     # plot figure pearson classes
                     plot_results_classes_pearson(
                         figure_file_obj, figure_dframe, figure_kwargs, fig_committed_area=False)
-                    print()
 
                 elif figure_type == 'snr_map_classes':
 
@@ -424,12 +440,6 @@ class DrvData:
                     # plot figure snr classes
                     plot_results_classes_snr(
                         figure_file_obj, figure_dframe, figure_kwargs, fig_committed_area=False)
-                    print()
-                elif figure_type == 'pearson_map':
-
-                    # plot figure data
-                    for figure_file_name, figure_carea_flag in zip(figure_file_obj, figure_flag_carea_obj):
-                        plot_results_data(figure_file_name, figure_dframe, figure_kwargs, figure_carea_flag)
 
                 elif figure_type == 'stats_snr_pie':
 
@@ -446,8 +456,6 @@ class DrvData:
                         figure_dframe, variable_data=figure_var_in, variable_stats=figure_var_out)
                     # plot figure stats/pie
                     plot_results_pie_pearson(figure_file_obj, figure_perc_comm, figure_perc_global, figure_kwargs)
-
-                    print()
 
                 elif figure_type == 'stats_snr_box':
 
@@ -480,6 +488,8 @@ class DrvData:
 
                 # info end plot
                 logging.info(' ----> Image "' + figure_key + '" ... DONE')
+
+                print()
 
             else:
 
