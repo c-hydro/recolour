@@ -1,5 +1,16 @@
 # Changelog
 
+## Version 2.5.0 (2026-05-13)
+- **PROJECT:** validation framework  
+  - **APPS – CELL:** 
+    - app_swath2cell_ascat h16 version 1 (refactor and update to use new libraries and python 3.11);
+    - app_swath2cell_ascat h16 version 2 
+    - app_swath2cell_ascat h122 (codes for use h122 datasets)
+  - **TOOLS – VALIDATION HSAF:** 
+    - app_validation_main version 1 (refactor and update to use new libraries and python 3.11);
+    - app_validation_main version 2 (fix bug in computing metrics, fix and update codes);
+    - app_validation_publisher (major updates codes to insert all figures and all options as in previous versions).
+
 ## Version 2.4.0 (2026-04-15)
 - **PROJECT:** operational framework grid  
   - **APPS – CELL:** app_img2cell_ecmwf.py 
