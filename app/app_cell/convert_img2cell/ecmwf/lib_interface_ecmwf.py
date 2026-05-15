@@ -89,16 +89,31 @@ class BaseImage(ImageBase):
         for parameter in self.parameters:
             param_names.append(parameter)
 
+        # search lon or longitude
+        if 'lon' in dataset.coords:
+            lon_name = 'lon'
+        elif 'longitude' in dataset.coords:
+            lon_name = 'longitude'
+        else:
+            raise KeyError("Longitude coordinate not found")
+        # search lat or latitude
+        if 'lat' in dataset.coords:
+            lat_name = 'lat'
+        elif 'latitude' in dataset.coords:
+            lat_name = 'latitude'
+        else:
+            raise KeyError("Latitude coordinate not found")
+
         # check the lons because are from 0 to 360; according to the rest of
         # algorithm at this point the dataset will be order from 0-180 and -180-0
         # the grid loaded in the init must be from -180-0 and 0-180
-        lon_max = np.nanmax(dataset.coords['lon'])
+        lon_max = np.nanmax(dataset.coords[lon_name])
         if lon_max > 180:
-            dataset.coords['lon'] = (dataset.coords['lon'] + 180) % 360 - 180 # correct!
-            dataset = dataset.sortby(dataset['lon'])
+            dataset.coords[lon_name] = (dataset.coords[lon_name] + 180) % 360 - 180 # correct!
+            dataset = dataset.sortby(dataset[lon_name])
 
         # check the lats
-        lat_data_start, lat_data_end = dataset.coords['lat'].values[0], dataset.coords['lat'].values[-1]
+        lat_data_start, lat_data_end = dataset.coords[lat_name].values[0], dataset.coords[lat_name].values[-1]
         lat_grid_start, lat_grid_end = self.grid.activearrlat[0], self.grid.activearrlat[-1]
         if lat_data_start > lat_data_end:
             if lat_grid_start < lat_grid_end:
@@ -130,6 +145,8 @@ class BaseImage(ImageBase):
                     param_data = param_data[0, :, :]
                 elif param_data.shape.__len__() == 4:
                     param_data = param_data[0, 0, :, :]
+                elif param_data.shape.__len__() == 2:
+                    pass
                 else:
                     raise IOError('bad dimensions definition')
                 np.ma.set_fill_value(param_data, 9999)

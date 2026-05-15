@@ -3,8 +3,8 @@ Library Features:
 
 Name:          lib_utils_io_nc
 Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:          '20230727'
-Version:       '1.0.0'
+Date:          '20260512'
+Version:       '1.1.0
 """
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -15,6 +15,7 @@ import netCDF4
 import time
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_integer_dtype, is_float_dtype, is_string_dtype, is_object_dtype
 
 from copy import deepcopy
 
@@ -24,44 +25,92 @@ from lib_utils_grid import read_grid_file, find_grid_idx_to_data
 
 # -----------------------------------------------------------------------------
 # method to read file cell in netcdf format
-def read_file_cell(file_name, file_variables=None):
+def read_file_cell(file_name, expected_variables=None):
 
+    # initialize variable workspace
     variable_workspace = None
+
+    # check expected variables
+    if expected_variables is None or not expected_variables:
+        logging.error(
+            f' ===> Expected variables for selecting in cell files are not defined. Exit.')
+        raise SystemExit
+
+    # open the cell file
     with netCDF4.Dataset(file_name) as file_handle:
 
-        for variable_id, variable_name in enumerate(file_handle.variables):
+        # define file variables
+        file_variables = list(file_handle.variables)
 
-            if file_variables is not None:
-                if variable_name in file_variables:
+        # analyze found or missing variables
+        variables_found = [var for var in expected_variables if var in file_variables]
+        variables_missing = [var for var in expected_variables if var not in file_variables]
+
+        # print info
+        logging.info(f' ::: File variables: {file_variables}')
+        logging.info(f' ::: Expected variables: {expected_variables}')
+        logging.info(f' ::: Variables found: {variables_found}')
+        if variables_missing:
+            logging.warning(f' ::: Variables missing: {variables_missing}')
+        else:
+            logging.info(' ::: All expected variables were found')
+
+        # check file variables
+        if file_variables is None or not file_variables:
+            logging.warning(
+                f' ===> Expected variables for selecting in cell files are not defined. Return NoneType.')
+            return None
+
+        # iterate over expected variable(s)
+        for variable_id, variable_name in enumerate(expected_variables):
+
+            # initialize workspace
+            if variable_workspace is None:
+                variable_workspace = {}
+
+            # check if expected variables is in the file variable list
+            if variable_name in file_variables:
+
+                try:
                     variable_tmp = file_handle.variables[variable_name][:]
-                else:
+                except Exception as exc:
+                    logging.warning(
+                        f' ===> Reading variable "{variable_name}": {exc}. File not correctly saved. Return NoneType')
                     variable_tmp = None
-
             else:
-                variable_tmp = file_handle.variables[variable_name][:]
+                logging.warning(
+                    f' ===> Variable name "{variable_name}" not in {file_variables}. Return NoneType')
+                variable_tmp = None
 
+            # check if variables is defined or not
             if variable_tmp is not None:
+                # get values from masked arrays (if defined by mask)
                 if isinstance(variable_tmp, np.ma.MaskedArray):
                     variable_data = variable_tmp.data
                 else:
                     variable_data = deepcopy(variable_tmp)
 
-                if variable_workspace is None:
-                    variable_workspace = {}
+                # saved variable
                 variable_workspace[variable_name] = variable_data
+            else:
+                # saved nonetype if variable are not available
+                variable_workspace[variable_name] = None
+
+    # check workspace content
+    variables_none = [
+        variable_name
+        for variable_name, variable_data in variable_workspace.items()
+        if variable_data is None
+    ]
+
+    if variables_none:
+        logging.warning(
+            f' ===> One or more variables are NoneType: {variables_none}. '
+            f'Set variable workspace to NoneType.')
+
+        variable_workspace = None
 
     return variable_workspace
-# -----------------------------------------------------------------------------
-
-
-# -----------------------------------------------------------------------------
-# method to get variable name
-def get_variable_name_OLD(variable_list_in, variable_list_out, variable_name='gpi'):
-
-    variable_idx = variable_list_out.index(variable_name)
-    variable_name = variable_list_in[variable_idx]
-
-    return variable_name
 # -----------------------------------------------------------------------------
 
 
@@ -178,30 +227,75 @@ def read_file_collection(file_name_data, file_name_grid,
 def write_file_collection(file_name, file_data, file_tag_location='gpi'):
 
     # get data dimension
-    file_n = file_data[file_tag_location].__len__()
+    file_n = len(file_data[file_tag_location])
 
     # open and init file
     file_handle = netCDF4.Dataset(file_name, 'w')
     file_handle.createDimension('data', file_n)
+
     # add attr(s)
     file_handle.file_date = 'Created ' + time.ctime(time.time())
 
-    # iterate over datasets
-    for file_key, file_dict in file_data.items():
+    try:
 
-        file_values = list(file_dict.data)
-        if isinstance(file_values[0], str):
-            file_data = np.array(file_values, dtype=object)
-            file_var = file_handle.createVariable(varname=file_key, dimensions=('data',), datatype='str')
-        elif isinstance(file_values[0], (int, float, np.integer, np.floating)):
-            file_data = file_values
-            file_var = file_handle.createVariable(varname=file_key, dimensions=('data',), datatype='f4')
-        else:
-            logging.error(' ===> Datasets format is not expected')
-            raise IOError('Dump datasets failed due to the datasets format')
+        # iterate over dataframe columns
+        for file_key in file_data.columns:
 
-        file_var[:] = file_data
+            file_series = file_data[file_key]
+            file_dtype = file_series.dtype
 
-    file_handle.close()
+            # string / object variables
+            if is_string_dtype(file_dtype) or is_object_dtype(file_dtype):
+
+                file_values = file_series.astype(str).values
+
+                file_var = file_handle.createVariable(
+                    varname=file_key,
+                    dimensions=('data',),
+                    datatype=str
+                )
+
+                # VLEN strings must be assigned element by element
+                for i, value in enumerate(file_values):
+                    file_var[i] = value
+
+            # integer variables
+            elif is_integer_dtype(file_dtype):
+
+                file_values = file_series.values.astype(np.int32)
+
+                file_var = file_handle.createVariable(
+                    varname=file_key,
+                    dimensions=('data',),
+                    datatype='i4'
+                )
+
+                file_var[:] = file_values
+
+            # float variables
+            elif is_float_dtype(file_dtype):
+
+                file_values = file_series.values.astype(np.float32)
+
+                file_var = file_handle.createVariable(
+                    varname=file_key,
+                    dimensions=('data',),
+                    datatype='f4'
+                )
+
+                file_var[:] = file_values
+
+            # unsupported variables
+            else:
+                logging.error(
+                    f' ===> Datasets format for "{file_key}" '
+                    f'is not expected: {file_dtype}'
+                )
+                raise IOError(
+                    'Dump datasets failed due to the datasets format'
+                )
+
+    finally:
+        file_handle.close()
 
 # -----------------------------------------------------------------------------

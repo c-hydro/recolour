@@ -14,7 +14,8 @@ import os
 import shutil
 
 from lib_utils_generic import make_folder
-from lib_utils_datasets import organize_datasets_cell, organize_datasets_grid, convert_datasets_obj
+from lib_utils_datasets import (filter_datasets_cell, organize_datasets_cell,
+                                fill_datasets_cell, organize_datasets_grid, convert_datasets_obj)
 from lib_data_io_pickle import read_file_obj, write_file_obj
 from lib_data_io_nc import read_file_collection, write_file_collection
 
@@ -25,9 +26,13 @@ from lib_data_statistics_pie import compute_stats_snr as compute_stats_snr_pie
 from lib_data_statistics_box import compute_stats_pearson as compute_stats_pearson_box
 from lib_data_statistics_box import compute_stats_snr as compute_stats_snr_box
 
+from lib_data_statistics_map_data import compute_snr_map, compute_pearson_map
+from lib_data_statistics_map_classes import compute_snr_classes, compute_pearson_classes
+
 from lib_figure_settings import organize_figure_settings, organize_figure_extent
 from lib_figure_fx_results_generic import plot_committed_area
-from lib_figure_fx_results_data import plot_results_data
+from lib_figure_fx_results_map_data import plot_results_data
+from lib_figure_fx_results_map_classes import plot_results_classes_snr, plot_results_classes_pearson
 from lib_figure_fx_results_pie import plot_results_pie_pearson, plot_results_pie_snr
 from lib_figure_fx_results_box import plot_results_box_pearson, plot_results_box_snr
 
@@ -51,15 +56,17 @@ default_params_figure = {
 class DrvData:
 
     # method to initialize class
-    def __init__(self, alg_cell_list, alg_cell_grid, alg_settings,
+    def __init__(self, alg_cell_list, alg_cell_info, alg_cell_grid, alg_settings,
                  tag_section_flags='flags', tag_section_info='info',
                  tag_section_domain='domain', tag_section_grid='grid',
                  tag_section_params='parameters',
                  tag_section_datasets='datasets',
                  tag_section_figure='figure', tag_section_renderer='renderer',
-                 tag_section_time='time', tag_section_log='log'):
+                 tag_section_time='time', tag_section_log='log',
+                 fill_empty_gpis=True):
 
         self.alg_cells = alg_cell_list
+        self.alg_cell_info = alg_cell_info
         self.alg_cell_grid = alg_cell_grid
 
         self.alg_flags = alg_settings[tag_section_flags]
@@ -88,8 +95,8 @@ class DrvData:
         self.reset_datasets_dst = self.alg_flags['reset_destination_datasets']
         self.reset_logs = self.alg_flags['reset_logs']
 
-        self.folder_name_grid = self.alg_grid[self.tag_folder_name]
-        self.file_name_grid = self.alg_grid[self.tag_file_name]
+        self.folder_name_grid = self.alg_grid['source'][self.tag_folder_name]
+        self.file_name_grid = self.alg_grid['source'][self.tag_file_name]
         self.file_path_grid = os.path.join(self.folder_name_grid, self.file_name_grid)
 
         self.folder_name_src = self.alg_datasets_src[self.tag_folder_name]
@@ -104,6 +111,7 @@ class DrvData:
         self.folder_name_dst = self.alg_datasets_dst[self.tag_folder_name]
         self.file_name_dst = self.alg_datasets_dst[self.tag_file_name]
         self.variables_dst = self.alg_datasets_dst[self.tag_file_vars]
+        self.active_dst = self.alg_datasets_dst[self.tag_file_mode]
         self.file_path_dst = os.path.join(self.folder_name_dst, self.file_name_dst)
 
         self.figure_collection = self._join_figure_and_renderer()
@@ -111,6 +119,10 @@ class DrvData:
         self._clean_ancillary_folders(self.alg_log,
                                       dset_key_root='path_log', dset_key_sub=None,
                                       dset_clean=self.reset_logs)
+
+        self.fill_empty_data = False
+        if 'fill_empty_data' in list(self.alg_params_datasets.keys()):
+            self.fill_empty_data = self.alg_params_datasets['fill_empty_data']
 
     # method to join figure(s) and renderer(s)
     def _join_figure_and_renderer(self):
@@ -178,7 +190,7 @@ class DrvData:
         logging.info(' ---> Organize datasets ... ')
 
         # get cells
-        alg_cells = self.alg_cells
+        alg_cells_default = self.alg_cells
         # get file variables
         variables_src, variables_dst = self.variables_src, self.variables_dst
         # get file path
@@ -190,49 +202,84 @@ class DrvData:
                 os.remove(file_path_anc)
             if os.path.exists(file_path_dst):
                 os.remove(file_path_dst)
-        # clean ancillary and destination datasets if are not available together
-        if (not os.path.exists(file_path_anc)) or (not os.path.exists(file_path_dst)):
+        # clean destination datasets (if destination flag is activated
+        if self.reset_datasets_dst:
             if os.path.exists(file_path_anc):
                 os.remove(file_path_anc)
             if os.path.exists(file_path_dst):
                 os.remove(file_path_dst)
+        # if destination is active and ancillary or destination don't exists remove all
+        if self.active_dst:
+            if (not os.path.exists(file_path_anc)) or (not os.path.exists(file_path_dst)):
+                if os.path.exists(file_path_anc):
+                    os.remove(file_path_anc)
+                if os.path.exists(file_path_dst):
+                    os.remove(file_path_dst)
 
         # check cell obj availability
         if not os.path.exists(file_path_anc):
 
-            # join cell object(s)
-            cell_obj_dict = organize_datasets_cell(
-                cell_list=alg_cells, cell_digits=4, cell_grid=self.alg_cell_grid,
+            # select cell object(s) (file available)
+            logging.info(' ----> Select datasets cell ... ')
+            alg_cells_select, alg_cells_missing = filter_datasets_cell(alg_cells_default, cell_digits=4,
+                                 folder_name_datasets=self.folder_name_src, file_name_datasets=self.file_name_src,)
+            logging.info(' ----> Select datasets cells ... DONE')
+
+            # join cell object(s) (file joining)
+            logging.info(' ----> Get datasets cells ... ')
+            cell_obj_datasets = organize_datasets_cell(
+                cell_list=alg_cells_select, cell_digits=4,
+                cell_grid=self.alg_cell_grid, info_grid=self.alg_cell_info,
                 list_variable_in=variables_src, list_variable_out=variables_dst,
                 folder_name_datasets=self.folder_name_src, file_name_datasets=self.file_name_src,
+                fill_empty_data=self.fill_empty_data,
                 )
+            logging.info(' ----> Get datasets cells ... DONE')
+
+            # fill cell object(s) (using default values for variables)
+            logging.info(' ----> Fill datasets cells ... ')
+            cell_obj_datasets = fill_datasets_cell(
+                cell_obj_datasets, alg_cells_missing,
+                cell_grid=self.alg_cell_grid, info_grid=self.alg_cell_info,)
+            logging.info(' ----> Fill datasets cells ... DONE')
+
             # filter cell object
-            cell_obj_dict = organize_datasets_grid(
-                cell_obj_dict, data_type=self.alg_datasets_name,
+            logging.info(' ----> Transform datasets cells ... ')
+            cell_obj_datasets = organize_datasets_grid(
+                cell_obj_datasets, data_type=self.alg_datasets_name,
                 file_name_grid=self.file_path_grid)
+            logging.info(' ----> Transform datasets cells ... DONE')
 
             # save cell obj in pickle format
             folder_name_anc, file_name_anc = os.path.split(file_path_anc)
             make_folder(folder_name_anc)
-            write_file_obj(file_path_anc, cell_obj_dict)
+            write_file_obj(file_path_anc, cell_obj_datasets)
+
             # save cell obj in netcdf format
-            folder_name_dst, file_name_dst = os.path.split(file_path_dst)
-            make_folder(folder_name_dst)
-            write_file_collection(file_path_dst, cell_obj_dict)
+            logging.info(' ----> Save datasets cells ... ')
+            if self.active_dst:
+                folder_name_dst, file_name_dst = os.path.split(file_path_dst)
+                make_folder(folder_name_dst)
+                write_file_collection(file_path_dst, cell_obj_datasets)
+                logging.info(' ----> Save datasets cells ... DONE')
+            else:
+                logging.info(' ----> Save datasets cells ... SKIPPED. NOT ACTIVE')
 
         else:
             # read cell obj from pickle format
-            cell_obj_dict = read_file_obj(file_path_anc)
+            logging.info(' ----> Get datasets cells ... ')
+            cell_obj_datasets = read_file_obj(file_path_anc)
+            logging.info(' ----> Get datasets cells ... DONE. Previously saved.')
 
         # convert from dict to dframe
-        cell_obj_dframe = convert_datasets_obj(cell_obj_dict)
+        variables_dframe = convert_datasets_obj(cell_obj_datasets)
         # info end method
         logging.info(' ---> Organize datasets ... DONE')
 
-        return cell_obj_dframe
+        return variables_dframe
 
     # method to plot data
-    def plot_data(self, figure_dframe_tmp):
+    def plot_data(self, variables_dframe):
 
         # info start method
         logging.info(' ---> Plot datasets ... ')
@@ -248,10 +295,10 @@ class DrvData:
         figure_collection = self.figure_collection
 
         # method to get figure dataframe
-        variables_dframe = read_file_collection(
-            file_path_dst, file_path_grid,
-            variable_type=datasets_name,
-            variable_list=variables_dst)
+        #variables_dframe = read_file_collection(
+        #    file_path_dst, file_path_grid,
+        #    variable_type=datasets_name,
+        #    variable_list=variables_dst)
 
         # iterate over figure(s)
         for figure_key, figure_fields in figure_collection.items():
@@ -284,6 +331,7 @@ class DrvData:
                 figure_title_fontweight = figure_settings['title_fontweight']
                 figure_cbar_fontsize = figure_settings['cb_fontsize']
                 figure_cbar_fontweight = figure_settings['cb_fontweight']
+                figure_cbar_tick_fontsize = figure_settings['cb_tick_fontsize']
                 figure_cbar_show = figure_settings['cbar_show']
                 figure_committed_area = figure_settings['committed_area']
                 figure_lim_thr, figure_lim_target = figure_settings['lim_threshold'], figure_settings['lim_target']
@@ -302,9 +350,17 @@ class DrvData:
                     figure_dframe = filter_dframe_by_vars(
                         variables_dframe, dframe_parameter=[figure_var_in_data, figure_var_in_p_r, figure_var_in_r],
                         dframe_variables_data=figure_variables, dframe_variables_grid=['land_flag', 'committed_area'])
+                elif figure_type == 'snr_map_classes':
+                    figure_dframe = filter_dframe_by_vars(
+                        variables_dframe, dframe_parameter=[figure_var_in_data, figure_var_in_p_r, figure_var_in_r],
+                        dframe_variables_data=figure_variables, dframe_variables_grid=['land_flag', 'committed_area'])
+                elif figure_type == 'pearson_map_classes':
+                    figure_dframe = filter_dframe_by_vars(
+                        variables_dframe, dframe_parameter=[figure_var_in_data, figure_var_in_p_r, figure_var_in_r],
+                        dframe_variables_data=figure_variables, dframe_variables_grid=['land_flag', 'committed_area'])
                 else:
                     figure_dframe = filter_dframe_by_vars(
-                        variables_dframe, dframe_parameter=figure_var_in,
+                        variables_dframe, dframe_parameter=[figure_var_in_data, figure_var_in_p_r, figure_var_in_r],
                         dframe_variables_data=figure_variables, dframe_variables_grid=['land_flag', 'committed_area'])
 
                 # organize figure extent
@@ -312,8 +368,14 @@ class DrvData:
                     figure_dframe, figure_data_extent_default, fig_ext_domain=figure_data_extent_over_domain)
 
                 # select figure parameter
-                if figure_type == 'data':
+                if figure_type == 'snr_map_data':
                     figure_parameter = figure_var_in
+                elif figure_type == 'snr_map_classes':
+                    figure_parameter = figure_var_out
+                elif figure_type == 'pearson_map_data':
+                    figure_parameter = figure_var_in
+                elif figure_type == 'pearson_map_classes':
+                    figure_parameter = figure_var_out
                 elif figure_type == 'stats_pearson_pie' or figure_type == 'stats_snr_pie':
                     figure_parameter = figure_var_out
                 elif figure_type == 'stats_pearson_box' or figure_type == 'stats_snr_box':
@@ -322,7 +384,7 @@ class DrvData:
                     figure_parameter = figure_var_in
                 else:
                     logging.error(' ===> Figure type "' + figure_type + '" is not expected')
-                    raise NotImplemented('Case not implemented yet')
+                    raise NotImplementedError('Case not implemented yet')
 
                 # set figure settings as expected by the plotting fx
                 figure_file_obj, figure_flag_carea_obj, figure_kwargs = organize_figure_settings(
@@ -336,6 +398,7 @@ class DrvData:
                     figure_data_extent=figure_data_extent_def,
                     figure_colorbar_label=figure_cbar_label, figure_colorbar_show=figure_cbar_show,
                     figure_colorbar_extent=figure_cbar_extent, figure_colorbar_ticks=figure_cbar_ticks,
+                    figure_colorbar_tick_fontsize=figure_cbar_tick_fontsize,
                     figure_vmin=figure_vmin, figure_vmax=figure_vmax,
                     figure_cmap_type=figure_cmap_type, figure_cmap_n=figure_cmap_n,
                     figure_title_fontsize=figure_title_fontsize, figure_title_fontweight=figure_title_fontweight,
@@ -347,11 +410,36 @@ class DrvData:
                     )
 
                 # select plotting fx according to expected data
-                if figure_type == 'data':
+                if figure_type == 'snr_map_data':
+
+                    # compute snr (classes and selection)
+                    figure_dframe = compute_snr_map(figure_dframe)
+                    # plot figure data
+                    plot_results_data(figure_file_obj, figure_dframe, figure_kwargs, figure_flag_carea_obj)
+
+                elif figure_type == 'pearson_map_data':
+
+                    # compute pearson (classes and selection)
+                    figure_dframe = compute_pearson_map(figure_dframe)
 
                     # plot figure data
-                    for figure_file_name, figure_carea_flag in zip(figure_file_obj, figure_flag_carea_obj):
-                        plot_results_data(figure_file_name, figure_dframe, figure_kwargs, figure_carea_flag)
+                    plot_results_data(figure_file_obj, figure_dframe, figure_kwargs, figure_flag_carea_obj)
+
+                elif figure_type == 'pearson_map_classes':
+
+                    # compute pearson (classes and selection)
+                    figure_dframe = compute_pearson_classes(figure_dframe, variable_classes=figure_parameter)
+                    # plot figure pearson classes
+                    plot_results_classes_pearson(
+                        figure_file_obj, figure_dframe, figure_kwargs, fig_committed_area=False)
+
+                elif figure_type == 'snr_map_classes':
+
+                    # compute snr (classes and selection)
+                    figure_dframe = compute_snr_classes(figure_dframe, variable_classes=figure_parameter)
+                    # plot figure snr classes
+                    plot_results_classes_snr(
+                        figure_file_obj, figure_dframe, figure_kwargs, fig_committed_area=False)
 
                 elif figure_type == 'stats_snr_pie':
 
@@ -374,8 +462,7 @@ class DrvData:
                     # compute statistics snr
                     figure_df_obj, figure_perc_obj = compute_stats_snr_box(
                         figure_dframe,
-                        variable_data=figure_var_in_data, variable_r=figure_var_in_r, variable_p_r=figure_var_in_p_r,
-                        variable_stats=figure_var_out)
+                        variable_data=figure_var_in_data, variable_r=figure_var_in_r, variable_p_r=figure_var_in_p_r)
                     # plot figure stats/box
                     plot_results_box_snr(figure_file_obj, figure_df_obj, figure_perc_obj, figure_kwargs)
 
@@ -395,11 +482,14 @@ class DrvData:
                     plot_committed_area(figure_file_obj, figure_dframe, figure_kwargs)
 
                 else:
+                    # error figure type not available
                     logging.error(' ===> Figure type "' + figure_type + '" is not expected')
-                    raise NotImplemented('Case not implemented yet')
+                    raise NotImplementedError('Case not implemented yet')
 
                 # info end plot
                 logging.info(' ----> Image "' + figure_key + '" ... DONE')
+
+                print()
 
             else:
 

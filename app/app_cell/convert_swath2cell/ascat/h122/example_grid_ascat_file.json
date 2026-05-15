@@ -1,0 +1,6 @@
+"grid": {
+  "mode": "grid_ascat_file",
+  "name": "fibgrid_6.25",
+  "reference_grid": "/path/to/TUW_WARP5_grid_info_2_3.nc",
+  "id_digits": 4
+}

@@ -35,8 +35,10 @@ Version:        '1.0.0'
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# WARNING: method had a new name
+import pynetcf.time_series as nc # use nww name write_all
+#import time_series_mod as nc # old imports for have the old name of output dumping method write_ts_all_loc
 
-import pynetcf.time_series as nc
 import pygeogrids.grids as grids
 import repurpose.resample as resamp
 
@@ -50,16 +52,17 @@ from copy import deepcopy
 import pygeogrids.netcdf as grid2nc
 
 import warnings
+
 warnings.filterwarnings("ignore")
 
 from lib_utils_ecmwf import write_obj
+
 
 class Img2TsError(Exception):
     pass
 
 
 class Img2Ts(object):
-
     """
     class that uses the read_img iterator of the input_data dataset
     to read all images between startdate and enddate and saves them
@@ -346,7 +349,7 @@ class Img2Ts(object):
                         filename_cell = self.filename_templ.format(cell_n=cell_string)
 
                         with nc.OrthoMultiTs(
-                            os.path.join(self.outputpath, filename_cell),
+                                os.path.join(self.outputpath, filename_cell),
                                 n_loc=cell_gpis.size, mode='a',
                                 zlib=self.zlib,
                                 unlim_chunksize=self.unlim_chunksize,
@@ -367,10 +370,13 @@ class Img2Ts(object):
                             dataout.add_global_attr(
                                 'geospatial_lon_max', np.max(cell_lons))
 
-                            dataout.write_ts_all_loc(
+                            dataout.write_all(
                                 cell_gpis, data, dates,
                                 lons=cell_lons, lats=cell_lats,
                                 attributes=self.ts_attributes)
+
+                            # OLD METHODS
+                            # dataout.write_ts_all_loc( cell_gpis, data, dates, lons=cell_lons, lats=cell_lats, attributes=self.ts_attributes)
 
                     elif not self.orthogonal:
 
@@ -497,7 +503,7 @@ class Img2Ts(object):
             logging.info(' -------> Analyze time "' + date.isoformat() + '" ... ')
             try:
                 (input_img, metadata,
-                    image_datetime, lon, lat, time_arr) = self.imgin.read(date, **self.input_kwargs)
+                 image_datetime, lon, lat, time_arr) = self.imgin.read(date, **self.input_kwargs)
 
                 logging.info(" --------> Select image: " + image_datetime.isoformat() + '"')
                 logging.info(' -------> Analyze time "' + date.isoformat() + '" ... DONE')
@@ -599,7 +605,6 @@ class Img2Ts(object):
             datetimestack = np.array(datetimes)
             yield (img_stack_dict, bulkstart, self.currentdate, datetimestack,
                    jd_stack)
-
 
 # debug
 

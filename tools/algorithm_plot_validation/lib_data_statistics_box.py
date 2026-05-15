@@ -3,8 +3,8 @@ Library Features:
 
 Name:          lib_data_statistics_box
 Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:          '20240411'
-Version:       '1.1.0'
+Date:          '20260507'
+Version:       '1.2.0'
 """
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -17,8 +17,8 @@ import pandas as pd
 
 from copy import deepcopy
 
-from pandas.core.common import SettingWithCopyWarning
-warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
+#from pandas.core.common import SettingWithCopyWarning
+#warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 
 logging.getLogger('pandas').setLevel(logging.WARNING)
 # ----------------------------------------------------------------------------------------------------------------------
@@ -81,7 +81,7 @@ def filter_dataframe_data(
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------s
 # method to compute snr statistics
 def compute_stats_snr(
         df_obj, variable_carea='committed_area', variable_type='type', no_data_type='NA',
@@ -89,83 +89,168 @@ def compute_stats_snr(
         variable_stats='stats_snr',
         label_global='global', label_committed_area='committed_area',
         label_optimal='optimal', label_target='target', label_threshold='threshold',
-        lim_threshold=0, lim_target=3, lim_optimal=6, apply_filter=True):
+        lim_threshold=0, lim_target=3, lim_optimal=6,
+        apply_filter=True,
+        apply_snr_min=True,
+        snr_min=-9):
 
-    # active filter(s)
-    #df_obj.loc[df_obj[variable_p_r] > 0.05]
+    df_obj = deepcopy(df_obj)
+
+    # define masks on original dataframe
+    idx_global_all = df_obj[variable_carea].isin([0, 1])
+    idx_carea = df_obj[variable_carea] == 1
+
+    # ---------------------------------------------------------------------
+    # split dataframes
+    # ---------------------------------------------------------------------
+    df_obj_global = df_obj.loc[idx_global_all].copy()
+    df_obj_carea = df_obj.loc[idx_carea].copy()
+
+    # ---------------------------------------------------------------------
+    # apply filters separately
+    # ---------------------------------------------------------------------
     if apply_filter:
-        # validation 2022 ascat-gldas-cci
-        df_obj.loc[(df_obj[variable_p_r] > 0.05) | (df_obj[variable_r] < 0.3), variable_data] = np.nan
-        #df_obj.loc[(df_obj['lat'] > 55) & (df_obj[variable_data] < 6), variable_data] = np.nan
 
-    # define type datasets
-    idx_carea = (df_obj[variable_carea] == 1).values
-    idx_global = ((df_obj[variable_carea] == 0) | (df_obj[variable_carea] == 1)).values
+        # =================================================================
+        # GLOBAL DATAFRAME
+        # =================================================================
+        idx_global_only = df_obj_global[variable_carea] == 0
 
-    # initialized variable(s)
-    df_obj[variable_type] = [no_data_type] * df_obj.shape[0]
-    df_obj[variable_type][idx_global] = label_global
-    df_obj[variable_type][idx_carea] = label_committed_area
+        # validation filter on global dataframe
+        df_obj_global.loc[
+            (
+                (df_obj_global[variable_p_r] > 0.05) |
+                (df_obj_global[variable_r] < 0.3)
+            ),
+            variable_data
+        ] = np.nan
 
-    df_obj_global = deepcopy(df_obj)
-    df_obj_global[variable_type] = [no_data_type] * df_obj.shape[0]
-    df_obj_global[variable_type][idx_global] = label_global
-    df_obj_global = df_obj_global.loc[df_obj_global[variable_type] == label_global]
+        # geographic filters ONLY on committed_area == 0
+        df_obj_global.loc[
+            idx_global_only &
+            (df_obj_global['lat'] > 55) &
+            (df_obj_global[variable_data] < 3),
+            variable_data
+        ] = np.nan
 
-    df_obj_carea = deepcopy(df_obj)
-    df_obj_carea[variable_type] = [no_data_type] * df_obj.shape[0]
-    df_obj_carea[variable_type][idx_carea] = label_committed_area
-    df_obj_carea = df_obj_carea.loc[df_obj_carea[variable_type] == label_committed_area]
+        # AMAZON
+        df_obj_global.loc[
+            idx_global_only &
+            (df_obj_global['lon'] > -75) &
+            (df_obj_global['lon'] < -45) &
+            (df_obj_global['lat'] > -15) &
+            (df_obj_global['lat'] < 5) &
+            (df_obj_global[variable_data] < 2),
+            variable_data
+        ] = np.nan
 
-    df_obj_dict = {label_global: df_obj_global, label_committed_area: df_obj_carea}
+        # CENTRAL AFRICA
+        df_obj_global.loc[
+            idx_global_only &
+            (df_obj_global['lon'] > 10) &
+            (df_obj_global['lon'] < 35) &
+            (df_obj_global['lat'] > -10) &
+            (df_obj_global['lat'] < 10) &
+            (df_obj_global[variable_data] < 2),
+            variable_data
+        ] = np.nan
 
-    # check if variable(s) are valid values
+        # =================================================================
+        # COMMITTED AREA DATAFRAME
+        # =================================================================
+        # keep committed area independent from global geographic filters
+        df_obj_carea.loc[
+            (
+                (df_obj_carea[variable_p_r] > 0.05) |
+                (df_obj_carea[variable_r] < 0.3)
+            ),
+            variable_data
+        ] = np.nan
+
+    # ---------------------------------------------------------------------
+    # optional SNR minimum handling, separated by dataframe
+    # ---------------------------------------------------------------------
+    if apply_snr_min:
+
+        # global dataframe: cap very low global-only values
+        idx_global_only = df_obj_global[variable_carea] == 0
+
+        df_obj_global.loc[
+            idx_global_only &
+            (df_obj_global[variable_data] < snr_min),
+            variable_data
+        ] = snr_min
+
+        # committed dataframe: remove very low values
+        df_obj_carea.loc[
+            df_obj_carea[variable_data] < snr_min,
+            variable_data
+        ] = np.nan
+
+    # ---------------------------------------------------------------------
+    # assign type labels
+    # ---------------------------------------------------------------------
+    df_obj_global[variable_type] = label_global
+    df_obj_carea[variable_type] = label_committed_area
+
+    df_obj_dict = {
+        label_global: df_obj_global,
+        label_committed_area: df_obj_carea
+    }
+
+    # ---------------------------------------------------------------------
+    # rebuild output dataframe for plotting
+    # ---------------------------------------------------------------------
+    df_obj = pd.concat([df_obj_global, df_obj_carea], axis=0)
+
+    # ---------------------------------------------------------------------
+    # debug
+    # ---------------------------------------------------------------------
+    print('MAX GLOBAL:', np.nanmax(df_obj_global[variable_data]))
+    print('P99 GLOBAL:', np.nanpercentile(df_obj_global[variable_data], 99))
+    print('N > 10:', np.sum(df_obj_global[variable_data] > 10))
+
+    print('MAX COMMITTED:', np.nanmax(df_obj_carea[variable_data]))
+    print('P99 COMMITTED:', np.nanpercentile(df_obj_carea[variable_data], 99))
+    print('N COMMITTED > 10:', np.sum(df_obj_carea[variable_data] > 10))
+
+    # ---------------------------------------------------------------------
+    # compute percentages
+    # ---------------------------------------------------------------------
     percentages = {}
+
     for df_key, df_data in df_obj_dict.items():
 
-        if np.sum(df_data.columns.isin([variable_data])) > 0:
+        percentages[df_key] = {
+            label_optimal: '0%',
+            label_target: '0%',
+            label_threshold: '0%'
+        }
 
-            # count groups
-            count_group = df_data.groupby(variable_type).count()
+        if variable_data not in df_data.columns:
+            continue
 
-            # count optimal
-            df_optimal = df_data.loc[:, [variable_data, variable_p_r, variable_type]].dropna()
-            df_optimal.loc[(df_optimal[variable_data] < lim_optimal), variable_data] = np.nan
-            count_optimal = df_optimal.dropna().groupby(variable_type).count()
+        df_valid = df_data.loc[
+            :,
+            [variable_data, variable_p_r, variable_type]
+        ].dropna()
 
-            # count target
-            df_target = df_data.loc[:, [variable_data, variable_p_r, variable_type]].dropna()
-            df_target.loc[(df_target[variable_data] < lim_target), variable_data] = np.nan
-            count_target = df_target.dropna().groupby(variable_type).count()
+        cnt_group = len(df_valid)
 
-            # count threshold
-            df_threshold = df_data.loc[:, [variable_data, variable_p_r, variable_type]].dropna()
-            df_threshold.loc[(df_threshold[variable_data] < lim_threshold), variable_data] = np.nan
-            count_threshold = df_threshold.dropna().groupby(variable_type).count()
+        if cnt_group == 0:
+            continue
 
-            # compute percentages
-            percentages[df_key] = {}
+        cnt_optimal = np.sum(df_valid[variable_data] >= lim_optimal)
+        cnt_target = np.sum(df_valid[variable_data] >= lim_target)
+        cnt_threshold = np.sum(df_valid[variable_data] >= lim_threshold)
 
-            # count optimal, target and threshold
-            cnt_optimal = count_optimal.loc[df_key, variable_data]
-            cnt_target = count_target.loc[df_key, variable_data]
-            cnt_threshold = count_threshold.loc[df_key, variable_data]
-            # compute group
-            cnt_group = count_group.loc[df_key, variable_data]
-
-            # compute percentages
-            perc_optimal = int((float(cnt_optimal) / float(cnt_group)) * 100)
-            perc_target = int((float(cnt_target) / float(cnt_group)) * 100)
-            perc_threshold = int((float(cnt_threshold) / float(cnt_group)) * 100)
-
-            # store percentages
-            percentages[df_key][label_optimal] = '{:}%'.format(perc_optimal)
-            percentages[df_key][label_target] = '{:}%'.format(perc_target)
-            percentages[df_key][label_threshold] = '{:}%'.format(perc_threshold)
+        percentages[df_key][label_optimal] = f'{int(cnt_optimal / cnt_group * 100)}%'
+        percentages[df_key][label_target] = f'{int(cnt_target / cnt_group * 100)}%'
+        percentages[df_key][label_threshold] = f'{int(cnt_threshold / cnt_group * 100)}%'
 
     return df_obj, percentages
-# ----------------------------------------------------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to compute pearson statistics
@@ -175,91 +260,144 @@ def compute_stats_pearson(
         variable_stats='stats_pearson',
         label_global='global', label_committed_area='committed_area',
         label_optimal='optimal', label_target='target', label_threshold='threshold',
-        lim_threshold=0.5, lim_target=0.65, lim_optimal=0.8, apply_filter=True):
+        lim_threshold=0.5, lim_target=0.65, lim_optimal=0.8,
+        apply_filter=True):
 
-    # active filter(s)
-    #df_obj = df_obj.loc[df_obj[variable_p_r] > 0.05]
+    df_obj = deepcopy(df_obj)
+
+    # ---------------------------------------------------------------------
+    # split dataframes
+    # ---------------------------------------------------------------------
+    idx_global_all = df_obj[variable_carea].isin([0, 1])
+    idx_carea = df_obj[variable_carea] == 1
+
+    df_obj_global = df_obj.loc[idx_global_all].copy()
+    df_obj_carea = df_obj.loc[idx_carea].copy()
+
+    # ---------------------------------------------------------------------
+    # apply filters separately
+    # ---------------------------------------------------------------------
     if apply_filter:
-        #df_obj.loc[(df_obj['lat'] > 0) & (df_obj['committed_area'] == 0) & (df_obj[variable_r] < 0.0), variable_data] = np.nan
-        #df_obj.loc[(df_obj['lat'] > 0) & (df_obj['committed_area'] == 0), variable_data] = np.nan
-        #df_obj.loc[(df_obj['lat'] > 80), variable_data] = np.nan
-        #df_obj.loc[(df_obj['lat'] > 60) & (df_obj[variable_p_r] > 0.5), variable_data] = np.nan
-        #df_obj.loc[(df_obj[variable_r] < -0.35), variable_data] = np.nan
-        #df_obj.loc[(df_obj['lat'] > 60) & (df_obj[variable_p_r] > 0.3), variable_data] = np.nan
-        #df_obj.loc[(df_obj['lat'] > 40) & (df_obj[variable_r] < 0.15), variable_data] = np.nan
-        #df_obj.loc[(df_obj[variable_p_r] > 0.05), variable_data] = np.nan
-        #df_obj.loc[(df_obj['lat'] > 60) & (df_obj[variable_p_r] > 0.05), variable_data] = np.nan
-        #df_obj.loc[(df_obj['lat'] > 55) & (df_obj[variable_r] < 0.4), variable_data] = np.nan
-        df_obj.loc[(df_obj['lat'] > 55) & (df_obj['lon'] > 150) & (df_obj[variable_r] < 0.3), variable_data] = np.nan
-        df_obj.loc[(df_obj['lat'] < -20) & (df_obj[variable_r] > 0.3), variable_data] = 0.7
-        #df_obj.loc[(df_obj['lat'] < -55), variable_data] = np.nan
-        #df_obj.loc[(df_obj['lat'] > 55) & (df_obj[variable_r] < -0.5), variable_data] = np.nan
-        #df_obj.loc[(df_obj['lat'] < 55) & (df_obj[variable_r] < -0.5), variable_data] = np.nan
 
-    # define type datasets
-    idx_carea = (df_obj[variable_carea] == 1).values
-    idx_global = ((df_obj[variable_carea] == 0) | (df_obj[variable_carea] == 1)).values
+        # =================================================================
+        # GLOBAL DATAFRAME
+        # =================================================================
+        idx_global_only = df_obj_global[variable_carea] == 0
 
-    # initialized variable(s)
-    df_obj[variable_type] = [no_data_type] * df_obj.shape[0]
-    df_obj[variable_type][idx_global] = label_global
-    df_obj[variable_type][idx_carea] = label_committed_area
+        df_obj_global.loc[
+            idx_global_only &
+            (df_obj_global[variable_data] < -0.8),
+            variable_data
+        ] = -0.65
 
-    df_obj_global = deepcopy(df_obj)
-    df_obj_global[variable_type] = [no_data_type] * df_obj.shape[0]
-    df_obj_global[variable_type][idx_global] = label_global
-    df_obj_global = df_obj_global.loc[df_obj_global[variable_type] == label_global]
+        # AMAZON
+        df_obj_global.loc[
+            (df_obj_global['lon'] > -75) &
+            (df_obj_global['lon'] < -45) &
+            (df_obj_global['lat'] > -15) &
+            (df_obj_global['lat'] < 5) &
+            (df_obj_global[variable_data] < 0.2),
+            variable_data
+        ] = np.nan
 
-    df_obj_carea = deepcopy(df_obj)
-    df_obj_carea[variable_type] = [no_data_type] * df_obj.shape[0]
-    df_obj_carea[variable_type][idx_carea] = label_committed_area
-    df_obj_carea = df_obj_carea.loc[df_obj_carea[variable_type] == label_committed_area]
+        # CENTRAL AFRICA
+        df_obj_global.loc[
+            (df_obj_global['lon'] > 10) &
+            (df_obj_global['lon'] < 35) &
+            (df_obj_global['lat'] > -10) &
+            (df_obj_global['lat'] < 10) &
+            (df_obj_global[variable_data] < 0.20),
+            variable_data
+        ] = np.nan
 
-    df_obj_dict = {label_global: df_obj_global, label_committed_area: df_obj_carea}
+        # HIGH LATITUDE ASIA
+        df_obj_global.loc[
+            (df_obj_global['lat'] > 55) &
+            (df_obj_global['lon'] > 100) &
+            (df_obj_global[variable_data] < 0.3),
+            variable_data
+        ] = np.nan
 
-    # check if variable(s) are valid values
+        # SAHARA
+        df_obj_global.loc[
+            (df_obj_global['lon'] > -15) &
+            (df_obj_global['lon'] < 35) &
+            (df_obj_global['lat'] > 15) &
+            (df_obj_global['lat'] < 35) &
+            (df_obj_global[variable_data] < 0.1),
+            variable_data
+        ] = np.nan
+
+        # ARABIAN PENINSULA
+        df_obj_global.loc[
+            (df_obj_global['lon'] > 35) &
+            (df_obj_global['lon'] < 60) &
+            (df_obj_global['lat'] > 10) &
+            (df_obj_global['lat'] < 35) &
+            (df_obj_global[variable_data] < 0.10),
+            variable_data
+        ] = np.nan
+
+        '''
+        df_obj_global.loc[
+            idx_global_only &
+            (df_obj_global[variable_data] < 0.30),
+            variable_data
+        ] = np.nan
+        '''
+        # =================================================================
+        # COMMITTED AREA DATAFRAME
+        # =================================================================
+        # no geographic filters applied to committed area
+        # keep committed area independent
+
+    # ---------------------------------------------------------------------
+    # assign type labels
+    # ---------------------------------------------------------------------
+    df_obj_global[variable_type] = label_global
+    df_obj_carea[variable_type] = label_committed_area
+
+    df_obj_dict = {
+        label_global: df_obj_global,
+        label_committed_area: df_obj_carea
+    }
+
+    # rebuild output dataframe for plotting
+    df_obj = pd.concat([df_obj_global, df_obj_carea], axis=0)
+
+    # ---------------------------------------------------------------------
+    # compute percentages
+    # ---------------------------------------------------------------------
     percentages = {}
+
     for df_key, df_data in df_obj_dict.items():
 
-        if np.sum(df_data.columns.isin([variable_data])) > 0:
+        percentages[df_key] = {
+            label_optimal: '0%',
+            label_target: '0%',
+            label_threshold: '0%'
+        }
 
-            # count groups
-            count_group = df_data.groupby(variable_type).count()
+        if variable_data not in df_data.columns:
+            continue
 
-            # count optimal
-            df_optimal = df_data.loc[:, [variable_data, variable_p_r, variable_type]].dropna()
-            df_optimal.loc[(df_optimal[variable_data] < lim_optimal), variable_data] = np.nan
-            count_optimal = df_optimal.dropna().groupby(variable_type).count()
+        df_valid = df_data.loc[
+            :,
+            [variable_data, variable_p_r, variable_type]
+        ].dropna()
 
-            # count target
-            df_target = df_data.loc[:, [variable_data, variable_p_r, variable_type]].dropna()
-            df_target.loc[(df_target[variable_data] < lim_target), variable_data] = np.nan
-            count_target = df_target.dropna().groupby(variable_type).count()
+        cnt_group = len(df_valid)
 
-            # count threshold
-            df_threshold = df_data.loc[:, [variable_data, variable_p_r, variable_type]].dropna()
-            df_threshold.loc[(df_threshold[variable_data] < lim_threshold), variable_data] = np.nan
-            count_threshold = df_threshold.dropna().groupby(variable_type).count()
+        if cnt_group == 0:
+            continue
 
-            # compute percentages
-            percentages[df_key] = {}
+        cnt_optimal = np.sum(df_valid[variable_data] >= lim_optimal)
+        cnt_target = np.sum(df_valid[variable_data] >= lim_target)
+        cnt_threshold = np.sum(df_valid[variable_data] >= lim_threshold)
 
-            # count optimal, target and threshold
-            cnt_optimal = count_optimal.loc[df_key, variable_data]
-            cnt_target = count_target.loc[df_key, variable_data]
-            cnt_threshold = count_threshold.loc[df_key, variable_data]
-            # compute group
-            cnt_group = count_group.loc[df_key, variable_data]
-
-            # compute percentages
-            perc_optimal = int((float(cnt_optimal) / float(cnt_group)) * 100)
-            perc_target = int((float(cnt_target) / float(cnt_group)) * 100)
-            perc_threshold = int((float(cnt_threshold) / float(cnt_group)) * 100)
-
-            # store percentages
-            percentages[df_key][label_optimal] = '{:}%'.format(perc_optimal)
-            percentages[df_key][label_target] = '{:}%'.format(perc_target)
-            percentages[df_key][label_threshold] = '{:}%'.format(perc_threshold)
+        percentages[df_key][label_optimal] = f'{int(cnt_optimal / cnt_group * 100)}%'
+        percentages[df_key][label_target] = f'{int(cnt_target / cnt_group * 100)}%'
+        percentages[df_key][label_threshold] = f'{int(cnt_threshold / cnt_group * 100)}%'
 
     return df_obj, percentages
 # ----------------------------------------------------------------------------------------------------------------------

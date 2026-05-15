@@ -4,8 +4,8 @@
 """
 RECOLOUR APPS - SSM H122 CONVERT - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20260420'
-__version__ = '1.3.0'
+__date__ = '20260430'
+__version__ = '1.4.0'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)'
 __library__ = 'recolour'
@@ -15,6 +15,7 @@ python app_convert_ssm_h122.py -settings_file configuration.json -time "YYYY-MM-
 
 Version(s):
 20260420 (1.3.0) --> Adapt configuration to parameters/source/destination sections
+20260430 (1.4.0) --> Add grid section with grid_ascat_default/grid_ascat_file modes
 """
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -41,8 +42,8 @@ import xarray as xr
 project_name = 'recolour'
 alg_name = 'Application to convert ssm h122 files to gpi/cell outputs'
 alg_type = 'Package'
-alg_version = '1.3.0'
-alg_release = '2026-04-20'
+alg_version = '1.4.0'
+alg_release = '2026-04-30'
 
 logger = logging.getLogger("app_convert")
 # ----------------------------------------------------------------------------------------------------------------------
@@ -80,7 +81,8 @@ def read_file_json(file_name):
 
 
 def make_folder(path_name):
-    os.makedirs(path_name, exist_ok=True)
+    if path_name is not None and path_name != "":
+        os.makedirs(path_name, exist_ok=True)
 
 
 def normalize_time_to_hour(time_obj):
@@ -162,9 +164,7 @@ def resolve_time_window(settings, reference_time):
         time_start = normalize_time_to_hour(time_end - time_delta)
 
     else:
-        raise RuntimeError(
-            'time_start and time_end must be both provided, or neither provided'
-        )
+        raise RuntimeError("time_start and time_end must be both provided, or neither provided")
 
     if floor_start_to_midnight:
         time_start = normalize_time_to_midnight(time_start)
@@ -364,12 +364,146 @@ def collect_to_dataframe(settings, file_list):
 
 # ----------------------------------------------------------------------------------------------------------------------
 # grid/domain methods
-def add_tuw_cell(df, grid_name="fibgrid_6.25"):
+def validate_grid_settings(grid_settings):
+    grid_mode = grid_settings.get("mode", "grid_ascat_default").lower()
+
+    if grid_mode not in ["grid_ascat_default", "grid_ascat_file"]:
+        raise RuntimeError(
+            'Unsupported grid.mode. Use "grid_ascat_default" or "grid_ascat_file"'
+        )
+
+    if grid_mode == "grid_ascat_file" and grid_settings.get("reference_grid") is None:
+        raise RuntimeError('grid.reference_grid must be defined for mode "grid_ascat_file"')
+
+    return grid_mode
+
+def get_grid_metadata(grid_settings):
+    grid_mode = grid_settings.get("mode", "grid_ascat_default").lower()
+    grid_name = grid_settings.get("name", "fibgrid_6.25")
+    reference_grid = grid_settings.get("reference_grid", None)
+    id_digits = int(grid_settings.get("id_digits", 4))
+
+    return grid_mode, grid_name, reference_grid, id_digits
+
+def add_tuw_cell_from_ascat_package(df, grid_name="fibgrid_6.25"):
+    """
+    Add TUW/FibGrid cell id using the tuw-geo/ascat package.
+
+    For H122 use:
+        grid_name = "fibgrid_6.25"
+
+    For H29 use:
+        grid_name = "fibgrid_12.5"
+    """
+
     try:
         from ascat.grids.grid_registry import GridRegistry
     except Exception as exc:
         raise RuntimeError(
-            "Exact TUW cell lookup requires the 'ascat' package. Install it first."
+            'Missing package "ascat". Install it first, for example with:\n'
+            'pip install ascat\n'
+            'or use the conda environment from https://github.com/TUW-GEO/ascat'
+        ) from exc
+
+    registry = GridRegistry()
+    grid = registry.get(grid_name)
+
+    gpis = df["gpi"].to_numpy(np.int64)
+
+    # Preferred accessor
+    if hasattr(grid, "gpi2cell"):
+        cells = np.array(
+            [grid.gpi2cell(int(gpi)) for gpi in gpis],
+            dtype=np.int32
+        )
+
+    # Fallback for pygeogrids-style grid objects
+    elif hasattr(grid, "activegpis") and hasattr(grid, "activearrcell"):
+        lookup = dict(
+            zip(
+                np.asarray(grid.activegpis, dtype=np.int64),
+                np.asarray(grid.activearrcell, dtype=np.int32)
+            )
+        )
+
+        missing = [int(gpi) for gpi in gpis if int(gpi) not in lookup]
+        if missing:
+            raise KeyError(
+                f"{len(missing)} gpis not found in ASCAT grid {grid_name}. "
+                f"First missing gpis: {missing[:20]}"
+            )
+
+        cells = np.array([lookup[int(gpi)] for gpi in gpis], dtype=np.int32)
+
+    else:
+        raise AttributeError(
+            "Unsupported ASCAT grid object: no gpi2cell, activegpis, or activearrcell found"
+        )
+
+    df_out = df.copy()
+    df_out.insert(1, "cell", cells)
+
+    return df_out
+
+
+def add_tuw_cell_from_reference_file(df, reference_grid, missing_policy="drop"):
+    gpis = df["gpi"].to_numpy(np.int64)
+
+    with xr.open_dataset(reference_grid) as grid_ds:
+        if "gpi" not in grid_ds:
+            raise KeyError(f'gpi missing in reference grid "{reference_grid}"')
+        if "cell" not in grid_ds:
+            raise KeyError(f'cell missing in reference grid "{reference_grid}"')
+
+        grid_gpi = grid_ds["gpi"].values.astype(np.int64)
+        grid_cell = grid_ds["cell"].values.astype(np.int32)
+
+    lookup = dict(zip(grid_gpi, grid_cell))
+
+    cells = np.array(
+        [lookup.get(int(gpi), -1) for gpi in gpis],
+        dtype=np.int32
+    )
+
+    missing_mask = cells == -1
+    n_missing = int(missing_mask.sum())
+
+    if n_missing > 0:
+        missing_gpis = np.unique(gpis[missing_mask])
+        logger.warning(
+            f" ----> Missing {n_missing} rows / {len(missing_gpis)} unique gpis "
+            f"in reference grid {reference_grid}. First missing gpis: "
+            f"{missing_gpis[:20].tolist()}"
+        )
+
+        if missing_policy == "raise":
+            raise KeyError(
+                f"{len(missing_gpis)} gpis not found in reference grid. "
+                f"First missing gpis: {missing_gpis[:20].tolist()}"
+            )
+
+        if missing_policy == "drop":
+            df = df.loc[~missing_mask].copy()
+            cells = cells[~missing_mask]
+
+        elif missing_policy == "keep":
+            df = df.copy()
+
+        else:
+            raise RuntimeError('grid.missing_policy must be "raise", "drop", or "keep"')
+
+    df_out = df.copy()
+    df_out.insert(1, "cell", cells)
+
+    return df_out
+
+def add_tuw_cell_from_default_grid(df, grid_name="fibgrid_6.25"):
+    try:
+        from ascat.grids.grid_registry import GridRegistry
+    except Exception as exc:
+        raise RuntimeError(
+            'mode "grid_ascat_default" requires the ascat package. '
+            'Use mode "grid_ascat_file" with grid.reference_grid otherwise.'
         ) from exc
 
     registry = GridRegistry()
@@ -379,6 +513,7 @@ def add_tuw_cell(df, grid_name="fibgrid_6.25"):
 
     if hasattr(grid, "gpi2cell"):
         cells = np.array([grid.gpi2cell(int(gpi)) for gpi in gpis], dtype=np.int32)
+
     elif hasattr(grid, "activegpis") and hasattr(grid, "activearrcell"):
         lookup = dict(
             zip(
@@ -390,13 +525,38 @@ def add_tuw_cell(df, grid_name="fibgrid_6.25"):
             cells = np.array([lookup[int(gpi)] for gpi in gpis], dtype=np.int32)
         except KeyError as exc:
             raise KeyError(f"gpi {exc.args[0]} not found in {grid_name}") from exc
+
     else:
-        raise AttributeError("Unsupported grid object: no known gpi->cell accessor found")
+        raise AttributeError("Unsupported ASCAT grid object: no known gpi->cell accessor found")
 
     df_out = df.copy()
     df_out.insert(1, "cell", cells)
+
     return df_out
 
+
+def add_tuw_cell(df, grid_settings):
+    grid_mode, grid_name, reference_grid, _ = get_grid_metadata(grid_settings)
+
+    if grid_mode == "grid_ascat_default":
+        logger.info(f" ----> Select grid mode: {grid_mode}")
+        logger.info(f" ----> Select ASCAT grid: {grid_name}")
+        return add_tuw_cell_from_ascat_package(
+            df=df,
+            grid_name=grid_name
+        )
+
+    if grid_mode == "grid_ascat_file":
+        logger.info(f" ----> Select grid mode: {grid_mode}")
+        logger.info(f" ----> Select grid file: {reference_grid}")
+        return add_tuw_cell_from_reference_file(
+            df=df,
+            reference_grid=reference_grid
+        )
+
+    raise RuntimeError(
+        'Unsupported grid.mode. Use "grid_ascat_default" or "grid_ascat_file"'
+    )
 
 def filter_by_domain_cells(df, allowed_cells):
     return df[df["cell"].isin(allowed_cells)].copy()
@@ -461,14 +621,19 @@ def build_dataset_from_part(part_df, attrs):
     return dataset
 
 
-def write_cell_files(df, out_folder, filename_template, time_start, time_end, reference_time,
-                     grid_name="fibgrid_6.25", overwrite=True):
+def write_cell_files(
+        df, out_folder, filename_template, time_start, time_end, reference_time,
+        grid_name="fibgrid_6.25", grid_mode="grid_ascat_default",
+        reference_grid=None, id_digits=4, overwrite=True):
+
     make_folder(out_folder)
 
     written_files = []
     attrs = {
         "source_product": "H122",
+        "grid_mode": grid_mode,
         "grid_mapping_name": grid_name,
+        "reference_grid": "" if reference_grid is None else reference_grid,
         "time_start": time_start.strftime("%Y-%m-%d %H:%M:%S"),
         "time_end": time_end.strftime("%Y-%m-%d %H:%M:%S"),
     }
@@ -477,7 +642,7 @@ def write_cell_files(df, out_folder, filename_template, time_start, time_end, re
         out_filename = resolve_destination_filename(
             filename_template,
             {
-                "cell_n": f"{int(cell_id):04d}",
+                "cell_n": f"{int(cell_id):0{id_digits}d}",
                 "cell": int(cell_id),
                 "time_step": reference_time,
                 "time_start": time_start,
@@ -502,6 +667,7 @@ def write_cell_files(df, out_folder, filename_template, time_start, time_end, re
 # process methods
 def process_data(settings, reference_time):
     parameters_settings = settings.get("parameters", {})
+    grid_settings = settings.get("grid", {})
     destination_settings = settings.get("destination", {})
 
     output_mode = destination_settings.get("mode", "cell").lower()
@@ -509,7 +675,9 @@ def process_data(settings, reference_time):
     output_overwrite = bool(destination_settings.get("overwrite", True))
 
     allowed_cells = set(parameters_settings.get("cells", []))
-    grid_name = parameters_settings.get("grid", "fibgrid_6.25")
+
+    grid_mode = validate_grid_settings(grid_settings)
+    grid_mode, grid_name, reference_grid, id_digits = get_grid_metadata(grid_settings)
 
     stats = {
         "selected_files": 0,
@@ -536,6 +704,10 @@ def process_data(settings, reference_time):
     logger.info(f" ----> Time start: {time_start}")
     logger.info(f" ----> Time end:   {time_end}")
     logger.info(f" ----> Destination folder: {destination_folder}")
+    logger.info(f" ----> Grid mode: {grid_mode}")
+    logger.info(f" ----> Grid name: {grid_name}")
+    logger.info(f" ----> Grid reference file: {reference_grid}")
+    logger.info(f" ----> Cell id digits: {id_digits}")
 
     file_list = discover_files(settings, time_start, time_end, reference_time)
     stats["selected_files"] = len(file_list)
@@ -557,7 +729,7 @@ def process_data(settings, reference_time):
     df = collect_to_dataframe(settings, file_list)
     logger.info(f" ----> Unique gpis before domain filter: {len(df)}")
 
-    df = add_tuw_cell(df, grid_name=grid_name)
+    df = add_tuw_cell(df=df, grid_settings=grid_settings)
     stats["rows_before_filter"] = len(df)
 
     if allowed_cells:
@@ -599,6 +771,9 @@ def process_data(settings, reference_time):
             time_end=time_end,
             reference_time=reference_time,
             grid_name=grid_name,
+            grid_mode=grid_mode,
+            reference_grid=reference_grid,
+            id_digits=id_digits,
             overwrite=output_overwrite
         )
         stats["written_files"] = len(written_objects)
@@ -635,6 +810,7 @@ def collect_report(
             "elapsed_seconds": elapsed
         },
         "parameters": settings.get("parameters", {}),
+        "grid": settings.get("grid", {}),
         "source": settings.get("source", {}),
         "destination": {
             **settings.get("destination", {}),
@@ -647,6 +823,7 @@ def collect_report(
 
     return report
 
+
 # helper to write info report
 def write_report(report, file_path):
     folder_name = os.path.dirname(file_path)
@@ -655,6 +832,7 @@ def write_report(report, file_path):
 
     with open(file_path, "w", encoding="utf-8") as file_handle:
         json.dump(report, file_handle, indent=4)
+
 
 # helper to save info report
 def save_report(settings, report, reference_time):
@@ -681,12 +859,11 @@ def save_report(settings, report, reference_time):
     report_path = os.path.join(report_folder, report_filename)
 
     write_report(report, report_path)
-    logger.info(' ----> Report saved: ' + report_path)
+    logger.info(" ----> Report saved: " + report_path)
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # execution utils
-
 # helper to configure logger
 def get_logger(settings, reference_time=None):
     log_settings = settings.get("logging", {})
@@ -738,6 +915,7 @@ def get_logger(settings, reference_time=None):
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
 
+
 # helper to get arguments
 def get_args():
     parser = argparse.ArgumentParser(
@@ -784,16 +962,19 @@ def main():
 
     # ------------------------------------------------------------------------------------------------------------------
     # start message
-    logger.info(' ============================================================================ ')
-    logger.info(' ==> ' + alg_name + ' (Version: ' + alg_version + ' Release_Date: ' + alg_release + ')')
-    logger.info(' ==> START ... ')
-    logger.info(' ')
+    logger.info(" ============================================================================ ")
+    logger.info(" ==> " + alg_name + " (Version: " + alg_version + " Release_Date: " + alg_release + ")")
+    logger.info(" ==> START ... ")
+    logger.info(" ")
 
     logger.info(f" ---> Settings file:      {args.settings_file}")
     logger.info(f" ---> Source folder:      {settings.get('source', {}).get('folder')}")
     logger.info(f" ---> Source filename:    {settings.get('source', {}).get('filename')}")
     logger.info(f" ---> Destination folder: {settings.get('destination', {}).get('folder')}")
     logger.info(f" ---> Destination file:   {settings.get('destination', {}).get('filename')}")
+    logger.info(f" ---> Grid mode:          {settings.get('grid', {}).get('mode')}")
+    logger.info(f" ---> Grid name:          {settings.get('grid', {}).get('name')}")
+    logger.info(f" ---> Grid reference:     {settings.get('grid', {}).get('reference_grid')}")
 
     start_time = time.time()
     # ------------------------------------------------------------------------------------------------------------------
@@ -817,16 +998,16 @@ def main():
 
     # ------------------------------------------------------------------------------------------------------------------
     # execute conversion
-    logger.info(' ---> Execute conversion ... ')
+    logger.info(" ---> Execute conversion ... ")
     try:
         stats, written_objects, time_start, time_end, destination_folder = process_data(
             settings, reference_time
         )
-        logger.info(' ---> Execute conversion ... DONE')
+        logger.info(" ---> Execute conversion ... DONE")
 
     except Exception as exc:
         logger.error(f" ===> ERROR in executing conversion algorithm: {exc}")
-        logger.info(' ---> Execute conversion ... FAILED')
+        logger.info(" ---> Execute conversion ... FAILED")
         sys.exit(1)
     # ------------------------------------------------------------------------------------------------------------------
 
@@ -858,12 +1039,12 @@ def main():
     # end message
     alg_time_elapsed = round(time.time() - start_time, 1)
 
-    logger.info(' ')
-    logger.info(' ==> ' + alg_name + ' (Version: ' + alg_version + ' Release_Date: ' + alg_release + ')')
-    logger.info(' ==> TIME ELAPSED: ' + str(alg_time_elapsed) + ' seconds')
-    logger.info(' ==> ... END')
-    logger.info(' ==> Bye, Bye')
-    logger.info(' ============================================================================ ')
+    logger.info(" ")
+    logger.info(" ==> " + alg_name + " (Version: " + alg_version + " Release_Date: " + alg_release + ")")
+    logger.info(" ==> TIME ELAPSED: " + str(alg_time_elapsed) + " seconds")
+    logger.info(" ==> ... END")
+    logger.info(" ==> Bye, Bye")
+    logger.info(" ============================================================================ ")
     # ------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------

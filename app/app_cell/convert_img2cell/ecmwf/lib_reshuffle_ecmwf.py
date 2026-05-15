@@ -36,6 +36,22 @@ from lib_utils_ecmwf import read_obj, write_obj
 from lib_img2cell_ecmwf import Img2Ts
 from lib_grid_ecmwf import cell_grid, subgrid4bbox
 from lib_interface_ecmwf import ecmwf_ds
+
+import warnings
+
+# Suppress matplotlib interactive backend message
+import matplotlib
+matplotlib.use("Agg")  # non-interactive backend
+
+# Suppress DEBUG logs from eccodes/gribapi/findlibs
+logging.getLogger("findlibs").setLevel(logging.WARNING)
+logging.getLogger("gribapi").setLevel(logging.WARNING)
+logging.getLogger("gribapi.bindings").setLevel(logging.WARNING)
+logging.getLogger("eccodes").setLevel(logging.WARNING)
+logging.getLogger("cfgrib").setLevel(logging.WARNING)
+
+# Optional: suppress warnings too
+warnings.filterwarnings("ignore")
 # -------------------------------------------------------------------------------------
 
 

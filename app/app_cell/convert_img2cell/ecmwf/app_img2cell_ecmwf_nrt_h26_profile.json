@@ -1,0 +1,50 @@
+{
+  "product": {
+    "__comment__" : "bbox format (example italy) :: [6, 35, 18.5, 47] or null",
+    "name": "h26",
+    "bbox": [6, 35, 18.5, 47],
+    "image_buffer": 4
+  },
+  "flags": {
+    "reset_static": false,
+    "reset_dynamic": false
+  },
+  "grid": {
+    "folder_name": "/home/fabio/Desktop/recolour/dset/ecmwf_static_nrt/",
+    "file_name": "grid_h26_TEST.nc"
+  },
+  "template": {
+    "dataset": {
+      "cell_n": "%04d"
+    },
+    "time": {
+      "datetime_source": "%Y%m%d%H",
+      "sub_path_source": "%Y/%m/",
+      "datetime_destination": "%Y%m%d%H",
+      "sub_path_destination": "%Y/%m/%d"
+    },
+    "file": {
+      "file_name_source": "h26_{datetime_source}_profile.nc",
+      "file_name_destination": "h26_{cell_n}_profile.nc"
+    }
+  },
+  "variables": ["var_10cm", "var_20cm"],
+  "data": {
+    "path_grid": "/home/fabio/Desktop/recolour/dset/ecmwf_grid_nrt/src/",
+    "path_ts": "/home/fabio/Desktop/recolour/exec/ecmwf_grid_nrt/cell/nc/",
+    "path_stack": "/home/fabio/Desktop/recolour/exec/ecmwf_grid_nrt/cell/stack/"
+  },
+  "time": {
+    "_comment": "dr [2022-01-01 -- 2023-09-20 (626 days)] :: test [2024-03-02 -- 2024-03-06 (5 days)]",
+    "time_now": null,
+    "time_start": null,
+    "time_end": null,
+    "time_period": 0,
+    "time_frequency": "D",
+    "time_rounding" : "D"
+  },
+  "log" : {
+  	"path": "/home/fabio/Desktop/recolour/exec/ecmwf_grid_nrt/log/",
+  	"file": "app_img2cell_ecmwf_nrt_vars.txt"
+  }
+}

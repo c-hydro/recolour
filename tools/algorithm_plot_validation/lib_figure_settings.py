@@ -73,22 +73,29 @@ def get_figure_cmap(cmap_type='vik_r', cmap_n=None):
         cmap_def = plt.get_cmap('tab20c')
         cmap_colors = ListedColormap(cmap_def([0, 1, 2, 4, 9, 10, 11, 13]), N=cmap_n)
     elif cmap_type == 'tab20c_pie':
+
         cmap = plt.get_cmap('tab20c')
         cmap_colors_comm = cmap([4, 2, 1, 0, 16])
         cmap_colors_global = cmap([13, 11, 10, 9, 16])
-
-        # test
-        # cmap = ListedColormap(cmap([0, 1, 2, 4, 9, 10, 11, 13, 16]), N=9)
-        # comm_colors = cmap([3, 2, 1, 0, 8])
-        # global_colors = cmap([7, 6, 5, 4, 8])
-
         cmap_colors = [cmap_colors_comm, cmap_colors_global]
+
+    elif cmap_type == 'tab20c_classes_snr':
+
+        cmap = plt.get_cmap('tab20c')
+        cmap_colors = ListedColormap(cmap([0, 1, 2, 4, 9, 10, 11, 13]),N=8)
+
+    elif cmap_type == 'tab20c_classes_pearson':
+
+        cmap = plt.get_cmap('tab20c')
+        cmap_colors = ListedColormap(cmap([0, 1, 2, 4, 9, 10, 11, 13]), N=8)
+
     elif cmap_type is None:
         logging.warning(' ===> CMap type is not defined and CMap colors will be set to NoneType')
         cmap_colors = None
     else:
         logging.error(' ===> CMap type "' + cmap_type + '" is not expected by the algorithm')
-        raise NotImplemented('Case not implemented yet')
+        raise NotImplementedError('Case not implemented yet')
+
     return cmap_colors
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -125,10 +132,10 @@ def organize_figure_settings(
         figure_parameter_data='data', figure_parameter_p_r='p_r', figure_parameter_r='r',
         figure_title_label='title', figure_x_label='x_label', figure_y_label='y_label',
         figure_colorbar_label='colorbar', figure_colorbar_show=True,
-        figure_colorbar_extent=None, figure_colorbar_ticks=None,
+        figure_colorbar_extent=None, figure_colorbar_ticks=None, figure_colorbar_tick_fontsize=4,
         figure_cmap_type='vik_r', figure_cmap_n=32,
         figure_vmin=0, figure_vmax=1, figure_data_extent=None,
-        figure_title_fontsize=14, figure_title_fontweight=None,
+        figure_title_fontsize=8, figure_title_fontweight=None,
         figure_cbar_fontsize=6, figure_cbar_fontweight=None,
         figure_lim_min=-10, figure_lim_max=10,
         figure_lim_thr=0, figure_lim_target=3, figure_lim_optimal=6,
@@ -184,21 +191,30 @@ def organize_figure_settings(
         file_name_tmpl=figure_filename_tmpl, file_filter_committed_area=figure_committed_area)
 
     # define figure file and committed area flag
-    if figure_type == 'data':
+    if figure_type == 'snr_map_data':
+        figure_file_obj = deepcopy(figure_file_list)
+        figure_committed_area_obj = deepcopy(figure_committed_area)
+    elif figure_type == 'snr_map_classes':
+        figure_file_obj = deepcopy(figure_file_list)
+        figure_committed_area_obj = deepcopy(figure_committed_area)
+    elif figure_type == 'pearson_map_data':
+        figure_file_obj = deepcopy(figure_file_list)
+        figure_committed_area_obj = deepcopy(figure_committed_area)
+    elif figure_type == 'pearson_map_classes':
         figure_file_obj = deepcopy(figure_file_list)
         figure_committed_area_obj = deepcopy(figure_committed_area)
     elif figure_type == 'stats_pearson_pie' or figure_type == 'stats_snr_pie':
-        figure_file_obj = figure_file_list[0]
-        figure_committed_area_obj = figure_committed_area[0]
+        figure_file_obj = figure_file_list
+        figure_committed_area_obj = figure_committed_area
     elif figure_type == 'stats_pearson_box' or figure_type == 'stats_snr_box':
-        figure_file_obj = figure_file_list[0]
+        figure_file_obj = figure_file_list
         figure_committed_area_obj = deepcopy(figure_committed_area)
     elif figure_type == 'committed_area':
         figure_file_obj = deepcopy(figure_file_list)[0]
         figure_committed_area_obj = True
     else:
         logging.error(' ===> Figure type "' + figure_type + '" is not supported')
-        raise NotImplemented('Case not implemented yet')
+        raise NotImplementedError('Case not implemented yet')
 
     # adapt the ticks to expected python idxs
     if figure_colorbar_ticks is not None:
@@ -216,6 +232,7 @@ def organize_figure_settings(
         'cb_label': figure_colorbar_label, 'show_cb': figure_colorbar_show,
         'cb_extend': figure_colorbar_extent, 'cb_ticks': figure_colorbar_ticks,
         'cb_fontsize': figure_cbar_fontsize, 'cb_fontweight': figure_cbar_fontweight,
+        'cb_tick_fontsize': figure_colorbar_tick_fontsize,
         'parameter': figure_parameter,
         'parameter_data': figure_parameter_data,
         'parameter_p_r': figure_parameter_p_r, 'parameter_r': figure_parameter_r,
@@ -257,6 +274,10 @@ def organize_figure_committed_area(comm_area_values, comm_area_expected=None):
         logging.warning(' ===> Committed area type is defined only by NoneType')
         comm_area_verified = [comm_area_verified]
 
+    # in case of list of one element
+    if comm_area_verified.__len__() == 1:
+        comm_area_verified = comm_area_verified[0]
+
     return comm_area_verified
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -284,6 +305,9 @@ def organize_figure_filename(file_name_tmpl='analysis_{data_type}.png', file_fil
     if file_name_list.__len__() != file_filter_committed_area.__len__():
         logging.warning(' ===> Filename(s) defined by committed area flag are less then the expected string(s)')
         logging.warning(' ===> Equal filename(s) will be overwritten by the plotting functions')
+
+    if file_name_list.__len__() == 1:
+        file_name_list = file_name_list[0]
 
     return file_name_list
 # ----------------------------------------------------------------------------------------------------------------------

@@ -1,8 +1,15 @@
 {
     "parameters": {
-        "cells": [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430],
-        "grid": "fibgrid_6.25"
+        "cells": [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430]
     },
+
+    "grid": {
+        "__comment__": "mode: grid_ascat_file, grid_ascat_default",
+          "mode": "grid_ascat_default",
+          "name": "fibgrid_6.25",
+          "id_digits": 4
+    },
+
     "source": {
         "folder": "/home/fabio/Desktop/recolour/exec/select_over_domain/h122/{time_step:%Y/%m/%d/%H}/",
         "filename": "W_IT-HSAF-ROME,SAT,SSM-ASCAT-*_C_LIIB_*.nc" ,
@@ -18,14 +25,16 @@
         "dry_run": false,
         "overwrite": true
     },
+
     "time": {
         "time_start": null,
         "time_end": null,
-        "time_delta": "2D",
+        "time_delta": "1D",
         "time_frequency": "H",
         "floor_start_to_midnight": true,
         "floor_end_to_midnight": false
     },
+
     "report": {
         "enabled": true,
         "folder": "./report/{time_run:%Y/%m/%d}/",

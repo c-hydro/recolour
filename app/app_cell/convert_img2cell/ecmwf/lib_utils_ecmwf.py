@@ -80,6 +80,8 @@ def create_file_grid(grid_path, data_path, data_ext='.tif', grid_update=True):
 # method to read file tiff
 def read_file_tiff(file_name):
 
+    logging.info(f' ----> Read data from {file_name} ... ')
+
     file_dset = rasterio.open(file_name)
 
     file_bounds, file_res, file_transform = file_dset.bounds, file_dset.res, file_dset.transform
@@ -103,17 +105,39 @@ def read_file_tiff(file_name):
         file_geo_y_2d = np.flipud(file_geo_y_2d)
         file_values = np.flipud(file_values)
 
+    logging.info(f' ----> Read data from {file_name} ... DONE')
+
     return file_values, file_geo_x_1d, file_geo_y_1d
 # ----------------------------------------------------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------------------------------------------------------
+# method to select geo variable name
+def find_geo_variable(ds, candidates):
+    for name in candidates:
+        if name in ds.variables:
+            return name
+    raise KeyError(f"None of the variables {candidates} found in dataset")
+# ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to read file nc
 def read_file_nc(file_name, var_name_data='var40', var_name_geo_x='lon', var_name_geo_y='lat'):
 
+    logging.info(f' ----> Read data from {file_name} ... ')
+
     file_handle = xr.open_dataset(file_name)
 
+    file_vars = list(file_handle.data_vars)
+    if var_name_data not in file_vars:
+        logging.warning(f' ===> Variable {var_name_data} not in file variables {file_vars}')
+        var_name_data = file_vars[0]
+        logging.warning(f' ===> Variable {var_name_data} select from file')
+
     tmp_values = file_handle[var_name_data].values
+
+    var_name_geo_x = find_geo_variable(file_handle, ["lon", "longitude", "x"])
+    var_name_geo_y = find_geo_variable(file_handle, ["lat", "latitude", "y"])
+
     tmp_geo_x_1d = file_handle[var_name_geo_x].values
     tmp_geo_y_1d = file_handle[var_name_geo_y].values
 
@@ -147,6 +171,8 @@ def read_file_nc(file_name, var_name_data='var40', var_name_geo_x='lon', var_nam
     plt.figure(); plt.imshow(file_geo_y_2d); plt.colorbar()
     plt.show()
     '''
+
+    logging.info(f' ----> Read data from {file_name} ... DONE')
 
     return file_values, file_geo_x_1d, file_geo_y_1d
 # ----------------------------------------------------------------------------------------------------------------------

@@ -32,8 +32,10 @@ import signal
 import logging
 import argparse
 import subprocess
+import tempfile
 
-from datetime import datetime
+from datetime import datetime, timedelta
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -46,6 +48,8 @@ alg_release = '2026-04-15'
 
 alg_logger = logging.getLogger('app_downloader')
 acquired_lock = None
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -60,7 +64,6 @@ def read_file_json(file_name):
 
 
 def get_args():
-
     parser = argparse.ArgumentParser(
         description='Mirror or date-filter FTP products using lftp'
     )
@@ -133,7 +136,6 @@ def make_folder(folder_name):
 
 
 def execute_command(command_string):
-
     if sys.version_info >= (3, 7):
         process = subprocess.run(
             command_string,
@@ -151,13 +153,14 @@ def execute_command(command_string):
         )
 
     return process.returncode, process.stdout, process.stderr
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 
 # ----------------------------------------------------------------------------------------------------------------------
 # time utils
 def parse_time_string(time_string):
-
     if time_string is None:
         return None
 
@@ -179,8 +182,11 @@ def get_reference_time(args, settings):
 
     mirror_settings = settings.get('mirror', {})
     round_to_hour = mirror_settings.get('reference_time_round_to_hour', True)
+    use_system_time = mirror_settings.get('reference_time_use_system_time', False)
 
-    if args.time_run is not None:
+    if use_system_time:
+        reference_time = datetime.now()
+    elif args.time_run is not None:
         reference_time = parse_time_string(args.time_run)
     else:
         reference_time = datetime.now()
@@ -192,7 +198,6 @@ def get_reference_time(args, settings):
 
 
 def get_time_window(settings):
-
     time_settings = settings.get('time', {})
 
     time_start_raw = time_settings.get('time_start', None)
@@ -205,7 +210,6 @@ def get_time_window(settings):
 
 
 def parse_file_time(file_name, settings):
-
     filter_settings = settings.get('filter', {})
     file_name_regex = re.compile(filter_settings['filename_regex'])
     file_time_format = filter_settings['filename_time_format']
@@ -217,6 +221,8 @@ def parse_file_time(file_name, settings):
     file_time = datetime.strptime(match.group('stamp'), file_time_format)
 
     return file_time
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -231,13 +237,15 @@ def select_run_mode(args, settings):
     if (time_start is not None) and (time_end is not None):
         mode = 'date_filter'
     else:
-        mode = 'mirror'
+        # automatic backfill window from reference_time - n_days to reference_time
+        time_end = reference_time
+        time_start = reference_time - timedelta(days=n_days)
+        mode = 'date_filter'
 
     return mode, reference_time, time_start, time_end, n_days
 
 
 def acquire_lock(settings, force_lock=False):
-
     global acquired_lock
 
     lock_settings = settings.get('lock', {})
@@ -281,7 +289,6 @@ def acquire_lock(settings, force_lock=False):
 
 
 def release_lock():
-
     global acquired_lock
 
     if acquired_lock is not None:
@@ -299,13 +306,14 @@ def handle_signal(signum, frame):
     alg_logger.warning(f' ===> Caught signal {signum}. Releasing lock and exiting.')
     release_lock()
     sys.exit(1)
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 
 # ----------------------------------------------------------------------------------------------------------------------
 # ftp utils
 def check_ftp_session(settings):
-
     ftp_settings = settings.get('ftp', {})
 
     ftp_url = ftp_settings['ftp_url']
@@ -383,7 +391,6 @@ bye
 
 
 def list_remote_files(settings, remote_folder):
-
     ftp_settings = settings.get('ftp', {})
 
     ftp_url = ftp_settings['ftp_url']
@@ -428,7 +435,6 @@ quit
 
 
 def filter_remote_files_by_time(settings, file_list, time_start, time_end):
-
     selected_files = []
     skipped_files = []
 
@@ -457,14 +463,18 @@ def download_remote_files(settings, remote_folder, selected_files):
     ssl_verify = ftp_settings.get('ssl_verify_certificate', False)
 
     local_folder_mirror = mirror_settings['local_folder_mirror']
-
     ssl_verify_value = 'yes' if ssl_verify else 'no'
 
     product_name = os.path.basename(remote_folder.rstrip('/'))
     local_dir = os.path.join(local_folder_mirror.rstrip('/'), product_name)
     make_folder(local_dir)
 
-    if len(selected_files) == 0:
+    alg_logger.info(f' ::: Destination folder: {local_dir}')
+
+    total_files = len(selected_files)
+    alg_logger.info(f' ::: Selected files for product {product_name}: {total_files}')
+
+    if total_files == 0:
         alg_logger.warning(f' ===> No files selected for product: {product_name}')
         return
 
@@ -488,12 +498,70 @@ def download_remote_files(settings, remote_folder, selected_files):
         'echo -----------------------------------------------------------------'
     ])
 
-    for file_name, file_time in selected_files:
-        remote_file = f'{remote_folder.rstrip("/")}/{file_name}'
-        local_file = os.path.join(local_dir, file_name)
+    n_existing = 0
+    n_empty = 0
+    n_missing = 0
+    n_to_download = 0
 
-        lftp_lines.append(f'echo GET FILE: {file_name}')
+    expected_files = []
+
+    for file_id, (file_name_raw, file_time) in enumerate(selected_files, start=1):
+
+        file_name_base = os.path.basename(file_name_raw)
+
+        if file_name_raw.startswith('/'):
+            remote_file = file_name_raw
+        else:
+            remote_file = f'{remote_folder.rstrip("/")}/{file_name_base}'
+
+        local_file = os.path.join(local_dir, file_name_base)
+        expected_files.append(file_name_base)
+
+        progress = f'[{file_id}/{total_files}]'
+        file_time_str = file_time.strftime('%Y-%m-%d %H:%M:%S')
+
+        if os.path.exists(local_file):
+
+            size = os.path.getsize(local_file)
+
+            if size > 0:
+                n_existing += 1
+                alg_logger.info(
+                    f' ----> {progress} SKIP EXISTING | time={file_time_str} | '
+                    f'size={size} bytes | file={file_name_base}'
+                )
+                continue
+
+            n_empty += 1
+            alg_logger.warning(
+                f' ===> {progress} EMPTY FILE, RE-DOWNLOAD | '
+                f'time={file_time_str} | file={file_name_base}'
+            )
+
+        else:
+            n_missing += 1
+            alg_logger.info(
+                f' ----> {progress} MISSING FILE, DOWNLOAD | '
+                f'time={file_time_str} | file={file_name_base}'
+            )
+
+        n_to_download += 1
+
+        lftp_lines.append('echo -----------------------------------------------------------------')
+        lftp_lines.append(f'echo DOWNLOAD {progress}: {file_name_base}')
+        lftp_lines.append(f'echo REMOTE: {remote_file}')
+        lftp_lines.append(f'echo LOCAL : {local_file}')
         lftp_lines.append(f'get -c "{remote_file}" -o "{local_file}"')
+
+    alg_logger.info(' ::: Local file check summary')
+    alg_logger.info(f' ::: Existing files : {n_existing}')
+    alg_logger.info(f' ::: Empty files    : {n_empty}')
+    alg_logger.info(f' ::: Missing files  : {n_missing}')
+    alg_logger.info(f' ::: To download    : {n_to_download}')
+
+    if n_to_download == 0:
+        alg_logger.info(f' ----> Nothing to download for product: {product_name}')
+        return
 
     lftp_lines.extend([
         'echo -----------------------------------------------------------------',
@@ -504,9 +572,24 @@ def download_remote_files(settings, remote_folder, selected_files):
     ])
 
     lftp_script = '\n'.join(lftp_lines)
-    command = f"lftp <<'EOF'\n{lftp_script}\nEOF"
 
-    return_code, stdout, stderr = execute_command(command)
+    with tempfile.NamedTemporaryFile(
+        mode='w',
+        suffix='.lftp',
+        delete=False,
+        encoding='utf-8'
+    ) as tmp:
+        tmp.write(lftp_script)
+        tmp_lftp_file = tmp.name
+
+    try:
+        command = f'lftp -f "{tmp_lftp_file}"'
+        return_code, stdout, stderr = execute_command(command)
+    finally:
+        try:
+            os.remove(tmp_lftp_file)
+        except OSError:
+            pass
 
     if stdout:
         for line in stdout.splitlines():
@@ -519,9 +602,51 @@ def download_remote_files(settings, remote_folder, selected_files):
     if return_code != 0:
         raise RuntimeError(f' ===> Download failed for remote folder: {remote_folder}')
 
+    alg_logger.info(' ::: Post-download verification (expected vs local)')
+
+    expected_files = set(expected_files)
+
+    missing_files = []
+    empty_files = []
+    ok_files = []
+
+    for file_name in expected_files:
+
+        local_file = os.path.join(local_dir, file_name)
+
+        if not os.path.exists(local_file):
+            missing_files.append(file_name)
+            alg_logger.error(f' MISSING FILE: {file_name}')
+            continue
+
+        size = os.path.getsize(local_file)
+
+        if size == 0:
+            empty_files.append(file_name)
+            alg_logger.warning(f' EMPTY FILE: {file_name}')
+        else:
+            ok_files.append(file_name)
+            alg_logger.info(f' OK FILE: size={size} bytes | file={file_name}')
+
+    alg_logger.info(' ::: Download verification summary')
+    alg_logger.info(f' ::: Remote folder  : {remote_folder}')
+    alg_logger.info(f' ::: Local folder   : {local_dir}')
+    alg_logger.info(f' ::: Expected files : {len(expected_files)}')
+    alg_logger.info(f' ::: OK files       : {len(ok_files)}')
+    alg_logger.info(f' ::: Missing files  : {len(missing_files)}')
+    alg_logger.info(f' ::: Empty files    : {len(empty_files)}')
+
+    if missing_files:
+        alg_logger.warning(' ::: Sample missing files (first 20):')
+        for file_name in missing_files[:20]:
+            alg_logger.warning(f'   - {file_name}')
+
+    if empty_files:
+        alg_logger.warning(' ::: Sample empty files (first 20):')
+        for file_name in empty_files[:20]:
+            alg_logger.warning(f'   - {file_name}')
 
 def download_mode_mirror(settings, n_days):
-
     alg_logger.info(' ----> Running mirror mode')
 
     ftp_settings = settings.get('ftp', {})
@@ -578,7 +703,6 @@ def download_mode_mirror(settings, n_days):
     ]
 
     for remote_folder in remote_folders:
-
         product_name = os.path.basename(remote_folder.rstrip('/'))
         local_dir = os.path.join(local_folder_mirror.rstrip('/'), product_name)
         make_folder(local_dir)
@@ -619,7 +743,6 @@ def download_mode_mirror(settings, n_days):
 
 
 def download_mode_date_filter(settings, time_start, time_end):
-
     product_settings = settings.get('products', {})
     remote_folders = product_settings['remote_folders']
 
@@ -628,7 +751,6 @@ def download_mode_date_filter(settings, time_start, time_end):
     alg_logger.info(f' ::: Time end  : {time_end.strftime("%Y-%m-%d %H:%M:%S")}')
 
     for remote_folder in remote_folders:
-
         product_name = os.path.basename(remote_folder.rstrip('/'))
 
         alg_logger.info(' ')
@@ -654,13 +776,14 @@ def download_mode_date_filter(settings, time_start, time_end):
             remote_folder=remote_folder,
             selected_files=selected_files
         )
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 
 # ----------------------------------------------------------------------------------------------------------------------
 # algorithm main
 def main():
-
     global alg_name, alg_version, alg_release
 
     args = get_args()

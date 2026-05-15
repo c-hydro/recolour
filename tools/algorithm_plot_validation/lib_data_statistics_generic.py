@@ -3,8 +3,8 @@ Library Features:
 
 Name:          lib_data_statistics_generic
 Author(s):     Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:          '20240411
-Version:       '1.1.0'
+Date:          '20260507'
+Version:       '1.2.0'
 """
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -15,8 +15,8 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from pandas.core.common import SettingWithCopyWarning
-warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
+#from pandas.errors import SettingWithCopyWarning
+#warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 
 logging.getLogger('pandas').setLevel(logging.WARNING)
 # ----------------------------------------------------------------------------------------------------------------------

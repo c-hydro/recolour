@@ -1,0 +1,28 @@
+{
+    "cells": {
+        "1394": [2128135]
+    },
+
+    "ref_grid": "/share/VALIDATION_SM_HSAF/auxiliary/reference/ascat/grid/TUW_WARP5_grid_info_2_2.nc",
+    "k1_grid": "/share/VALIDATION_SM_HSAF/cell/2026/gldas/period/grid.nc",
+    "k2_grid": "/share/VALIDATION_SM_HSAF/cell/2026/cci/grid.nc",
+
+    "ref_name": "ASCAT",
+    "k1_name": "GLDAS",
+    "k2_name": "CCI",
+
+    "ref_gpi_var": "gpi",
+    "ref_lat_var": "lat",
+    "ref_lon_var": "lon",
+    "ref_cell_var": "cell",
+
+    "k1_gpi_var": "gpi",
+    "k1_lat_var": "lat",
+    "k1_lon_var": "lon",
+    "k1_cell_var": "cell",
+
+    "k2_gpi_var": "gpi",
+    "k2_lat_var": "lat",
+    "k2_lon_var": "lon",
+    "k2_cell_var": "cell"
+}
