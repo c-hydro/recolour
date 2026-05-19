@@ -1,0 +1,37 @@
+{
+  "domain": {
+    "folder_name": "/home/fabio/Desktop/recolour/dset/soil/data/land/",
+    "file_name": "LiguriaDomain.dem.txt",
+    "epsg": 4326,
+    "bbox_buffer_deg": 0.02
+  },
+  "points": {
+    "folder_name": "/home/fabio/Desktop/recolour/dset/soil/data/points/",
+    "file_name": "stations_registry_liguria.csv",
+    "valid_column": "Valid",
+    "valid_value": 1,
+    "longitude_column": "Longitude",
+    "latitude_column": "Latitude",
+    "id_column": "ID",
+    "name_column": "Station_Name",
+    "code_column": "Station_Code"
+  },
+  "soilgrids": {
+    "folder_name": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters",
+    "file_name": "{variable}_{depth}_{statistic}.tif",
+    "variables": ["bdod", "cfvo", "clay", "sand", "silt", "soc"],
+    "depths": ["0-5cm", "5-15cm", "15-30cm", "30-60cm"],
+    "statistic": "mean",
+    "width": 1024,
+    "height": 1024,
+    "wcs_version": "1.0.0",
+    "format": "GEOTIFF_INT16"
+  },
+  "extraction": {
+    "use_buffer": true,
+    "buffer_radius_m": 500,
+    "buffer_epsg": 32632,
+    "aggregation": "median",
+    "particle_density_g_cm3": 2.65
+  }
+}
