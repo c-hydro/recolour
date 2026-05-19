@@ -16,7 +16,6 @@ python app_ascat_swath2cell.py -settings_file configuration.json -time "YYYY-MM-
 # ----------------------------------------------------------------------------------------------------------------------
 # libraries
 import logging
-import os
 import time
 import sys
 

@@ -1,9 +1,9 @@
 # ----------------------------------------------------------------------------------------------------------------------
 # algorithm info
 PROJECT_NAME = 'recolour'
-ALG_NAME = 'Application to convert ssm files to swath 2 cell'
+ALG_NAME = 'Application to convert ssm files to swath2cell'
 ALG_TYPE = 'Package'
-ALG_VERSION = '2.0.0'
+ALG_VERSION = '2.0.1'
 ALG_RELEASE = '2026-05-18'
 
 # version history
@@ -11,7 +11,7 @@ ALG_HISTORY = [
     {
         'version': '2.0.0',
         'release': '2026-05-18',
-        'comment': 'ASCAT swaths to cell converter (second generation).'
+        'comment': 'ASCAT swaths2cell converter (second generation).'
     },
 
 ]
