@@ -13,7 +13,7 @@ import logging
 import re
 from datetime import datetime, timedelta
 
-from config_utils import LOGGER_NAME, TIME_FMT_CLI
+from config_info import LOGGER_NAME, TIME_FMT_CLI
 
 logger = logging.getLogger(LOGGER_NAME)
 # ----------------------------------------------------------------------------------------------------------------------

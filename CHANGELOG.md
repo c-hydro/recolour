@@ -1,11 +1,11 @@
 # Changelog
 
-## Version 2.5.0 (2026-05-13)
+## Version 2.5.0 (2026-05-18)
 - **PROJECT:** validation framework  
   - **APPS – CELL:** 
     - app_swath2cell_ascat h16 version 1 (refactor and update to use new libraries and python 3.11);
     - app_swath2cell_ascat h16 version 2 
-    - app_swath2cell_ascat h122 (codes for use h122 datasets)
+    - app_swath2cell_ascat h122 (codes for use h122 datasets integration of ascat package)
   - **TOOLS – VALIDATION HSAF:** 
     - app_validation_main version 1 (refactor and update to use new libraries and python 3.11);
     - app_validation_main version 2 (fix bug in computing metrics, fix and update codes);

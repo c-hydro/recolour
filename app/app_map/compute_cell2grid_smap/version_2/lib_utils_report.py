@@ -14,9 +14,9 @@ import os
 import json
 import time
 
-from lib_utils_basic import make_folder
+from lib_utils_base import make_folder
 from lib_utils_time import resolve_time_tags
-from config_utils import LOGGER_NAME, ALG_NAME, ALG_VERSION, ALG_RELEASE
+from config_info import LOGGER_NAME, ALG_NAME, ALG_VERSION, ALG_RELEASE
 
 logger = logging.getLogger(LOGGER_NAME)
 # ----------------------------------------------------------------------------------------------------------------------
