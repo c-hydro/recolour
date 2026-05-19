@@ -15,8 +15,8 @@ import json
 import rasterio
 import numpy as np
 
-from lib_utils_basic import make_folder
-from config_utils import LOGGER_NAME
+from lib_utils_base import make_folder
+from config_info import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
 # ----------------------------------------------------------------------------------------------------------------------

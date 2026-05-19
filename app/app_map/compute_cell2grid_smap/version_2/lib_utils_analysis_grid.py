@@ -19,7 +19,7 @@ except ImportError:
     SwathDefinition = None
     resample_nearest = None
 
-from config_utils import LOGGER_NAME
+from config_info import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
 # ----------------------------------------------------------------------------------------------------------------------

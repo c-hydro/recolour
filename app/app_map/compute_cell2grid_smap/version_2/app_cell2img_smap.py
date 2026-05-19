@@ -19,7 +19,7 @@ from lib_utils_logging import get_logger
 from lib_utils_io import read_file_json
 from lib_utils_time import parse_reference_time
 from lib_data import process, save
-from config_utils import LOGGER_NAME, ALG_NAME, ALG_RELEASE, ALG_VERSION
+from config_info import LOGGER_NAME, ALG_NAME, ALG_RELEASE, ALG_VERSION
 
 # set logger
 logger = logging.getLogger(LOGGER_NAME)

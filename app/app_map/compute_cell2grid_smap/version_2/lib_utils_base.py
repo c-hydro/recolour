@@ -15,7 +15,7 @@ import os
 from glob import glob
 
 from lib_utils_time import iter_time_steps, resolve_time_tags
-from config_utils import LOGGER_NAME
+from config_info import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
 # ----------------------------------------------------------------------------------------------------------------------
