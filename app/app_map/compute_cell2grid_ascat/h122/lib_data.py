@@ -192,7 +192,7 @@ def process(settings, reference_time):
         return None, None, None, stats, time_start, time_end
 
     # Deduplicate points by keeping the latest value
-    logger.info(" ----> Deduplicate points ...")
+    logger.info(" ----> Deduplicate points ... ")
     points_df, info_df = deduplicate_latest_points(
         points_df, value_var=variable_name, reference_time=reference_time, reference_flag=apply_reference_time)
     stats = {**stats, **info_df}

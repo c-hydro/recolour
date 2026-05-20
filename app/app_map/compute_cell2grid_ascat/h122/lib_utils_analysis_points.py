@@ -125,7 +125,6 @@ def collect_points_to_dataframe(settings, file_list):
 
     return merge_frames
 
-
 # remove duplicates from points
 def deduplicate_latest_points(df, value_var, reference_time=None, reference_flag=False):
 
