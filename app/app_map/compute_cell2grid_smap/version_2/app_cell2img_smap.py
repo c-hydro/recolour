@@ -15,6 +15,8 @@ import time
 import sys
 import argparse
 
+from datetime import datetime
+
 from lib_utils_logging import get_logger
 from lib_utils_io import read_file_json
 from lib_utils_time import parse_reference_time
@@ -38,7 +40,7 @@ def main():
 
     # get reference time
     try:
-        reference_time = parse_reference_time(args.time_run)
+        reference_time, reference_info = parse_reference_time(args.time_run)
     except Exception as exc:
         print(f" ===> ERROR: parsing time: {exc}")
         sys.exit(1)
@@ -69,9 +71,19 @@ def main():
     try:
         logger.info(f" ----> Get reference time: {reference_time.strftime('%Y-%m-%d %H:%M:%S')}")
         if args.time_run:
-            logger.info(f" ----> Set by user: {args.time_run} (rounded to hour)")
+            logger.info(f" ----> Set by user: {args.time_run} (apply time configuration)")
         else:
-            logger.info(" ----> Set by system (rounded to hour)")
+            logger.info(" ----> Set by system (aqpply time configuration)")
+
+        # print reference info
+        if reference_info is not None:
+            logger.info(" ----> Time Info ...")
+            for info_key, info_value in reference_info.items():
+                if isinstance(info_value, datetime):
+                    info_value = info_value.strftime('%Y-%m-%d %H:%M:%S')
+                logger.info(f" -----> {info_key}: {info_value}")
+            logger.info(" ----> Time Info ... DONE")
+
         logger.info(" ---> Set time ... DONE")
 
     except Exception as exc:

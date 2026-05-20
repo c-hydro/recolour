@@ -14,6 +14,8 @@ import os
 import json
 import time
 
+from datetime import datetime
+
 from lib_utils_base import make_folder
 from lib_utils_time import resolve_time_tags
 from config_info import LOGGER_NAME, ALG_NAME, ALG_VERSION, ALG_RELEASE
@@ -55,14 +57,36 @@ def collect_report(
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
+# helper to serialize json objects
+def serialize_json(obj):
+    if isinstance(obj, datetime):
+        return obj.strftime("%Y-%m-%d %H:%M:%S")
+    elif isinstance(obj, dict):
+        return {
+            key: serialize_json(value)
+            for key, value in obj.items()
+        }
+    elif isinstance(obj, list):
+        return [
+            serialize_json(item)
+            for item in obj
+        ]
+    return obj
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
 # helper to write report
 def write_report(report, file_path):
+    # ensure folder
     folder_name = os.path.dirname(file_path)
     if folder_name:
         make_folder(folder_name)
 
+    # clean from dict, datetime and so on
+    report_serialized = serialize_json(report)
+    # dump json
     with open(file_path, "w", encoding="utf-8") as file_handle:
-        json.dump(report, file_handle, indent=4)
+        json.dump(report_serialized, file_handle, indent=4)
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
