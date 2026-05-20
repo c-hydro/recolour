@@ -1,0 +1,56 @@
+{
+  "product": {
+    "__comment__": "bbox format :: [xmin, ymin, xmax, ymax] or null",
+    "name": "soilgrids",
+    "bbox": null,
+    "image_buffer": 1
+  },
+  "flags": {
+    "reset_static": true,
+    "reset_dynamic": true
+  },
+  "grid": {
+    "__comment__": "derived_by: 'source_datasets', 'null'",
+    "folder_name": "/home/fabio/Desktop/Recolour_Workspace/ws/soilgrids_geo/cells/",
+    "file_name": "soilgrids_grid.nc",
+    "derived_by": "source_datasets"
+  },
+  "template": {
+    "dataset": {
+      "cell_n": "%04d"
+    },
+    "file": {
+      "file_name_source": "{variable}_{depth}_{statistic}.tif",
+      "file_name_destination": "{cell_n}.nc"
+    }
+  },
+  "variables": [
+    "bdod",
+    "cfvo",
+    "clay",
+    "sand",
+    "silt",
+    "porosity"
+  ],
+  "soilgrids": {
+    "depth": "0-5cm",
+    "statistic": "mean",
+    "variable_mapping": {
+      "bdod": "bulk_density",
+      "cfvo": "coarse_fragments",
+      "clay": "clay",
+      "sand": "sand",
+      "silt": "silt",
+      "porosity": "porosity"
+    }
+  },
+  "data": {
+    "path_grid": "/home/fabio/Desktop/Recolour_Workspace/ws/soilgrids_map/",
+    "path_ts": "/home/fabio/Desktop/Recolour_Workspace/ws/soilgrids_cell/",
+    "path_stack": "/home/fabio/Desktop/Recolour_Workspace/ws/soilgrids_cell/"
+  },
+  "log": {
+    "path": "/home/fabio/Desktop/Recolour_Workspace/ws/log/",
+    "file": "app_img2cell_soilgrids.txt"
+  }
+}
