@@ -13,7 +13,7 @@ import logging
 import re
 from datetime import datetime, timedelta
 
-from config_utils import LOGGER_NAME, TIME_FMT_CLI
+from config_info import LOGGER_NAME, TIME_FMT_CLI
 
 logger = logging.getLogger(LOGGER_NAME)
 # ----------------------------------------------------------------------------------------------------------------------
@@ -40,11 +40,70 @@ def parse_time(time_string):
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
+# helper to parse days offset
+def parse_days_offset(days_string):
+    if not isinstance(days_string, str) or not days_string.endswith("D"):
+        raise ValueError('Days offset must have format like "1D", "2D"')
+    return int(days_string[:-1])
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
+# helper to apply offset
+def apply_floor_reference_to_offset(time_obj, settings):
+    if not settings or not settings.get("active", False):
+        return time_obj
+    days_offset = parse_days_offset(settings.get("days", "0D"))
+
+    try:
+        hour, minute = map(int, settings.get("time", "00:00").split(":"))
+    except ValueError as exc:
+        raise ValueError('Offset time must have format "HH:MM"') from exc
+
+    return (time_obj - timedelta(days=days_offset)).replace(
+        hour=hour,
+        minute=minute,
+        second=0,
+        microsecond=0,
+    )
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
 # helper to parse reference time
-def parse_reference_time(time_string=None):
+def parse_reference_time(time_string=None, time_settings=None):
+
+    # initialize info
+    ref_info = {}
+
+    # step 1 - get raw reference time
     if time_string is None:
-        return normalize_time_to_hour(datetime.now())
-    return normalize_time_to_hour(parse_time(time_string))
+        time_raw = datetime.now()
+        ref_info['time_raw'] = time_raw
+        ref_info['time_source'] = 'get from "datetime.now()"'
+    else:
+        time_raw = parse_time(time_string)
+        ref_info['time_raw'] = time_raw
+        ref_info['time_source'] = 'get from "parse_time(time_string)"'
+
+    # step 2 - normalize to hour
+    ref_info['time_before_normalize'] = time_raw
+    ref_time = normalize_time_to_hour(time_raw)
+    ref_info['time_after_normalize'] = ref_time
+
+    # step 3 - apply offset/floor configuration
+    if time_settings is not None:
+
+        floor_settings = time_settings.get("floor_reference_to_offset")
+        ref_info['floor_settings'] = floor_settings
+
+        if floor_settings is not None and floor_settings.get("active", False):
+            ref_info['time_before_offset'] = ref_time
+            ref_time = apply_floor_reference_to_offset(ref_time,floor_settings)
+            ref_info['time_after_offset'] = ref_time
+
+    # final time
+    ref_info['time_final'] = ref_time
+
+    return ref_time, ref_info
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------

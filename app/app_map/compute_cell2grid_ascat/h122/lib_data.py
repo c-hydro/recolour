@@ -24,7 +24,7 @@ from lib_utils_analysis_grid import (interpolate_points_to_grid,
                                      build_mask_by_pixel_extension, build_mask_boundary, build_smooth_map,
                                      apply_mask_filter)
 
-from config_utils import LOGGER_NAME
+from config_info import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
 # ----------------------------------------------------------------------------------------------------------------------
@@ -81,6 +81,8 @@ def process(settings, reference_time):
     mask_band = int(parameters.get("mask_band", 1))
 
     # Optional processing flags
+    apply_reference_time = int(parameters.get('apply_reference_time', False))
+
     apply_mask_extension = int(parameters.get("apply_mask_extension", False))
     extension_pixels = int(parameters.get("extension_pixels", 0))
 
@@ -191,17 +193,10 @@ def process(settings, reference_time):
 
     # Deduplicate points by keeping the latest value
     logger.info(" ----> Deduplicate points ...")
-    points_df = deduplicate_latest_points(points_df, value_var=variable_name)
-    stats["deduplicated_points"] = len(points_df)
-    logger.info(" ----> Deduplicate points ...")
-
-    # points summary info
-    logger.info(" ----> Points collection summary ... ")
-    logger.info(f" -----> Raw points: {stats['raw_points']}")
-    logger.info(f" -----> Deduplicated points: {stats['deduplicated_points']}")
-    if stats["deduplicated_points"] < stats["raw_points"]:
-        logger.info(f" -----> Removed duplicates: {stats['raw_points'] - stats['deduplicated_points']}")
-    logger.info(" ----> Points collection summary ... DONE")
+    points_df, info_df = deduplicate_latest_points(
+        points_df, value_var=variable_name, reference_time=reference_time, reference_flag=apply_reference_time)
+    stats = {**stats, **info_df}
+    logger.info(" ----> Deduplicate points ... DONE")
     # -------------------------------------------------------------------------------------
 
     # ---------------------------------------------------------------------------------
@@ -647,7 +642,6 @@ def save(soil_moisture_map_out, time_lag_map,
 
     # ---------------------------------------------------------------------------------
     # end message - script
-    logger.info(f" ----> Output file written: {destination_file}")
     logger.info(f" ----> Written files: {stats['written_files']}")
     logger.info(" ----> Dumping execution ... DONE ")
 

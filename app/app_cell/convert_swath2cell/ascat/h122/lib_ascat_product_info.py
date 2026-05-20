@@ -298,6 +298,7 @@ class AscatH122SwathNRT(AscatSwathProduct):
     cell_fn_format = "{:04d}"
 
     def __init__(self, path_in, filename_in, path_out, filename_out='{cell}.nc',
+                 date_fmt_field_in='%Y%m%d%H%M%S', date_field_fmt_out='%Y%m%d',
                  cell_fn_format=cell_fn_format, grid_name=grid_name):
 
         self.path_in = path_in
@@ -310,6 +311,9 @@ class AscatH122SwathNRT(AscatSwathProduct):
         self.root_path_in, self.dynamic_path_in = split_path(self.path_in)
         self.root_path_out, self.dynamic_path_out = split_path(self.path_out)
 
+        self.date_fmt_field_in = date_fmt_field_in
+        self.date_field_fmt_out = date_field_fmt_out
+
         self.cell_fn_format = cell_fn_format
         self.grid_name = grid_name
 
@@ -317,17 +321,18 @@ class AscatH122SwathNRT(AscatSwathProduct):
         self.sf_pattern_out = create_sf_pattern(self.dynamic_path_out)
 
     @staticmethod
-    def fn_read_fmt(timestamp, sat="[ABC]"):
+    def fn_read_fmt(timestamp, date_fmt='%Y%m%d*', sat="[ABC]"):
         sat = sat.upper()
+
         return {
-            "date": timestamp.strftime("%Y%m%d*"),
+            "date": timestamp.strftime(date_fmt),
             "sat": sat,
             "placeholder": "*",
             "placeholder1": "*"
         }
 
     @staticmethod
-    def sf_read_fmt(timestamp, sat="[abc]"):
+    def sf_read_fmt(timestamp):
 
         timestamp_parts = {}
         if hasattr(timestamp, "year"):
@@ -354,9 +359,9 @@ class AscatH122SwathNRT(AscatSwathProduct):
         return timestamp_parts
 
     @staticmethod
-    def fn_write_fmt(timestamp):
+    def fn_write_fmt(timestamp, date_fmt='%Y%m%d_%H00'):
         return {
-            "date": timestamp.strftime("%Y%m%d_%H00"),
+            "date": timestamp.strftime(date_fmt),
             "cell": '{:4d}'
         }
 
