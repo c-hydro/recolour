@@ -15,6 +15,7 @@ import json
 import rasterio
 import numpy as np
 
+from lib_utils_grid import GridRegistry
 from lib_utils_base import make_folder
 from config_info import LOGGER_NAME
 
@@ -29,6 +30,14 @@ def read_file_json(file_name):
             return json.load(file_handle)
     else:
         raise FileNotFoundError(f'File "{file_name}" not found. Exit')
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
+# load cell grid
+def load_cell_grid(grid_name='fibgrid_6.25'):
+    registry = GridRegistry()
+    grid = registry.get(grid_name)
+    return grid
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------

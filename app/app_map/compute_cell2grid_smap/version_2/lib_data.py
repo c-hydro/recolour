@@ -1,10 +1,10 @@
 """
 Library Features:
 
-Name:           lib_process
+Name:           lib_data
 Author(s):      Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:           '20260421'
-Version:        '1.0.0'
+Date:           '20260522'
+Version:        '1.1.0'
 """
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -14,12 +14,14 @@ import os
 import numpy as np
 import pandas as pd
 
-from lib_utils_base import discover_source_files, resolve_generic_tags
-from lib_utils_io import load_target_grid, write_output_map
+from lib_utils_base import discover_source_files, discover_porosity_files, resolve_generic_tags
+from lib_utils_io import load_target_grid, write_output_map, load_cell_grid
 from lib_utils_report import collect_report, save_report
 from lib_utils_geo import map_points_to_grid_indices
 from lib_utils_time import resolve_time_tags, resolve_time_window
-from lib_utils_analysis_points import collect_points_to_dataframe, deduplicate_latest_points
+
+from lib_utils_analysis_points import (collect_points_to_dataframe, deduplicate_latest_points,
+                                       collect_porosity_to_dataframe, convert_points_vwc_to_ssm)
 from lib_utils_analysis_grid import (interpolate_points_to_grid,
                                      build_mask_by_pixel_extension, build_mask_boundary, build_smooth_map,
                                      apply_mask_filter)
@@ -64,47 +66,77 @@ def process(settings, reference_time):
         End time of the selected processing window.
     """
 
-    # -------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # start message - script
     logger.info(" ----> Process execution ... ")
 
-    # Read settings sections
-    parameters = settings.get("parameters", {})
-    source = settings.get("source", {})
-    destination = settings.get("destination", {})
+    ## Read main sections
+    params_settings = settings.get("parameters", {})
+    geo_settings = settings.get("geo", {})
+    src_settings = settings.get("source", {})
+    dst_settings = settings.get("destination", {})
+    time_settings = settings.get("time", {})
 
-    variable_name = source.get("variable_name", "surface_soil_moisture")
-    dry_run = bool(destination.get("dry_run", False))
+    variable_name = src_settings.get("variable_name", "surface_soil_moisture")
+    dry_run = bool(dst_settings.get("dry_run", False))
 
-    # Target grid / mask settings
-    mask_file = parameters["mask_file"]
-    mask_band = int(parameters.get("mask_band", 1))
+    ## Target grid / mask file and info
+    mask_settings = geo_settings.get("mask", {})
+    mask_file = os.path.join(mask_settings["folder"], mask_settings["filename"])
+    mask_band = int(mask_settings.get("mask_band", 1))
+    ## Porosity cell file and info
+    porosity_settings = geo_settings.get("porosity", {})
+    ## Cell grid
+    grid_settings = geo_settings.get("grid", {})
+    grid_name = grid_settings['name']
+    grid_max_distance_km = float(grid_settings.get("max_distance_km", 25))
 
-    # Optional processing flags
-    apply_reference_time = int(parameters.get('apply_reference_time', False))
+    ## Optional processing flags
+    # reference time (to select points)
+    apply_reference_time = int(params_settings.get('apply_reference_time', False))
 
-    apply_mask_extension = int(parameters.get("apply_mask_extension", False))
-    extension_pixels = int(parameters.get("extension_pixels", 0))
+    # mask extension
+    apply_mask_extension = int(params_settings.get("apply_mask_extension", False))
+    extension_pixels = int(params_settings.get("extension_pixels", 0))
 
-    apply_mask_boundary = int(parameters.get("apply_mask_boundary", False))
-    boundary_pixels = int(parameters.get("boundary_pixels", 0))
+    # ask boundary
+    apply_mask_boundary = int(params_settings.get("apply_mask_boundary", False))
+    boundary_pixels = int(params_settings.get("boundary_pixels", 0))
 
-    apply_smoothing = int(parameters.get("apply_smoothing", False))
-    smoothing_method = parameters.get("smoothing_method", "mean")
-    smoothing_sigma = int(parameters.get("smoothing_sigma", 1))
+    # smoothing
+    apply_smoothing = int(params_settings.get("apply_smoothing", False))
+    smoothing_method = params_settings.get("smoothing_method", "mean")
+    smoothing_parameters = params_settings.get("smoothing_parameters", {})
+    smoothing_sigma = int(smoothing_parameters.get("sigma", 1))
+
+    # conversion
+    apply_conversion = bool(params_settings.get("apply_conversion", False))
+    conversion_method = params_settings.get("conversion_method", None)
+    conversion_parameters = params_settings.get("conversion_parameters", {})
+
+    # scaling
+    apply_scaling = bool(params_settings.get("apply_scaling", False))
+    scaling_method = params_settings.get("scaling_method", None)
+    scaling_parameters = params_settings.get("scaling_parameters", {})
 
     # Interpolation radius of influence
-    roi_km = float(parameters.get("roi_km", 0.0))
+    roi_km = float(params_settings.get("roi_km", 0.0))
+    cell_digits = int(params_settings.get("cell_digits", 4))
+    cell_list = params_settings.get("cell_list", None)
+    if cell_list is not None:
+        cell_list = np.atleast_1d(cell_list).astype(np.int32)
 
     # Fill value used for nodata cells
-    fill_value_raw = parameters.get("fill_value", None)
-    fill_value = np.nan if fill_value_raw is None else float(fill_value_raw)
+    fill_value_raw = params_settings.get("fill_value", None)
+    fill_value_default = np.nan if fill_value_raw is None else float(fill_value_raw)
+    # ------------------------------------------------------------------------------------------------------------------
 
+    # ------------------------------------------------------------------------------------------------------------------
     # start message - configuration
     logger.info(" ----> Configuration ... ")
     logger.info(f" -----> Variable: {variable_name}")
     logger.info(f" -----> ROI (km): {roi_km}")
-    logger.info(f" -----> Fill value: {fill_value}")
+    logger.info(f" -----> Fill value default: {fill_value_default}")
     logger.info(f" -----> Mask extension: {bool(apply_mask_extension)} (pixels={extension_pixels})")
     logger.info(f" -----> Boundary mask: {bool(apply_mask_boundary)} (pixels={boundary_pixels})")
     logger.info(f" -----> Smoothing: {bool(apply_smoothing)} "
@@ -131,11 +163,11 @@ def process(settings, reference_time):
 
     # end message - configuration
     logger.info(" ----> Configuration ... DONE")
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # Resolve time window for file selection
-    time_start, time_end = resolve_time_window(settings, reference_time)
+    time_start, time_end = resolve_time_window(time_settings, reference_time)
 
     # message - times
     logger.info(" ----> Times ... ")
@@ -143,14 +175,41 @@ def process(settings, reference_time):
     logger.info(f" -----> Time start: {time_start}")
     logger.info(f" -----> Time end:   {time_end}")
     logger.info(" ----> Times ... DONE")
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # message start - target grid
+    logger.info(" ----> Load target grid ...")
+
+    # Load target grid and domain mask
+    grid_lons, grid_lats, domain_mask, profile = load_target_grid(
+        mask_file=mask_file,
+        mask_band=mask_band
+    )
+    stats["valid_domain_pixels"] = int(domain_mask.sum())
+
+    # grid info
+    logger.info(f" -----> Grid shape: {grid_lons.shape}")
+    logger.info(f" -----> Valid domain pixels: {stats['valid_domain_pixels']}")
+
+    # message end - target grid
+    logger.info(" ----> Load target grid ... DONE")
+
+    # message end - target grid
+    logger.info(" ----> Load cell grid ... ")
+    grid_cell = load_cell_grid(grid_name)
+    # message end - target grid
+    logger.info(" ----> Load cell grid ... DONE")
+    # ------------------------------------------------------------------------------------------------------------------
 
     # ---------------------------------------------------------------------------------
     # start message - discover source file(s)
     logger.info(" ----> Discover source files ...")
 
     # discover source files within the requested time window
-    source_files = discover_source_files(settings, time_start, time_end, reference_time)
+    source_files = discover_source_files(src_settings, time_settings,
+                                         cell_list=cell_list, cell_digits=cell_digits,
+                                         time_start=time_start, time_end=time_end, reference_time=reference_time)
     stats["selected_files"] = len(source_files)
 
     # list selected files
@@ -182,7 +241,8 @@ def process(settings, reference_time):
     # ---------------------------------------------------------------------------------
     # Collect point data from source files
     logger.info(" ----> Collect points from source files ...")
-    points_df = collect_points_to_dataframe(settings, source_files)
+    points_df = collect_points_to_dataframe(src_settings, file_list=source_files,
+                                            grid=grid_cell, max_distance_km=grid_max_distance_km)
     stats["raw_points"] = len(points_df)
 
     # Case 4: files exist but no valid points were extracted
@@ -190,33 +250,106 @@ def process(settings, reference_time):
         logger.info(" ----> Collect points from source files ... NO VALID POINTS")
         logger.info(" ----> Process execution ... STOP. NOTHING TO DO")
         return None, None, None, stats, time_start, time_end
+    # ---------------------------------------------------------------------------------
 
+    # ---------------------------------------------------------------------------------
     # Deduplicate points by keeping the latest value
     logger.info(" ----> Deduplicate points ... ")
     points_df, info_df = deduplicate_latest_points(
         points_df, value_var=variable_name, reference_time=reference_time, reference_flag=apply_reference_time)
     stats = {**stats, **info_df}
     logger.info(" ----> Deduplicate points ... DONE")
-    # -------------------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------------
 
     # ---------------------------------------------------------------------------------
-    # message start - target grid
-    logger.info(" ----> Loading target grid ...")
+    # Discover porosity file(s)
+    logger.info(" ----> Discover porosity files ...")
 
-    # Load target grid and domain mask
-    grid_lons, grid_lats, domain_mask, profile = load_target_grid(
-        mask_file=mask_file,
-        mask_band=mask_band
-    )
-    stats["valid_domain_pixels"] = int(domain_mask.sum())
+    porosity_files = []
+    if apply_conversion and conversion_method == "vwc_to_ssm_porosity":
 
-    # grid info
-    logger.info(f" -----> Grid shape: {grid_lons.shape}")
-    logger.info(f" -----> Valid domain pixels: {stats['valid_domain_pixels']}")
+        if "cell" not in points_df.columns:
+            raise RuntimeError('Column "cell" is needed to discover porosity files')
 
-    # message end - target grid
-    logger.info(" ----> Loading target grid ... DONE")
-    # -------------------------------------------------------------------------------------
+        cell_list = points_df["cell"].to_numpy()
+
+        porosity_files = discover_porosity_files(
+            porosity_settings=porosity_settings,
+            cell_list=cell_list,
+            cell_digits=cell_digits,
+            strict=True
+        )
+
+        stats["selected_porosity_files"] = len(porosity_files)
+
+        logger.info(f" -----> Selected porosity files: {len(porosity_files)} ... ")
+        for file_path in porosity_files:
+            logger.info(f" ------> {file_path}")
+        logger.info(f" -----> Selected porosity files: {len(porosity_files)} ... DONE")
+
+        if not porosity_files:
+            raise RuntimeError(
+                "Porosity conversion is enabled, but no porosity files were found"
+            )
+
+        logger.info(" ----> Discover porosity files ... DONE")
+
+    else:
+        logger.info(" ----> Discover porosity files ... NOT ACTIVE")
+    # ---------------------------------------------------------------------------------
+
+    # ---------------------------------------------------------------------------------
+    # Convert point (if active) from vwc to ssm
+    logger.info(" ----> Convert points ... ")
+
+    if apply_conversion:
+
+        logger.info(f" -----> Apply conversion method: {conversion_method} ... ")
+
+        if conversion_method == "vwc_to_ssm_porosity":
+
+            porosity_df = collect_porosity_to_dataframe(
+                parameters=conversion_parameters,
+                file_list=porosity_files
+            )
+
+            points_df, variable_name, points_assign = convert_points_vwc_to_ssm(
+                points_df=points_df,
+                porosity_df=porosity_df,
+                value_var=variable_name,
+                parameters=conversion_parameters
+            )
+
+            # add points assing to stats
+            stats = {**stats, **points_assign}
+
+            logger.info(f" -----> Apply conversion method: {conversion_method} ... DONE")
+
+        else:
+
+            logger.error(f" -----> Apply conversion method: {conversion_method} ... FAILED")
+            raise RuntimeError(f'Conversion method "{conversion_method}" is not supported')
+
+    else:
+
+        logger.info(
+            f" -----> Apply conversion method: {conversion_method} ... SKIPPED. NOT ACTIVATED"
+        )
+
+    logger.info(" ----> Convert points ... DONE")
+    # ---------------------------------------------------------------------------------
+
+    # ---------------------------------------------------------------------------------
+    # Scale point (if active) ssm
+    logger.info(" ----> Scale points ... ")
+    if apply_scaling:
+        logger.error(f" -----> Scale points ... FAILED")
+        raise RuntimeError(
+            f'Scaling method "{scaling_method}" is configured but not implemented yet'
+        )
+    else:
+        logger.info(" ----> Scale points ... SKIPPED. NOT ACTIVATED")
+    # ---------------------------------------------------------------------------------
 
     # ---------------------------------------------------------------------------------
     # message start - interpolate points
@@ -244,7 +377,7 @@ def process(settings, reference_time):
         grid_lats=grid_lats,
         domain_mask=domain_mask,
         roi_km=roi_km,
-        fill_value=fill_value
+        fill_value=fill_value_default
     )
 
     # interpolate point times to target grid
@@ -256,7 +389,7 @@ def process(settings, reference_time):
         grid_lats=grid_lats,
         domain_mask=domain_mask,
         roi_km=roi_km,
-        fill_value=fill_value
+        fill_value=fill_value_default
     )
 
     valid_interp = np.isfinite(soil_moisture_map_interp).sum()
@@ -295,13 +428,13 @@ def process(settings, reference_time):
             data=soil_moisture_map_interp,
             filter_mask=extension_mask,
             domain_mask=domain_mask,
-            fill_value=fill_value
+            fill_value=fill_value_default
         )
         time_seconds_map_filtered = apply_mask_filter(
             data=time_seconds_map_interp,
             filter_mask=extension_mask,
             domain_mask=domain_mask,
-            fill_value=fill_value
+            fill_value=fill_value_default
         )
 
         # mask info
@@ -337,17 +470,17 @@ def process(settings, reference_time):
         boundary_mask, boundary_map, valid_data, no_data = build_mask_boundary(
             data_map=soil_moisture_map_filtered,
             domain_mask=domain_mask,
-            fill_value=fill_value,
+            fill_value=fill_value_default,
             radius=boundary_pixels
         )
         # apply mask to sm
         soil_moisture_map_masked = soil_moisture_map_filtered.copy()
-        soil_moisture_map_masked[boundary_mask] = np.float32(fill_value)
-        soil_moisture_map_masked[~domain_mask] = np.float32(fill_value)
+        soil_moisture_map_masked[boundary_mask] = np.float32(fill_value_default)
+        soil_moisture_map_masked[~domain_mask] = np.float32(fill_value_default)
         # apply mask to times
         time_seconds_map_masked = time_seconds_map_filtered.copy()
-        time_seconds_map_masked[boundary_mask] = np.float32(fill_value)
-        time_seconds_map_masked[~domain_mask] = np.float32(fill_value)
+        time_seconds_map_masked[boundary_mask] = np.float32(fill_value_default)
+        time_seconds_map_masked[~domain_mask] = np.float32(fill_value_default)
 
         # mask info
         removed_pixels = int(np.sum(boundary_mask))
@@ -375,7 +508,7 @@ def process(settings, reference_time):
         soil_moisture_map_smoothed = build_smooth_map(
             data_map=soil_moisture_map_masked,
             domain_mask=domain_mask,
-            fill_value=fill_value,
+            fill_value=fill_value_default,
             method=smoothing_method,
             sigma=smoothing_sigma
         )
@@ -405,20 +538,20 @@ def process(settings, reference_time):
     # IMPORTANT: start from masked interpolated times, not from an empty fill-value array
     time_lag_map = time_seconds_map_masked.copy().astype(np.float32)
 
-    if np.isnan(fill_value):
+    if np.isnan(fill_value_default):
         valid_time_mask = np.isfinite(time_lag_map) & domain_mask
     else:
         valid_time_mask = (
             np.isfinite(time_lag_map) &
             domain_mask &
-            (~np.isclose(time_lag_map, fill_value, atol=1e-6))
+            (~np.isclose(time_lag_map, fill_value_default, atol=1e-6))
         )
 
     time_lag_map[valid_time_mask] = (
         (reference_time_seconds - time_lag_map[valid_time_mask]) / 3600.0
     ).astype(np.float32)
 
-    time_lag_map[~domain_mask] = np.float32(fill_value)
+    time_lag_map[~domain_mask] = np.float32(fill_value_default)
 
     valid_time_pixels = int(np.sum(valid_time_mask))
     logger.info(f" -----> Valid time-lag pixels: {valid_time_pixels}")

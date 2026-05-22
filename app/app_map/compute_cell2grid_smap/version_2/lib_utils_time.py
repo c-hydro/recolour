@@ -163,8 +163,7 @@ def resolve_time_tags(template_string, time_dict):
 
 # ----------------------------------------------------------------------------------------------------------------------
 # helper to define time window
-def resolve_time_window(settings, reference_time):
-    time_settings = settings.get("time", {})
+def resolve_time_window(time_settings, reference_time):
 
     time_start_str = time_settings.get("time_start")
     time_end_str = time_settings.get("time_end")
@@ -201,8 +200,8 @@ def resolve_time_window(settings, reference_time):
 
 # ----------------------------------------------------------------------------------------------------------------------
 # helper to iterate over steps
-def iter_time_steps(settings, time_start, time_end):
-    time_settings = settings.get("time", {})
+def iter_time_steps(time_settings, time_start, time_end):
+
     time_frequency_str = time_settings.get("time_frequency", "H")
     time_frequency_delta = parse_time_delta(time_frequency_str)
 
