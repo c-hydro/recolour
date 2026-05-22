@@ -1,7 +1,7 @@
 {
   "domain": {
     "folder_name": "/home/fabio/Desktop/recolour/dset/soil/data/land/",
-    "file_name": "grid_reference_250m_liguria.tiff",
+    "file_name": "grid_reference_1000m.tiff",
     "bbox_buffer_deg": 0.01
   },
   "soilgrids": {
