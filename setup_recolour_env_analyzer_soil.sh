@@ -1,150 +1,207 @@
-#!/bin/bash
+#!/bin/bash -e
 
-set -e
+# -----------------------------------------------------------------------------------------
+# Script information
+script_name='RECOLOUR ENVIRONMENT - ANALYZER SOIL - CONDA'
+script_version="2.0.0"
+script_date='2026/04/15'
 
-# =============================================================================
-# Setup conda environment
-# =============================================================================
+# Modern Miniconda installer
+fp_env_file_miniconda='https://repo.anaconda.com/miniconda/Miniconda3-py311_26.1.1-1-Linux-x86_64.sh'
 
-ENV_NAME="${1:-analyzer_soil_tools}"
-LOADER_NAME="${2:-env_analyzer_soil_tools.sh}"
-PYTHON_VERSION="${PYTHON_VERSION:-3.11}"
-CONDA_DIR="${CONDA_DIR:-./envs/}"
+# Argument(s) default definition(s)
+fp_env_tag_default='recolour_analyzer_soil'
+fp_env_folder_root_default='./conda_p311/'
+fp_env_file_reference_default='%ENV_TAG_settings'
+fp_env_folder_libraries_default='%ENV_TAG_libraries'
+fp_env_file_requirements_default='requirements_%ENV_TAG.yaml'
 
-echo "========================================="
-echo " Installing Conda Environment"
-echo "========================================="
+echo " ==================================================================================="
+echo " ==> ${script_name} (Version: ${script_version} Release_Date: ${script_date})"
+echo " ==> START ..."
 echo ""
-echo "Environment Name : ${ENV_NAME}"
-echo "Python Version   : ${PYTHON_VERSION}"
-echo "Conda Directory  : ${CONDA_DIR}"
+
+script_args_n=$#
+script_args_values=$@
+
+echo " ==> Script arguments number: ${script_args_n}"
+echo " ==> Script arguments values: ${script_args_values}"
 echo ""
 
-# =============================================================================
-# Install Miniconda if missing
-# =============================================================================
-
-if [ ! -d "${CONDA_DIR}" ]; then
-
-    echo "Miniconda not found"
-    echo "Installing Miniconda..."
-
-    TMP_INSTALLER="/tmp/miniconda_installer.sh"
-
-    wget -O "${TMP_INSTALLER}" \
-        https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-
-    bash "${TMP_INSTALLER}" -b -p "${CONDA_DIR}"
-
-    rm -f "${TMP_INSTALLER}"
-
-    echo "Miniconda installed successfully"
-
+# -----------------------------------------------------------------------------------------
+# Get arguments
+if [ $# -eq 0 ]; then
+    fp_env_tag=$fp_env_tag_default
+    fp_env_folder_root=$fp_env_folder_root_default
+    fp_env_file_reference=$fp_env_file_reference_default
+    fp_env_folder_libraries=$fp_env_folder_libraries_default
+    fp_env_file_requirements=$fp_env_file_requirements_default
+elif [ $# -eq 1 ]; then
+    fp_env_tag=$1
+    fp_env_folder_root=$fp_env_folder_root_default
+    fp_env_file_reference=$fp_env_file_reference_default
+    fp_env_folder_libraries=$fp_env_folder_libraries_default
+    fp_env_file_requirements=$fp_env_file_requirements_default
+elif [ $# -eq 2 ]; then
+    fp_env_tag=$1
+    fp_env_folder_root=$2
+    fp_env_file_reference=$fp_env_file_reference_default
+    fp_env_folder_libraries=$fp_env_folder_libraries_default
+    fp_env_file_requirements=$fp_env_file_requirements_default
+elif [ $# -eq 3 ]; then
+    fp_env_tag=$1
+    fp_env_folder_root=$2
+    fp_env_file_reference=$3
+    fp_env_folder_libraries=$fp_env_folder_libraries_default
+    fp_env_file_requirements=$fp_env_file_requirements_default
+elif [ $# -eq 4 ]; then
+    fp_env_tag=$1
+    fp_env_folder_root=$2
+    fp_env_file_reference=$3
+    fp_env_folder_libraries=$4
+    fp_env_file_requirements=$fp_env_file_requirements_default
+elif [ $# -eq 5 ]; then
+    fp_env_tag=$1
+    fp_env_folder_root=$2
+    fp_env_file_reference=$3
+    fp_env_folder_libraries=$4
+    fp_env_file_requirements=$5
 else
-
-    echo "Miniconda already installed"
-
-fi
-
-# =============================================================================
-# Load conda
-# =============================================================================
-
-if [ ! -f "${CONDA_DIR}/etc/profile.d/conda.sh" ]; then
-    echo ""
-    echo "ERROR: conda.sh not found"
+    echo " ==> ERROR: too many arguments"
     exit 1
 fi
 
-source "${CONDA_DIR}/etc/profile.d/conda.sh"
+# Replace tag placeholders
+fp_env_folder_root=${fp_env_folder_root/'%ENV_TAG'/$fp_env_tag}
+fp_env_file_reference=${fp_env_file_reference/'%ENV_TAG'/$fp_env_tag}
+fp_env_folder_libraries=${fp_env_folder_libraries/'%ENV_TAG'/$fp_env_tag}
+fp_env_file_requirements=${fp_env_file_requirements/'%ENV_TAG'/$fp_env_tag}
 
-# =============================================================================
-# Create environment
-# =============================================================================
+echo " ==> ENV TAG: ${fp_env_tag}"
+echo " ==> ROOT: ${fp_env_folder_root}"
+echo " ==> SETTINGS FILE: ${fp_env_file_reference}"
+echo " ==> ENV NAME: ${fp_env_folder_libraries}"
+echo " ==> YAML FILE: ${fp_env_file_requirements}"
+echo ""
 
-if conda env list | awk '{print $1}' | grep -Fxq "${ENV_NAME}"; then
-
-    echo ""
-    echo "Conda environment already exists: ${ENV_NAME}"
-
-else
-
-    echo ""
-    echo "Creating conda environment: ${ENV_NAME}"
-
-    conda create -y \
-        -n "${ENV_NAME}" \
-        python="${PYTHON_VERSION}"
-
+# -----------------------------------------------------------------------------------------
+# Create root folder
+if [ ! -d "$fp_env_folder_root" ]; then
+    mkdir -p "$fp_env_folder_root"
 fi
 
-# =============================================================================
-# Activate environment
-# =============================================================================
+# -----------------------------------------------------------------------------------------
+# Check local conda installation
+echo " ====> CHECK PYTHON ENVIRONMENT ... "
+if [ -d "${fp_env_folder_root}/bin" ]; then
+    echo " ====> CHECK PYTHON ENVIRONMENT ... FOUND."
+    fp_env_install=false
+else
+    echo " ====> CHECK PYTHON ENVIRONMENT ... NOT FOUND."
+    fp_env_install=true
+fi
 
-conda activate "${ENV_NAME}"
+# -----------------------------------------------------------------------------------------
+# Install local Miniconda
+echo " ====> INSTALL PYTHON ENVIRONMENT ... "
+if $fp_env_install; then
+    wget "$fp_env_file_miniconda" -O miniconda.sh
 
-echo ""
-echo "Activated environment: ${ENV_NAME}"
+    if [ -d "$fp_env_folder_root" ]; then
+        rm -rf "$fp_env_folder_root"
+    fi
 
-PY_VER="$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")')"
+    bash miniconda.sh -b -p "$fp_env_folder_root"
+    echo " ====> INSTALL PYTHON ENVIRONMENT ... DONE!"
+else
+    echo " ====> INSTALL PYTHON ENVIRONMENT ... DONE. PREVIOUSLY INSTALLED"
+fi
 
-echo "Python version: ${PY_VER}"
+# -----------------------------------------------------------------------------------------
+# Activate local conda base
+export PATH="${fp_env_folder_root}/bin:${PATH}"
+source "${fp_env_folder_root}/bin/activate"
 
-# =============================================================================
-# Install packages
-# =============================================================================
+# -----------------------------------------------------------------------------------------
+# Configure conda
+echo " ====> CONFIGURE CONDA ... "
+conda config --set channel_priority strict
+conda config --remove-key channels > /dev/null 2>&1 || true
+conda config --add channels conda-forge
+echo " ====> CONFIGURE CONDA ... DONE!"
 
-echo ""
-echo "Installing packages from conda-forge..."
+# -----------------------------------------------------------------------------------------
+# Create environment from YAML
+echo " ====> INSTALL PYTHON LIBRARIES ... "
 
-conda install -y -c conda-forge \
-    matplotlib \
-    netcdf4 \
-    xarray \
-    pandas \
-    numpy \
-    scipy \
-    pyproj \
-    gdal \
-    rasterio \
-    geopandas \
-    shapely \
-    owslib
+if [ ! -f "$fp_env_file_requirements" ] ; then
+    echo " =====> ERROR: YAML requirements file not found: ${fp_env_file_requirements}"
+    exit 1
+fi
 
-# =============================================================================
-# Create loader script
-# =============================================================================
+if conda env list | awk '{print $1}' | grep -Fxq "${fp_env_folder_libraries}"; then
+    echo " =====> REMOVE PREVIOUS ENVIRONMENT: ${fp_env_folder_libraries}"
+    conda env remove --yes --name "${fp_env_folder_libraries}"
+fi
 
-cat << EOF > "${LOADER_NAME}"
-#!/bin/bash
+echo " =====> CREATE ENVIRONMENT USING CONDA ... "
+conda env create --name "${fp_env_folder_libraries}" --file "${fp_env_file_requirements}"
+echo " =====> CREATE ENVIRONMENT USING CONDA ... DONE"
 
-CONDA_DIR="${CONDA_DIR}"
-ENV_NAME="${ENV_NAME}"
+echo " =====> ACTIVATE ENVIRONMENT: ${fp_env_folder_libraries}"
+source activate "${fp_env_folder_libraries}"
 
-source "\${CONDA_DIR}/etc/profile.d/conda.sh"
+echo " =====> INSTALL GLDAS ..."
+python -m pip install -U "pip>=25.3" wheel
+printf "setuptools<81\n" > build-constraints.txt
+python -m pip install --build-constraint build-constraints.txt gldas
+echo " =====> INSTALL GLDAS ... DONE"
 
-conda activate "\${ENV_NAME}"
-
-echo "Analyzer Soil Tools environment loaded"
-echo "Conda Env: \${ENV_NAME}"
-echo "Python:    \$(which python)"
-echo "Pip:       \$(which pip)"
+# -----------------------------------------------------------------------------------------
+# Checks
+echo " =====> PYTHON VERSION ..."
 python --version
-EOF
 
-chmod +x "${LOADER_NAME}"
+echo " =====> RUN ECCODES CHECK ... "
+python -m eccodes selfcheck
 
-# =============================================================================
-# Final message
-# =============================================================================
+echo " =====> RUN CFGRIB CHECK ... "
+python -m cfgrib selfcheck
 
-echo ""
-echo "========================================="
-echo " Environment created successfully"
-echo "========================================="
-echo ""
-echo "To load the environment use:"
-echo ""
-echo "source ${LOADER_NAME}"
-echo ""
+echo " =====> RUN PYGRIB CHECK ... "
+python -c "import pygrib; print('pygrib import OK')"
+
+echo " =====> RUN XARRAY CHECK ... "
+python -c "import xarray as xr; print('xarray version:', xr.__version__)"
+
+echo " =====> RUN RASTERIO CHECK ... "
+python -c "import rasterio; print('rasterio version:', rasterio.__version__)"
+
+echo " =====> RUN GLDAS CHECK ... "
+python -c "import gldas; print('gldas import OK')"
+
+echo " ====> INSTALL PYTHON LIBRARIES ... DONE!"
+
+# -----------------------------------------------------------------------------------------
+# Create environmental file
+echo " ====> CREATE ENVIRONMENTAL FILE ... "
+
+cd "$fp_env_folder_root"
+
+if [ -f "$fp_env_file_reference" ] ; then
+    rm "$fp_env_file_reference"
+fi
+
+echo "PATH=${fp_env_folder_root}/bin:"'$PATH' >> "$fp_env_file_reference"
+echo "export PATH" >> "$fp_env_file_reference"
+echo "source ${fp_env_folder_root}/bin/activate" >> "$fp_env_file_reference"
+echo "source activate ${fp_env_folder_libraries}" >> "$fp_env_file_reference"
+
+echo " ====> CREATE ENVIRONMENTAL FILE ... DONE!"
+
+# -----------------------------------------------------------------------------------------
+# Info script end
+echo " ==> ${script_name} (Version: ${script_version} Release_Date: ${script_date})"
+echo " ==> ... END"
+echo " ==> Bye, Bye"
+echo " ==================================================================================="
