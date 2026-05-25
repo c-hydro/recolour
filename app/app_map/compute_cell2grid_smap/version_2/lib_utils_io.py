@@ -80,15 +80,18 @@ def load_target_grid(mask_file, mask_band=1):
 # helper to write output map
 def write_output_map(
         destination_file,
-        soil_moisture_map,
+        soil_moisture_map_smoothed,
+        soil_moisture_map_interp,
         time_lag_map,
         profile,
-        value_var,
+        variable_name_smooth,
+        variable_name_interp,
+        variable_name_time_lag,
         fill_value):
 
     out_profile = profile.copy()
     out_profile.update(
-        count=2,
+        count=3,
         dtype="float32",
         compress="deflate",
         nodata=np.nan if np.isnan(fill_value) else float(fill_value),
@@ -99,8 +102,12 @@ def write_output_map(
         make_folder(folder_name)
 
     with rasterio.open(destination_file, "w", **out_profile) as dst:
-        dst.write(soil_moisture_map.astype(np.float32), 1)
-        dst.write(time_lag_map.astype(np.float32), 2)
-        dst.set_band_description(1, value_var)
-        dst.set_band_description(2, "time_lag_hours")
+
+        dst.write(soil_moisture_map_smoothed.astype(np.float32), 1)
+        dst.write(soil_moisture_map_interp.astype(np.float32), 2)
+        dst.write(time_lag_map.astype(np.float32), 3)
+
+        dst.set_band_description(1, variable_name_smooth)
+        dst.set_band_description(2, variable_name_interp)
+        dst.set_band_description(3, variable_name_time_lag)
 # ----------------------------------------------------------------------------------------------------------------------

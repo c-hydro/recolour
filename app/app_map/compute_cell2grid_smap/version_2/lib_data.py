@@ -91,42 +91,99 @@ def process(settings, reference_time):
     grid_name = grid_settings['name']
     grid_max_distance_km = float(grid_settings.get("max_distance_km", 25))
 
-    ## Optional processing flags
-    # reference time (to select points)
-    apply_reference_time = int(params_settings.get('apply_reference_time', False))
+    ## reference time
+    reference_time_cfg = _get_block(
+        params_settings,"mask_points_by_reference_time",
+        default_enabled=False
+    )
+    apply_reference_time = reference_time_cfg["enabled"]
 
-    # mask extension
-    apply_mask_extension = int(params_settings.get("apply_mask_extension", False))
-    extension_pixels = int(params_settings.get("extension_pixels", 0))
+    ## interpolation
+    interpolation_cfg = _get_block(
+        params_settings,"interpolate_points",
+        default_enabled=True, default_method="nearest"
+    )
+    interpolation_method = interpolation_cfg["method"]
+    interpolation_parameters = interpolation_cfg["parameters"]
 
-    # ask boundary
-    apply_mask_boundary = int(params_settings.get("apply_mask_boundary", False))
-    boundary_pixels = int(params_settings.get("boundary_pixels", 0))
+    # interpolation for values
+    interpolation_points_cfg = _get_block(
+        params_settings,"interpolate_points",
+        default_enabled=True, default_method="nearest"
+    )
+    interpolation_points_method = interpolation_points_cfg["method"]
+    interpolation_points_parameters = interpolation_points_cfg["parameters"]
 
-    # smoothing
-    apply_smoothing = int(params_settings.get("apply_smoothing", False))
-    smoothing_method = params_settings.get("smoothing_method", "mean")
-    smoothing_parameters = params_settings.get("smoothing_parameters", {})
-    smoothing_sigma = int(smoothing_parameters.get("sigma", 1))
+    # interpolation for observation time / time lag
+    interpolation_time_cfg = _get_block(
+        params_settings,"interpolate_time",
+        default_enabled=True, default_method=interpolation_method
+    )
+    interpolation_time_method = interpolation_time_cfg["method"]
+    interpolation_time_parameters = interpolation_time_cfg["parameters"]
 
-    # conversion
-    apply_conversion = bool(params_settings.get("apply_conversion", False))
-    conversion_method = params_settings.get("conversion_method", None)
-    conversion_parameters = params_settings.get("conversion_parameters", {})
+    if not interpolation_time_parameters:
+        interpolation_time_parameters = interpolation_points_parameters
 
-    # scaling
-    apply_scaling = bool(params_settings.get("apply_scaling", False))
-    scaling_method = params_settings.get("scaling_method", None)
-    scaling_parameters = params_settings.get("scaling_parameters", {})
+    ## mask extension
+    mask_extension_cfg = _get_block(
+        params_settings,"mask_map_extension",
+        default_enabled=False
+    )
+    apply_mask_extension = mask_extension_cfg["enabled"]
+    extension_pixels = int(
+        mask_extension_cfg["parameters"].get(
+            "extension_pixels",
+            mask_extension_cfg.get("extension_pixels", 0)
+        )
+    )
 
-    # Interpolation radius of influence
+    ## boundary mask
+    mask_boundary_cfg = _get_block(
+        params_settings,"mask_map_boundary",
+        default_enabled=False
+    )
+    apply_mask_boundary = mask_boundary_cfg["enabled"]
+    boundary_pixels = int(
+        mask_boundary_cfg["parameters"].get(
+            "boundary_pixels",
+            mask_boundary_cfg.get("boundary_pixels", 0)
+        )
+    )
+
+    ## smoothing
+    smooth_cfg = _get_block(
+        params_settings,"smooth_map",
+        default_enabled=False, default_method="mean"
+    )
+    apply_smoothing = smooth_cfg["enabled"]
+    smoothing_method = smooth_cfg["method"]
+    smoothing_parameters = smooth_cfg["parameters"]
+    smoothing_sigma = float(smoothing_parameters.get("sigma", 1))
+
+    ## conversion
+    conversion_cfg = _get_block(
+        params_settings,"convert_map",
+        default_enabled=False,default_method=None
+    )
+    apply_conversion = conversion_cfg["enabled"]
+    conversion_method = conversion_cfg["method"]
+    conversion_parameters = conversion_cfg["parameters"]
+
+    ## scaling
+    scaling_cfg = _get_block(
+        params_settings,"scale_map",
+        default_enabled=False, default_method=None
+    )
+    apply_scaling = scaling_cfg["enabled"]
+    scaling_method = scaling_cfg["method"]
+    scaling_parameters = scaling_cfg["parameters"]
+
+    ## global parameters
     roi_km = float(params_settings.get("roi_km", 0.0))
     cell_digits = int(params_settings.get("cell_digits", 4))
     cell_list = params_settings.get("cell_list", None)
-    if cell_list is not None:
-        cell_list = np.atleast_1d(cell_list).astype(np.int32)
 
-    # Fill value used for nodata cells
     fill_value_raw = params_settings.get("fill_value", None)
     fill_value_default = np.nan if fill_value_raw is None else float(fill_value_raw)
     # ------------------------------------------------------------------------------------------------------------------
@@ -151,14 +208,32 @@ def process(settings, reference_time):
         "pixel_extension_mask_pixels": 0,
         "written_files": 0,
         "errors": 0,
+
         "roi_km": roi_km,
+
+        "interpolation_enabled": interpolation_cfg["enabled"],
+        "interpolation_method": interpolation_method,
+        "interpolation_parameters": interpolation_parameters,
+
+        "apply_reference_time": apply_reference_time,
+
         "apply_mask_extension": apply_mask_extension,
         "extension_pixels": extension_pixels,
+
         "apply_mask_boundary": apply_mask_boundary,
         "boundary_pixels": boundary_pixels,
+
         "apply_smoothing": apply_smoothing,
-        "smoothing_sigma": smoothing_sigma,
         "smoothing_method": smoothing_method,
+        "smoothing_parameters": smoothing_parameters,
+
+        "apply_conversion": apply_conversion,
+        "conversion_method": conversion_method,
+        "conversion_parameters": conversion_parameters,
+
+        "apply_scaling": apply_scaling,
+        "scaling_method": scaling_method,
+        "scaling_parameters": scaling_parameters,
     }
 
     # end message - configuration
@@ -368,7 +443,6 @@ def process(settings, reference_time):
     logger.info(f" -----> Number of input points: {len(point_lons)}")
     logger.info(f" -----> Grid size: {grid_lons.shape}")
 
-    # interpolate point sm to target grid
     soil_moisture_map_interp = interpolate_points_to_grid(
         src_lons=point_lons,
         src_lats=point_lats,
@@ -377,10 +451,11 @@ def process(settings, reference_time):
         grid_lats=grid_lats,
         domain_mask=domain_mask,
         roi_km=roi_km,
-        fill_value=fill_value_default
+        fill_value=fill_value_default,
+        method=interpolation_points_method,
+        **interpolation_points_parameters
     )
 
-    # interpolate point times to target grid
     time_seconds_map_interp = interpolate_points_to_grid(
         src_lons=point_lons,
         src_lats=point_lats,
@@ -389,7 +464,9 @@ def process(settings, reference_time):
         grid_lats=grid_lats,
         domain_mask=domain_mask,
         roi_km=roi_km,
-        fill_value=fill_value_default
+        fill_value=fill_value_default,
+        method=interpolation_time_method,
+        **interpolation_time_parameters
     )
 
     valid_interp = np.isfinite(soil_moisture_map_interp).sum()
@@ -568,7 +645,7 @@ def process(settings, reference_time):
     logger.info(" ----> Process execution ... DONE")
 
     return (
-        soil_moisture_map_smoothed,
+        soil_moisture_map_smoothed, soil_moisture_map_interp,
         time_lag_map,
         profile,
         stats,
@@ -581,7 +658,7 @@ def process(settings, reference_time):
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Helper to save processed outputs
-def save(soil_moisture_map_out, time_lag_map,
+def save(soil_moisture_map_smoothed, soil_moisture_map_interp,  time_lag_map,
          profile,
          stats, time_start, time_end,
          time_reference, settings,
@@ -603,7 +680,7 @@ def save(soil_moisture_map_out, time_lag_map,
         True if the output file was written successfully, False if skipped.
     """
 
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # start message - script
     logger.info(" ----> Dumping execution ... ")
     logger.info(f" ----> Reference time: {time_reference}")
@@ -618,10 +695,23 @@ def save(soil_moisture_map_out, time_lag_map,
     fill_value = np.nan if fill_value_raw is None else float(fill_value_raw)
 
     # destination output settings
-    variable_name = destination.get("variable_name", "surface_soil_moisture")
+    variable_name_smoothed = destination.get(
+        "variable_name",
+        "surface_soil_moisture"
+    )
+    variable_name_interp = destination.get(
+        "variable_name_interp",
+        f"{variable_name_smoothed}_interp"
+    )
+    variable_name_time_lag = destination.get(
+        "variable_name_time_lag",
+        "time_lag"
+    )
+
+
     dry_run = bool(destination.get("dry_run", False))
     overwrite_output = bool(destination.get("overwrite", True))
-
+    #
     report_enabled = report.get("enabled", False)
     report_folder_template = report.get("folder", "./report")
     report_filename_template = report.get(
@@ -630,31 +720,37 @@ def save(soil_moisture_map_out, time_lag_map,
 
     # configuration info
     logger.info(" ----> Configuration ... ")
-    logger.info(f" -----> Variable name: {variable_name}")
+    logger.info(f" -----> Variable smoothed: {variable_name_smoothed}")
+    logger.info(f" -----> Variable interpolated: {variable_name_interp}")
+    logger.info(f" -----> Variable time lag: {variable_name_time_lag}")
     logger.info(f" -----> Fill value: {fill_value}")
     logger.info(f" -----> Dry run: {dry_run}")
     logger.info(f" -----> Overwrite existing file: {overwrite_output}")
     logger.info(" ----> Configuration ... DONE")
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # Case 1: nothing to save because output maps are missing
-    if soil_moisture_map_out is None or time_lag_map is None or profile is None:
-        # end message - script
+    if (
+        soil_moisture_map_smoothed is None or
+        soil_moisture_map_interp is None or
+        time_lag_map is None or
+        profile is None
+    ):
         logger.warning(" ----> Output data are not available. Nothing to save")
         logger.info(" ----> Dumping execution ... STOP. NO OUTPUT DATA")
         return False
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # Case 2: dry-run mode enabled
     if dry_run:
         # end message - script
         logger.info(" ----> Dumping execution ... DRY-RUN")
         return False
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # message start - destination path
     logger.info(" ----> Define destination path ...")
     # define destination folder and filename using time tags
@@ -693,9 +789,9 @@ def save(soil_moisture_map_out, time_lag_map,
 
     # message end - destination path
     logger.info(" ----> Define destination path ... DONE")
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # message start - destination path
     logger.info(" ----> Define report path ... ")
 
@@ -714,32 +810,34 @@ def save(soil_moisture_map_out, time_lag_map,
 
     # message end - destination path
     logger.info(" ----> Define report path ... DONE")
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # Case 3: output file exists and overwrite is disabled
     if os.path.exists(destination_file) and not overwrite_output:
         # end message - script
         logger.info(f" ----> Skip existing destination file: {destination_file}")
         logger.info(" ----> Dumping execution ... SKIPPED. DATA PREVIOUSLY COMPUTED")
         return False
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # message start - write datasets
     logger.info(" ----> Write datasets ...")
 
-    # output info
-    logger.info(f" -----> Soil moisture map shape: {soil_moisture_map_out.shape}")
+    logger.info(f" -----> Soil moisture smooth map shape: {soil_moisture_map_smoothed.shape}")
+    logger.info(f" -----> Soil moisture interp map shape: {soil_moisture_map_interp.shape}")
     logger.info(f" -----> Time-lag map shape: {time_lag_map.shape}")
 
-    # write datasets
     write_output_map(
         destination_file=destination_file,
-        soil_moisture_map=soil_moisture_map_out,
+        soil_moisture_map_smoothed=soil_moisture_map_smoothed,
+        soil_moisture_map_interp=soil_moisture_map_interp,
         time_lag_map=time_lag_map,
         profile=profile,
-        value_var=variable_name,
+        variable_name_smooth=variable_name_smoothed,
+        variable_name_interp=variable_name_interp,
+        variable_name_time_lag=variable_name_time_lag,
         fill_value=fill_value
     )
 
@@ -747,9 +845,9 @@ def save(soil_moisture_map_out, time_lag_map,
     stats["written_files"] = 1
     logger.info(f" -----> Datasets file: {destination_file}")
     logger.info(" ----> Write datasets ... DONE")
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # message start - write report
     logger.info(" ----> Write report ...")
 
@@ -772,14 +870,25 @@ def save(soil_moisture_map_out, time_lag_map,
     # message end - write report
     logger.info(f" -----> Report file: {report_path}")
     logger.info(" ----> Write report ... DONE")
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # end message - script
     logger.info(f" ----> Written files: {stats['written_files']}")
     logger.info(" ----> Dumping execution ... DONE ")
 
     return True
-    # ---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
+# helper to get methods block
+def _get_block(settings, name, default_enabled=False, default_method=None):
+    block = settings.get(name, {})
+    return {
+        "enabled": bool(block.get("enabled", default_enabled)),
+        "method": block.get("method", default_method),
+        "parameters": block.get("parameters", {})
+    }
 # ----------------------------------------------------------------------------------------------------------------------
