@@ -3,8 +3,8 @@ Library Features:
 
 Name:           lib_utils_io
 Author(s):      Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:           '20260421'
-Version:        '1.0.0'
+Date:           '20260527'
+Version:        '1.1.0'
 """
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -15,7 +15,10 @@ import json
 import rasterio
 import numpy as np
 
-from lib_utils_basic import make_folder
+from pygeogrids.grids import BasicGrid
+
+from lib_utils_grid import GridRegistry
+from lib_utils_base import make_folder
 from config_info import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -29,6 +32,26 @@ def read_file_json(file_name):
             return json.load(file_handle)
     else:
         raise FileNotFoundError(f'File "{file_name}" not found. Exit')
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
+# load cell grid
+def load_cell_grid(grid_name='fibgrid_6.25'):
+    registry = GridRegistry()
+    grid = registry.get(grid_name)
+    return grid
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
+# create cell grid
+def create_cell_grid(lons, lats, mask, cell_size_deg=5):
+
+    grid = BasicGrid(
+        lon=lons[mask].ravel().astype(np.float64),
+        lat=lats[mask].ravel().astype(np.float64),
+    ).to_cell_grid(cellsize=cell_size_deg)
+
+    return grid
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -71,15 +94,18 @@ def load_target_grid(mask_file, mask_band=1):
 # helper to write output map
 def write_output_map(
         destination_file,
-        soil_moisture_map,
+        soil_moisture_map_smoothed,
+        soil_moisture_map_interp,
         time_lag_map,
         profile,
-        value_var,
+        variable_name_smooth,
+        variable_name_interp,
+        variable_name_time_lag,
         fill_value):
 
     out_profile = profile.copy()
     out_profile.update(
-        count=2,
+        count=3,
         dtype="float32",
         compress="deflate",
         nodata=np.nan if np.isnan(fill_value) else float(fill_value),
@@ -90,8 +116,12 @@ def write_output_map(
         make_folder(folder_name)
 
     with rasterio.open(destination_file, "w", **out_profile) as dst:
-        dst.write(soil_moisture_map.astype(np.float32), 1)
-        dst.write(time_lag_map.astype(np.float32), 2)
-        dst.set_band_description(1, value_var)
-        dst.set_band_description(2, "time_lag_hours")
+
+        dst.write(soil_moisture_map_smoothed.astype(np.float32), 1)
+        dst.write(soil_moisture_map_interp.astype(np.float32), 2)
+        dst.write(time_lag_map.astype(np.float32), 3)
+
+        dst.set_band_description(1, variable_name_smooth)
+        dst.set_band_description(2, variable_name_interp)
+        dst.set_band_description(3, variable_name_time_lag)
 # ----------------------------------------------------------------------------------------------------------------------

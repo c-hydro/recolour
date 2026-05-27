@@ -12,12 +12,10 @@ Version:        '1.0.0'
 import logging
 import numpy as np
 
-try:
-    from pyresample.geometry import SwathDefinition
-    from pyresample.kd_tree import resample_nearest
-except ImportError:
-    SwathDefinition = None
-    resample_nearest = None
+from scipy.ndimage import gaussian_filter, uniform_filter
+
+from pyresample.geometry import SwathDefinition
+from pyresample.kd_tree import resample_nearest, resample_custom, resample_gauss
 
 from config_info import LOGGER_NAME
 
@@ -51,7 +49,6 @@ def build_smooth_map(data_map, domain_mask, fill_value,
     -------
     smoothed_map : np.ndarray
     """
-    from scipy.ndimage import gaussian_filter, uniform_filter
 
     data_map = np.asarray(data_map, dtype=np.float32)
 
@@ -122,18 +119,13 @@ def build_mask_by_pixel_extension(rows, cols, domain_mask, radius_pixels):
 def interpolate_points_to_grid(
         src_lons, src_lats, src_vals,
         grid_lons, grid_lats, domain_mask,
-        roi_km, fill_value):
+        roi_km, fill_value,
+        method="nearest", k_neighbours=8, power=1.5):
 
     out = np.full(domain_mask.shape, np.float32(fill_value), dtype=np.float32)
 
     if roi_km <= 0:
         raise RuntimeError("roi_km must be > 0")
-
-    if SwathDefinition is None or resample_nearest is None:
-        raise ImportError(
-            "pyresample is required for interpolate_points_to_grid. "
-            "Install it with: pip install pyresample"
-        )
 
     tgt_lons = grid_lons[domain_mask]
     tgt_lats = grid_lats[domain_mask]
@@ -142,22 +134,117 @@ def interpolate_points_to_grid(
         out[~domain_mask] = np.float32(fill_value)
         return out
 
-    src_def = SwathDefinition(lons=src_lons, lats=src_lats)
-    tgt_def = SwathDefinition(lons=tgt_lons, lats=tgt_lats)
-
-    mapped = resample_nearest(
-        source_geo_def=src_def,
-        data=src_vals,
-        target_geo_def=tgt_def,
-        radius_of_influence=roi_km * 1000.0,
-        fill_value=fill_value,
-        epsilon=0.0,
+    valid_src = (
+            np.isfinite(src_lons) &
+            np.isfinite(src_lats) &
+            np.isfinite(src_vals) &
+            (src_vals != fill_value)
     )
+
+    src_lons = src_lons[valid_src]
+    src_lats = src_lats[valid_src]
+    src_vals = src_vals[valid_src]
+
+    if src_lons.size == 0:
+        out[~domain_mask] = np.float32(fill_value)
+        return out
+
+    method = method.lower()
+
+    if method == "nearest":
+
+        if SwathDefinition is None or resample_nearest is None:
+            raise ImportError(
+                "pyresample is required for method='nearest'. "
+                "Install it with: pip install pyresample"
+            )
+
+        src_def = SwathDefinition(lons=src_lons, lats=src_lats)
+        tgt_def = SwathDefinition(lons=tgt_lons, lats=tgt_lats)
+
+        mapped = resample_nearest(
+            source_geo_def=src_def,
+            data=src_vals,
+            target_geo_def=tgt_def,
+            radius_of_influence=roi_km * 1000.0,
+            fill_value=fill_value,
+            epsilon=0.0,
+        )
+
+    elif method in ["idw", "inverse_distance"]:
+
+        src_def = SwathDefinition(lons=src_lons, lats=src_lats)
+        tgt_def = SwathDefinition(lons=tgt_lons, lats=tgt_lats)
+
+        def idw_weight(distance):
+            distance = np.asarray(distance, dtype=np.float64)
+            return 1.0 / np.maximum(distance, 1e-12) ** power
+
+        mapped = resample_custom(
+            source_geo_def=src_def,
+            data=src_vals.astype(np.float32),
+            target_geo_def=tgt_def,
+            radius_of_influence=roi_km * 1000.0,
+            neighbours=min(int(k_neighbours), src_vals.size),
+            weight_funcs=idw_weight,
+            fill_value=fill_value,
+            epsilon=0.0,
+
+        )
+
+        mapped = np.asarray(mapped, dtype=np.float32)
+
+    elif method == "mean":
+
+        src_def = SwathDefinition(lons=src_lons, lats=src_lats)
+        tgt_def = SwathDefinition(lons=tgt_lons, lats=tgt_lats)
+
+        def mean_weight(distance):
+            distance = np.asarray(distance)
+            return np.ones_like(distance, dtype=np.float64)
+
+        mapped = resample_custom(
+            source_geo_def=src_def,
+            data=src_vals.astype(np.float32),
+            target_geo_def=tgt_def,
+            radius_of_influence=roi_km * 1000.0,
+            neighbours=min(int(k_neighbours), src_vals.size),
+            weight_funcs=mean_weight,
+            fill_value=fill_value,
+            epsilon=0.0,
+        )
+
+        mapped = np.asarray(mapped, dtype=np.float32)
+
+    elif method in ["gauss", "gaussian"]:
+
+        src_def = SwathDefinition(lons=src_lons, lats=src_lats)
+        tgt_def = SwathDefinition(lons=tgt_lons, lats=tgt_lats)
+
+        mapped = resample_gauss(
+            source_geo_def=src_def,
+            data=src_vals.astype(np.float32),
+            target_geo_def=tgt_def,
+            radius_of_influence=roi_km * 1000.0,
+            sigmas=(roi_km * 1000.0) / 2.0,
+            neighbours=min(int(k_neighbours), src_vals.size),
+            fill_value=fill_value,
+            epsilon=0.0,
+        )
+
+        mapped = np.asarray(mapped, dtype=np.float32)
+
+    else:
+        raise RuntimeError(
+            f"Interpolation method '{method}' is not supported. "
+            "Available methods are: 'nearest', 'idw', 'mean'"
+        )
 
     out[domain_mask] = np.asarray(mapped, dtype=np.float32)
     out[~domain_mask] = np.float32(fill_value)
 
     return out
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
