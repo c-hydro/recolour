@@ -20,11 +20,14 @@ from lib_utils_report import collect_report, save_report
 from lib_utils_geo import map_points_to_grid_indices
 from lib_utils_time import resolve_time_tags, resolve_time_window
 
-from lib_utils_analysis_points import (collect_points_to_dataframe, deduplicate_latest_points,
+from lib_utils_analysis_points import (collect_points_to_dataframe, fill_points_to_dataframe,
+                                       deduplicate_points_by_date, filter_points_by_limits, snap_points,
                                        collect_porosity_to_dataframe, convert_points_vwc_to_ssm)
 from lib_utils_analysis_grid import (interpolate_points_to_grid,
                                      build_mask_by_pixel_extension, build_mask_boundary, build_smooth_map,
                                      apply_mask_filter)
+
+from lib_plot import extract_points, plot_points, plot_map
 
 from config_info import LOGGER_NAME
 
@@ -33,7 +36,7 @@ logger = logging.getLogger(LOGGER_NAME)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Helper to process datasets
-def process(settings, reference_time):
+def process(settings, reference_time, debug_points=False, debug_maps=True):
     """
     Process source point datasets into gridded output maps.
 
@@ -97,6 +100,20 @@ def process(settings, reference_time):
         default_enabled=False
     )
     apply_reference_time = reference_time_cfg["enabled"]
+
+    ## snap point over regular grid
+    snap_cfg = _get_block(
+        params_settings,"snap_points_over_regular_grid",
+        default_enabled=False
+    )
+    apply_snap = snap_cfg["enabled"]
+
+    snap_roi_km = float(
+        snap_cfg["parameters"].get(
+            "roi_km",
+            snap_cfg.get("roi_km", 9)
+        )
+    )
 
     ## interpolation
     interpolation_cfg = _get_block(
@@ -316,24 +333,113 @@ def process(settings, reference_time):
     # ---------------------------------------------------------------------------------
     # Collect point data from source files
     logger.info(" ----> Collect points from source files ...")
-    points_df = collect_points_to_dataframe(src_settings, file_list=source_files,
+    # points dataframes
+    points_df, stats_df_collect = collect_points_to_dataframe(src_settings, file_list=source_files,
                                             grid=grid_cell, max_distance_km=grid_max_distance_km)
-    stats["raw_points"] = len(points_df)
+    # points stats
+    stats.update(
+        {f"points_collect_{k}": v for k, v in stats_df_collect.items()}
+    )
 
     # Case 4: files exist but no valid points were extracted
     if points_df.empty:
         logger.info(" ----> Collect points from source files ... NO VALID POINTS")
         logger.info(" ----> Process execution ... STOP. NOTHING TO DO")
         return None, None, None, stats, time_start, time_end
+
+    # Collect point data from source files
+    logger.info(" ----> Collect points from source files ... DONE")
+
+    # points debug
+    if debug_points:
+        points_dict = extract_points(points_df, vars_list=[variable_name])
+        points_var = points_dict[variable_name]
+        plot_points(grid_lons, grid_lats, domain_mask,
+                    points_var['lon'], points_var['lat'], points_var['values'],
+                    method=None, roi_km=None)
     # ---------------------------------------------------------------------------------
 
     # ---------------------------------------------------------------------------------
     # Deduplicate points by keeping the latest value
-    logger.info(" ----> Deduplicate points ... ")
-    points_df, info_df = deduplicate_latest_points(
-        points_df, value_var=variable_name, reference_time=reference_time, reference_flag=apply_reference_time)
-    stats = {**stats, **info_df}
-    logger.info(" ----> Deduplicate points ... DONE")
+    logger.info(" ----> Deduplicate points by date ... ")
+    # points dataframe
+    points_df, stats_df_dedups = deduplicate_points_by_date(
+        src_settings, points_df, reference_time=reference_time, reference_flag=apply_reference_time)
+    # points stats
+    stats.update(
+        {f"dedup_{k}": v for k, v in stats_df_dedups.items()}
+    )
+    logger.info(" ----> Deduplicate points by date ... DONE")
+    # ---------------------------------------------------------------------------------
+
+    # ---------------------------------------------------------------------------------
+    # Snap points to regular grid
+    logger.info(" ----> Snap points to regular grid  ... ")
+    if apply_snap:
+        # points dataframe
+        points_df, stats_df_snap = snap_points(
+            src_settings, points_df, time=reference_time,
+            grid_lons=grid_lons, grid_lats=grid_lats, grid_mask=domain_mask,
+            roi_km=snap_roi_km)
+
+        # points stats
+        stats.update(
+            {f"snap_{k}": v for k, v in stats_df_snap.items()}
+        )
+
+        logger.info(" ----> Snap points to regular grid  ... DONE")
+
+        # points debug
+        if debug_points:
+            points_dict = extract_points(points_df, vars_list=[variable_name])
+            points_var = points_dict[variable_name]
+            plot_points(grid_lons, grid_lats, domain_mask,
+                        points_var['lon'], points_var['lat'], points_var['values'],
+                        method=None, roi_km=None)
+
+    else:
+        logger.info(" ----> Snap points to regular grid  ... SKIPPED: NOT ACTIVATED")
+    # ---------------------------------------------------------------------------------
+
+    # ---------------------------------------------------------------------------------
+    # Fill points
+    logger.info(" ----> Fill points by roi ...")
+    # points dataframe
+    points_df, stats_df_fill = fill_points_to_dataframe(src_settings, points_df, roi_km=roi_km)
+    # points stats
+    stats.update(
+        {f"points_fill_{k}": v for k, v in stats_df_fill.items()}
+    )
+    logger.info(" ----> Fill points by roi ... DONE")
+
+    # points debug
+    if debug_points:
+        points_dict = extract_points(points_df, vars_list=[variable_name])
+        points_var = points_dict[variable_name]
+        plot_points(grid_lons, grid_lats, domain_mask,
+                    points_var['lon'], points_var['lat'], points_var['values'],
+                    method=None, roi_km=None)
+    # ---------------------------------------------------------------------------------
+
+    # ---------------------------------------------------------------------------------
+    # Deduplicate points by keeping the latest value
+    logger.info(" ----> Filter points by limits ... ")
+    # points dataframe
+    points_df, stats_df_filter = filter_points_by_limits(src_settings, points_df)
+    # points stats
+    stats.update(
+        {f"filter_{k}": v for k, v in stats_df_filter.items()}
+    )
+
+    logger.info(" ----> Filter points by limits ... DONE")
+
+    # points debug
+    if debug_points:
+        points_dict = extract_points(points_df, vars_list=[variable_name])
+        points_var = points_dict[variable_name]
+        plot_points(grid_lons, grid_lats, domain_mask,
+                    points_var['lon'], points_var['lat'], points_var['values'],
+                    method=None, roi_km=None)
     # ---------------------------------------------------------------------------------
 
     # ---------------------------------------------------------------------------------
@@ -341,7 +447,7 @@ def process(settings, reference_time):
     logger.info(" ----> Discover porosity files ...")
 
     porosity_files = []
-    if apply_conversion and conversion_method == "vwc_to_ssm_porosity":
+    if apply_conversion and conversion_method == "vwc_to_ssm":
 
         if "cell" not in points_df.columns:
             raise RuntimeError('Column "cell" is needed to discover porosity files')
@@ -369,6 +475,24 @@ def process(settings, reference_time):
 
         logger.info(" ----> Discover porosity files ... DONE")
 
+        # Collect porosity data from source files
+        logger.info(" ----> Collect porosity from source files ... ")
+        porosity_df = collect_porosity_to_dataframe(
+            parameters=conversion_parameters,
+            file_list=porosity_files
+        )
+
+        logger.info(" ----> Collect porosity from source files ... DONE")
+
+        # points debug
+        if debug_points:
+            porosity_name = 'porosity'
+            points_dict = extract_points(points_df, vars_list=[variable_name])
+            points_var = points_dict[variable_name]
+            plot_points(grid_lons, grid_lats, domain_mask,
+                        points_var['lon'], points_var['lat'], points_var['values'],
+                        method=None, roi_km=None)
+
     else:
         logger.info(" ----> Discover porosity files ... NOT ACTIVE")
     # ---------------------------------------------------------------------------------
@@ -381,12 +505,7 @@ def process(settings, reference_time):
 
         logger.info(f" -----> Apply conversion method: {conversion_method} ... ")
 
-        if conversion_method == "vwc_to_ssm_porosity":
-
-            porosity_df = collect_porosity_to_dataframe(
-                parameters=conversion_parameters,
-                file_list=porosity_files
-            )
+        if conversion_method == "vwc_to_ssm":
 
             points_df, variable_name, points_assign = convert_points_vwc_to_ssm(
                 points_df=points_df,
@@ -471,6 +590,22 @@ def process(settings, reference_time):
 
     valid_interp = np.isfinite(soil_moisture_map_interp).sum()
     logger.info(f" -----> Interpolated valid pixels: {valid_interp}")
+
+    # maps debug
+    if debug_maps:
+        plot_map(
+            grid_lons=grid_lons,
+            grid_lats=grid_lats,
+            domain_mask=domain_mask,
+            grid_vals=soil_moisture_map_interp,
+            src_lons=point_lons,
+            src_lats=point_lats,
+            src_vals=point_values,
+            fill_value=fill_value_default,
+            method=interpolation_points_method,
+            plot_points=False,
+            roi_km=roi_km,
+        )
 
     # message end - interpolate points
     logger.info(" ----> Interpole points to grid ... DONE")
@@ -596,6 +731,22 @@ def process(settings, reference_time):
 
         # message end - apply smoothing
         logger.info(" ----> Apply smoothing ... DONW")
+
+        # maps debug
+        if debug_maps:
+            plot_map(
+                grid_lons=grid_lons,
+                grid_lats=grid_lats,
+                domain_mask=domain_mask,
+                grid_vals=soil_moisture_map_smoothed,
+                src_lons=point_lons,
+                src_lats=point_lats,
+                src_vals=point_values,
+                fill_value=fill_value_default,
+                method=smoothing_method,
+                plot_points=False,
+                roi_km=roi_km,
+            )
 
     else:
         # copy sm masked map

@@ -41,7 +41,7 @@
 
     "convert_map": {
       "enabled": true,
-      "method": "vwc_to_ssm_porosity",
+      "method": "vwc_to_ssm",
       "parameters": {
         "units": "%", "clip_min": 0.0, "clip_max": 100.0, "fill_value": -9999.0
       }

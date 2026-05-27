@@ -3,8 +3,8 @@ Library Features:
 
 Name:           lib_utils_io
 Author(s):      Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:           '20260421'
-Version:        '1.0.0'
+Date:           '20260527'
+Version:        '1.1.0'
 """
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -14,6 +14,8 @@ import os
 import json
 import rasterio
 import numpy as np
+
+from pygeogrids.grids import BasicGrid
 
 from lib_utils_grid import GridRegistry
 from lib_utils_base import make_folder
@@ -37,6 +39,18 @@ def read_file_json(file_name):
 def load_cell_grid(grid_name='fibgrid_6.25'):
     registry = GridRegistry()
     grid = registry.get(grid_name)
+    return grid
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
+# create cell grid
+def create_cell_grid(lons, lats, mask, cell_size_deg=5):
+
+    grid = BasicGrid(
+        lon=lons[mask].ravel().astype(np.float64),
+        lat=lats[mask].ravel().astype(np.float64),
+    ).to_cell_grid(cellsize=cell_size_deg)
+
     return grid
 # ----------------------------------------------------------------------------------------------------------------------
 

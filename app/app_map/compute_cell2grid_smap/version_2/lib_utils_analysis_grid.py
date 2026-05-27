@@ -12,12 +12,10 @@ Version:        '1.0.0'
 import logging
 import numpy as np
 
-try:
-    from pyresample.geometry import SwathDefinition
-    from pyresample.kd_tree import resample_nearest
-except ImportError:
-    SwathDefinition = None
-    resample_nearest = None
+from scipy.ndimage import gaussian_filter, uniform_filter
+
+from pyresample.geometry import SwathDefinition
+from pyresample.kd_tree import resample_nearest, resample_custom, resample_gauss
 
 from config_info import LOGGER_NAME
 
@@ -51,7 +49,6 @@ def build_smooth_map(data_map, domain_mask, fill_value,
     -------
     smoothed_map : np.ndarray
     """
-    from scipy.ndimage import gaussian_filter, uniform_filter
 
     data_map = np.asarray(data_map, dtype=np.float32)
 
@@ -176,86 +173,66 @@ def interpolate_points_to_grid(
 
     elif method in ["idw", "inverse_distance"]:
 
-        from scipy.spatial import cKDTree
+        src_def = SwathDefinition(lons=src_lons, lats=src_lats)
+        tgt_def = SwathDefinition(lons=tgt_lons, lats=tgt_lats)
 
-        lat0 = np.nanmean(tgt_lats)
-        km_per_deg_lat = 111.32
-        km_per_deg_lon = 111.32 * np.cos(np.deg2rad(lat0))
+        def idw_weight(distance):
+            distance = np.asarray(distance, dtype=np.float64)
+            return 1.0 / np.maximum(distance, 1e-12) ** power
 
-        src_xy = np.column_stack([
-            src_lons * km_per_deg_lon,
-            src_lats * km_per_deg_lat,
-        ])
+        mapped = resample_custom(
+            source_geo_def=src_def,
+            data=src_vals.astype(np.float32),
+            target_geo_def=tgt_def,
+            radius_of_influence=roi_km * 1000.0,
+            neighbours=min(int(k_neighbours), src_vals.size),
+            weight_funcs=idw_weight,
+            fill_value=fill_value,
+            epsilon=0.0,
 
-        tgt_xy = np.column_stack([
-            tgt_lons * km_per_deg_lon,
-            tgt_lats * km_per_deg_lat,
-        ])
-
-        tree = cKDTree(src_xy)
-
-        k = min(int(k_neighbours), src_vals.size)
-
-        dist, idx = tree.query(
-            tgt_xy,
-            k=k,
-            distance_upper_bound=float(roi_km)
         )
 
-        if k == 1:
-            dist = dist[:, None]
-            idx = idx[:, None]
-
-        mapped = np.full(tgt_lons.shape, fill_value, dtype=np.float32)
-
-        for i in range(tgt_xy.shape[0]):
-
-            ok = np.isfinite(dist[i]) & (idx[i] < src_vals.size)
-
-            if not np.any(ok):
-                continue
-
-            d = dist[i, ok]
-            v = src_vals[idx[i, ok]]
-
-            exact = d <= 1e-12
-            if np.any(exact):
-                mapped[i] = np.float32(v[exact][0])
-                continue
-
-            w = 1.0 / np.power(d, power)
-            mapped[i] = np.float32(np.sum(w * v) / np.sum(w))
+        mapped = np.asarray(mapped, dtype=np.float32)
 
     elif method == "mean":
 
-        from scipy.spatial import cKDTree
+        src_def = SwathDefinition(lons=src_lons, lats=src_lats)
+        tgt_def = SwathDefinition(lons=tgt_lons, lats=tgt_lats)
 
-        lat0 = np.nanmean(tgt_lats)
-        km_per_deg_lat = 111.32
-        km_per_deg_lon = 111.32 * np.cos(np.deg2rad(lat0))
+        def mean_weight(distance):
+            distance = np.asarray(distance)
+            return np.ones_like(distance, dtype=np.float64)
 
-        src_xy = np.column_stack([
-            src_lons * km_per_deg_lon,
-            src_lats * km_per_deg_lat,
-        ])
-
-        tgt_xy = np.column_stack([
-            tgt_lons * km_per_deg_lon,
-            tgt_lats * km_per_deg_lat,
-        ])
-
-        tree = cKDTree(src_xy)
-
-        neighbours = tree.query_ball_point(
-            tgt_xy,
-            r=float(roi_km)
+        mapped = resample_custom(
+            source_geo_def=src_def,
+            data=src_vals.astype(np.float32),
+            target_geo_def=tgt_def,
+            radius_of_influence=roi_km * 1000.0,
+            neighbours=min(int(k_neighbours), src_vals.size),
+            weight_funcs=mean_weight,
+            fill_value=fill_value,
+            epsilon=0.0,
         )
 
-        mapped = np.full(tgt_lons.shape, fill_value, dtype=np.float32)
+        mapped = np.asarray(mapped, dtype=np.float32)
 
-        for i, ids in enumerate(neighbours):
-            if len(ids) > 0:
-                mapped[i] = np.float32(np.nanmean(src_vals[ids]))
+    elif method in ["gauss", "gaussian"]:
+
+        src_def = SwathDefinition(lons=src_lons, lats=src_lats)
+        tgt_def = SwathDefinition(lons=tgt_lons, lats=tgt_lats)
+
+        mapped = resample_gauss(
+            source_geo_def=src_def,
+            data=src_vals.astype(np.float32),
+            target_geo_def=tgt_def,
+            radius_of_influence=roi_km * 1000.0,
+            sigmas=(roi_km * 1000.0) / 2.0,
+            neighbours=min(int(k_neighbours), src_vals.size),
+            fill_value=fill_value,
+            epsilon=0.0,
+        )
+
+        mapped = np.asarray(mapped, dtype=np.float32)
 
     else:
         raise RuntimeError(
@@ -267,7 +244,6 @@ def interpolate_points_to_grid(
     out[~domain_mask] = np.float32(fill_value)
 
     return out
-
 
 # ----------------------------------------------------------------------------------------------------------------------
 
