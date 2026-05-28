@@ -3,8 +3,8 @@ Library Features:
 
 Name:           lib_utils_io
 Author(s):      Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:           '20260527'
-Version:        '1.1.0'
+Date:           '20260421'
+Version:        '1.0.0'
 """
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -14,7 +14,6 @@ import os
 import json
 import rasterio
 import numpy as np
-
 from pygeogrids.grids import BasicGrid
 
 from lib_utils_grid import GridRegistry

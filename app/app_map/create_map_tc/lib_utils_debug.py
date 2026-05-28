@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to convert cell to grid
-def convert_cell_to_grid(obj_cell, var_name_data,
+def convert_grid_to_cell(obj_cell, var_name_data,
                          var_name_geo_x='longitude', var_name_geo_y='latitude',
                          search_rad=50000, fill_values=np.nan, min_neighbours=1, neighbours=1):
 

@@ -101,7 +101,7 @@ def process(settings, reference_time, debug_points=False, debug_maps=True):
     )
     apply_reference_time = reference_time_cfg["enabled"]
 
-    ## snap point over regular grid
+    ## snap point
     snap_cfg = _get_block(
         params_settings,"snap_points_over_regular_grid",
         default_enabled=False
@@ -347,9 +347,6 @@ def process(settings, reference_time, debug_points=False, debug_maps=True):
         logger.info(" ----> Process execution ... STOP. NOTHING TO DO")
         return None, None, None, profile, stats, time_start, time_end
 
-    # Collect point data from source files
-    logger.info(" ----> Collect points from source files ... DONE")
-
     # points debug
     if debug_points:
         points_dict = extract_points(points_df, vars_list=[variable_name])
@@ -395,7 +392,8 @@ def process(settings, reference_time, debug_points=False, debug_maps=True):
             points_var = points_dict[variable_name]
             plot_points(grid_lons, grid_lats, domain_mask,
                         points_var['lon'], points_var['lat'], points_var['values'],
-                        method=None, roi_km=None)
+                        domain_mask=domain_mask,
+                        method=None, roi_km=None, point_styles=None)
 
     else:
         logger.info(" ----> Snap points to regular grid  ... SKIPPED: NOT ACTIVATED")
@@ -418,8 +416,7 @@ def process(settings, reference_time, debug_points=False, debug_maps=True):
         points_var = points_dict[variable_name]
         plot_points(grid_lons, grid_lats, domain_mask,
                     points_var['lon'], points_var['lat'], points_var['values'],
-                    domain_mask=domain_mask,
-                    method=None, roi_km=None)
+                    method=None, roi_km=None, point_styles={})
 
         variable_name = 'mask_value'
         points_dict = extract_points(points_df, vars_list=[variable_name])
@@ -443,7 +440,7 @@ def process(settings, reference_time, debug_points=False, debug_maps=True):
     points_df, stats_df_filter = filter_points_by_limits(src_settings, points_df)
     # points stats
     stats.update(
-        {f"points_filter_{k}": v for k, v in stats_df_filter.items()}
+        {f"points_filter_{k}": v for k, v in stats_df_dedups.items()}
     )
 
     logger.info(" ----> Filter points by limits ... DONE")
@@ -752,6 +749,22 @@ def process(settings, reference_time, debug_points=False, debug_maps=True):
 
         # message end - apply boundary mask
         logger.info(" ----> Apply boundary mask ... DONE")
+
+        # maps debug
+        if debug_maps:
+            plot_map(
+                grid_lons=grid_lons,
+                grid_lats=grid_lats,
+                domain_mask=domain_mask,
+                grid_vals=soil_moisture_map_masked,
+                src_lons=point_lons,
+                src_lats=point_lats,
+                src_vals=point_values,
+                fill_value=fill_value_default,
+                method='mask_by_boundary',
+                plot_points=False,
+                roi_km=roi_km,
+            )
 
     else:
         # copy filtered maps

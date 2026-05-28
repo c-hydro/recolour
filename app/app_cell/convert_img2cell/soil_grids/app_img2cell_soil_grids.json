@@ -1,0 +1,230 @@
+{
+  "grid": {
+    "__comments__": "name: warp5, fibgrid_6.25",
+    "name": "fibgrid_6.25"
+  },
+  "source": {
+    "require_epsg4326": true,
+    "invalid_below": -30000,
+    "layers": [
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/bdod_0-5cm_mean.tif",
+          "var_name": "bdod_0_5cm_mean",
+          "long_name": "SoilGrids bulk density 0-5 cm mean",
+          "units": "cg cm-3"
+        },
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/bdod_5-15cm_mean.tif",
+          "var_name": "bdod_5_15cm_mean",
+          "long_name": "SoilGrids bulk density 5-15 cm mean",
+          "units": "cg cm-3"
+        },
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/bdod_15-30cm_mean.tif",
+          "var_name": "bdod_15_30cm_mean",
+          "long_name": "SoilGrids bulk density 15-30 cm mean",
+          "units": "cg cm-3"
+        },
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/bdod_30-60cm_mean.tif",
+          "var_name": "bdod_30_60cm_mean",
+          "long_name": "SoilGrids bulk density 30-60 cm mean",
+          "units": "cg cm-3"
+        },
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/cfvo_0-5cm_mean.tif",
+          "var_name": "cfvo_0_5cm_mean",
+          "long_name": "SoilGrids coarse fragments 0-5 cm mean",
+          "units": "cm3 dm-3"
+        },
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/cfvo_5-15cm_mean.tif",
+          "var_name": "cfvo_5_15cm_mean",
+          "long_name": "SoilGrids coarse fragments 5-15 cm mean",
+          "units": "cm3 dm-3"
+        },
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/cfvo_15-30cm_mean.tif",
+          "var_name": "cfvo_15_30cm_mean",
+          "long_name": "SoilGrids coarse fragments 15-30 cm mean",
+          "units": "cm3 dm-3"
+        },
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/cfvo_30-60cm_mean.tif",
+          "var_name": "cfvo_30_60cm_mean",
+          "long_name": "SoilGrids coarse fragments 30-60 cm mean",
+          "units": "cm3 dm-3"
+        },
+
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/clay_0-5cm_mean.tif",
+          "var_name": "clay_0_5cm_mean",
+          "long_name": "SoilGrids clay content 0-5 cm mean",
+          "units": "g kg-1"
+        },
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/clay_5-15cm_mean.tif",
+          "var_name": "clay_5_15cm_mean",
+          "long_name": "SoilGrids clay content 5-15 cm mean",
+          "units": "g kg-1"
+        },
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/clay_15-30cm_mean.tif",
+          "var_name": "clay_15_30cm_mean",
+          "long_name": "SoilGrids clay content 15-30 cm mean",
+          "units": "g kg-1"
+        },
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/clay_30-60cm_mean.tif",
+          "var_name": "clay_30_60cm_mean",
+          "long_name": "SoilGrids clay content 30-60 cm mean",
+          "units": "g kg-1"
+        },
+
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/sand_0-5cm_mean.tif",
+          "var_name": "sand_0_5cm_mean",
+          "long_name": "SoilGrids sand content 0-5 cm mean",
+          "units": "g kg-1"
+        },
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/sand_5-15cm_mean.tif",
+          "var_name": "sand_5_15cm_mean",
+          "long_name": "SoilGrids sand content 5-15 cm mean",
+          "units": "g kg-1"
+        },
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/sand_15-30cm_mean.tif",
+          "var_name": "sand_15_30cm_mean",
+          "long_name": "SoilGrids sand content 15-30 cm mean",
+          "units": "g kg-1"
+        },
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/sand_30-60cm_mean.tif",
+          "var_name": "sand_30_60cm_mean",
+          "long_name": "SoilGrids sand content 30-60 cm mean",
+          "units": "g kg-1"
+        },
+
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/silt_0-5cm_mean.tif",
+          "var_name": "silt_0_5cm_mean",
+          "long_name": "SoilGrids silt content 0-5 cm mean",
+          "units": "g kg-1"
+        },
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/silt_5-15cm_mean.tif",
+          "var_name": "silt_5_15cm_mean",
+          "long_name": "SoilGrids silt content 5-15 cm mean",
+          "units": "g kg-1"
+        },
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/silt_15-30cm_mean.tif",
+          "var_name": "silt_15_30cm_mean",
+          "long_name": "SoilGrids silt content 15-30 cm mean",
+          "units": "g kg-1"
+        },
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/silt_30-60cm_mean.tif",
+          "var_name": "silt_30_60cm_mean",
+          "long_name": "SoilGrids silt content 30-60 cm mean",
+          "units": "g kg-1"
+        },
+
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/soc_0-5cm_mean.tif",
+          "var_name": "soc_0_5cm_mean",
+          "long_name": "SoilGrids soil organic carbon 0-5 cm mean",
+          "units": "dg kg-1"
+        },
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/soc_5-15cm_mean.tif",
+          "var_name": "soc_5_15cm_mean",
+          "long_name": "SoilGrids soil organic carbon 5-15 cm mean",
+          "units": "dg kg-1"
+        },
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/soc_15-30cm_mean.tif",
+          "var_name": "soc_15_30cm_mean",
+          "long_name": "SoilGrids soil organic carbon 15-30 cm mean",
+          "units": "dg kg-1"
+        },
+        {
+          "file": "/home/fabio/Desktop/recolour/dset/soil/data/soil_grids/rasters/soc_30-60cm_mean.tif",
+          "var_name": "soc_30_60cm_mean",
+          "long_name": "SoilGrids soil organic carbon 30-60 cm mean",
+          "units": "dg kg-1"
+        }
+    ]
+  },
+  "destination": {
+    "folder": "/home/fabio/Desktop/recolour/exec/soil/data/soil_grids/cells/",
+    "filename": "soilgrids_cell_{cell:04d}.nc"
+  },
+  "parameters": {
+    "cells": [],
+    "keep_only_points_with_data": true
+  },
+  "extra_variables": {
+    "enabled": true,
+    "variables": [
+      {
+        "var_name": "porosity_0_5cm_mean",
+        "method": "porosity_from_bdod",
+        "bdod": "bdod_0_5cm_mean",
+        "bdod_units": "cg cm-3",
+        "particle_density": 2.65,
+        "long_name": "Soil porosity 0-5 cm mean estimated from SoilGrids bulk density",
+        "units": "m3 m-3"
+      },
+      {
+        "var_name": "porosity_5_15cm_mean",
+        "method": "porosity_from_bdod",
+        "bdod": "bdod_5_15cm_mean",
+        "bdod_units": "cg cm-3",
+        "particle_density": 2.65,
+        "long_name": "Soil porosity 5-15 cm mean estimated from SoilGrids bulk density",
+        "units": "m3 m-3"
+      },
+      {
+        "var_name": "porosity_15_30cm_mean",
+        "method": "porosity_from_bdod",
+        "bdod": "bdod_15_30cm_mean",
+        "bdod_units": "cg cm-3",
+        "particle_density": 2.65,
+        "long_name": "Soil porosity 15-30 cm mean estimated from SoilGrids bulk density",
+        "units": "m3 m-3"
+      },
+      {
+        "var_name": "porosity_0_15cm_mean",
+        "method": "weighted_average",
+        "variables": ["porosity_0_5cm_mean", "porosity_5_15cm_mean"],
+        "weights": [5, 10],
+        "long_name": "Soil porosity 0-15 cm weighted mean",
+        "units": "m3 m-3"
+      },
+      {
+        "var_name": "porosity_0_30cm_mean",
+        "method": "weighted_average",
+        "variables": ["porosity_0_5cm_mean", "porosity_5_15cm_mean", "porosity_15_30cm_mean"],
+        "weights": [5, 10, 15],
+        "long_name": "Soil porosity 0-30 cm weighted mean",
+        "units": "m3 m-3"
+      }
+    ]
+  },
+  "output": {
+    "coordinate_scale_factor": 0.000001
+  },
+  "attributes": {
+    "title": "Static SoilGrids parameters on WARP5 cells",
+    "institution": "CIMA Foundation",
+    "product_type": "static",
+    "grid_mapping_name": "WARP5"
+  },
+  "logging": {
+    "level": "INFO",
+    "folder": "/home/fabio/Desktop/recolour/exec/soil/log/",
+    "filename": "soilgrids_tiff2cell_warp5_{date}.log"
+  }
+}

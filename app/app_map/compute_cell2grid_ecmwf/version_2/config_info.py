@@ -1,15 +1,14 @@
-
 # ----------------------------------------------------------------------------------------------------------------------
 # algorithm info
 PROJECT_NAME = 'recolour'
-ALG_NAME = 'Application to convert ssm h122 cell files to raster images'
+ALG_NAME = 'Application to convert ECMWF RZSM LAYERS/PROFILE cell files to raster images'
 ALG_TYPE = 'Package'
-ALG_VERSION = '3.1.0'
-ALG_RELEASE = '2026-04-21'
+ALG_VERSION = '2.0.0'
+ALG_RELEASE = '2026-05-25'
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # constants
-LOGGER_NAME = "app_cell2img"
+LOGGER_NAME = "app_cell2grid_ecmwf"
 TIME_FMT_CLI = "%Y-%m-%d %H:%M"
 # ----------------------------------------------------------------------------------------------------------------------

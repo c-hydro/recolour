@@ -11,6 +11,7 @@ Version:        '1.0.0'
 # libraries
 import logging
 import os
+import re
 import numpy as np
 
 from glob import glob
@@ -148,7 +149,11 @@ def discover_source_files(source_settings, time_settings,
             search_pattern = search_pattern.replace("{cell_n}", "*")
             search_pattern = resolve_time_tags(search_pattern, common_tags)
 
-            file_list = sorted(glob(os.path.join(src_folder, search_pattern)))
+            file_list = sorted(
+                f for f in glob(os.path.join(src_folder, search_pattern))
+                if re.search(r"\b\d{4}\b", os.path.splitext(os.path.basename(f))[0])
+            )
+
             for file_path in file_list:
                 if file_path not in seen_files:
                     seen_files.add(file_path)

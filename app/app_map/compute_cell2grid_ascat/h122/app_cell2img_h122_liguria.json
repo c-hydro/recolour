@@ -20,11 +20,11 @@
           "parameters": {"k_neighbours": 8, "power": 1.5}
         },
 
-        "interpolate_others": {
-            "enabled": true,
-            "method": "nearest",
-            "parameters": {}
-        },
+      "interpolate_others": {
+        "enabled": true,
+        "method": "nearest",
+        "parameters": {}
+      },
 
         "mask_map_extension": {
           "enabled": false,
@@ -75,7 +75,7 @@
         },
         "mask": {
           "folder": "/home/fabio/Desktop/recolour/dset/ascat_auxiliary/domain/",
-          "filename": "grid_reference_500m.tiff",
+          "filename": "grid_reference_250m_liguria.tiff",
           "mask_band": 1
         },
         "porosity": {
@@ -87,17 +87,14 @@
         }
     },
 
-
     "source": {
         "folder": "/home/fabio/Desktop/recolour/dset/ascat_cell_nrt/ssm/h122/{time_step:%Y/%m/%d}/",
         "filename": "h122_cell_{cell_n}_{time_run:%Y%m%d}.nc",
-        "variable_name": "surface_soil_moisture",
-        "scale_factor": 1
+        "variable_name": "surface_soil_moisture"
     },
-
     "destination": {
         "folder": "/home/fabio/Desktop/recolour/exec/ascat_cell_nrt/ssm/h122/{time_run:%Y/%m/%d}/",
-        "filename": "h122_italy_{time_run:%Y%m%d_%H%M}.tif",
+        "filename": "h122_liguria_{time_run:%Y%m%d_%H%M}.tif",
         "mode": "tiff",
 
         "variable_name": "surface_soil_moisture",
@@ -105,6 +102,7 @@
 
         "dry_run": false,
         "overwrite": true
+
     },
     "time": {
         "time_start": null,
@@ -113,17 +111,17 @@
         "time_frequency": "D",
         "floor_start_to_midnight": true,
         "floor_end_to_midnight": false,
-        "floor_reference_to_offset": {"active": true, "days":"1D", "time": "23:00"}
+        "floor_reference_to_offset": {"active": false, "days":"1D", "time": "23:00"}
     },
     "report": {
         "enabled": true,
         "folder": "/home/fabio/Desktop/recolour/exec/ascat_cell_nrt/report/{time_run:%Y/%m/%d}/",
-        "filename": "cell2img_h122_report_%Y%m%d_%H%M_italy.json"
+        "filename": "h122_cell2img_report_%Y%m%d_%H%M_liguria.json"
     },
     "logging": {
         "level": "INFO",
         "folder": "/home/fabio/Desktop/recolour/exec/ascat_cell_nrt/log/{time_run:%Y/%m/%d}/",
-        "filename": "cell2img_h122_italy.log",
+        "filename": "h122_cell2img_liguria.log",
         "rotate_daily": false
     }
 }

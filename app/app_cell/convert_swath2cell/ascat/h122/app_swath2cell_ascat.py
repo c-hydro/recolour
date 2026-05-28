@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-RECOLOUR APPS - SSM SWATH2CELL CONVERT - REprocess paCkage for sOiL mOistUre pRoducts
+RECOLOUR APPS - SSM SWATH2CELL CONVERTER - REprocess paCkage for sOiL mOistUre pRoducts
 
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)'
@@ -119,6 +119,8 @@ def main():
         settings_algorithm,
         dict_map={'path_in' : ['source', 'folder'], 'filename_in' : ['source', 'filename'],
                   'path_out': ['destination', 'folder'], 'filename_out': ['destination', 'filename'],
+                  "date_fmt_field_in" : ['source', 'date_fmt_field'],
+                  "date_fmt_field_out" : ['destination', 'date_fmt_field'],
                   'product_id': ['parameters', 'product'],
                   'mode': ['parameters', 'mode'],
                   "cells": ['parameters', 'cells_list'],
@@ -128,9 +130,12 @@ def main():
                   },
         dict_default=None,
         dict_mandatory={
-            'path_in' : True, 'filename_in' : True, 'product_id' : True,
-            'path_out': True, 'filename_out': True, 'max_nbytes_mb': True,
-            'cells_list': True, 'mode': True, 'grid_name': True
+            'path_in' : True, 'filename_in' : True,
+            'path_out': True, 'filename_out': True,
+            'date_fmt_field_in': True, 'date_fmt_field_out': True,
+            'cells_list': True, 'mode': True, 'grid_name': True,
+            'product_id' : True, 'max_nbytes_mb': True,
+
         },
     )
     settings_swath['dt_run'] = time_reference

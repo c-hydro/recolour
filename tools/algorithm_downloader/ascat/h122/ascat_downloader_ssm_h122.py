@@ -5,7 +5,7 @@
 RECOLOUR APPS - SSM H122 DOWNLOADER - REprocess paCkage for sOiL mOistUre pRoducts
 
 General command line:
-python ecmwf_downloader_rzsm.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
+python ascat_downloader_rzsm.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Mirror mode:
 - If JSON time.time_start and time.time_end are both defined: date_filter mode
@@ -35,7 +35,6 @@ import subprocess
 import tempfile
 
 from datetime import datetime, timedelta
-
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -48,8 +47,6 @@ alg_release = '2026-04-15'
 
 alg_logger = logging.getLogger('app_downloader')
 acquired_lock = None
-
-
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -896,6 +893,7 @@ def main():
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+# entrypoint
 if __name__ == '__main__':
     main()
 # ----------------------------------------------------------------------------------------------------------------------

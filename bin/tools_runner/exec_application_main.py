@@ -4,7 +4,8 @@
 """
 RECOLOUR APPS - ASCAT SWATH2CELL H122 - ORGANIZER_CELL - EXECUTION WRAPPER
 """
-
+# ----------------------------------------------------------------------------------------------------------------------
+# libraries
 import os
 import sys
 import json
@@ -18,8 +19,10 @@ warnings.filterwarnings(
     "ignore",
     message="pkg_resources is deprecated as an API"
 )
+# ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
+# info
 project_name = 'recolour'
 alg_name = 'Execution wrapper for ECMWF PROFILE H26 over a time period'
 alg_type = 'Exec'
@@ -27,6 +30,8 @@ alg_version = '1.6.0'
 alg_release = '2026-04-30'
 # ----------------------------------------------------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------------------------------------------------------
+## settings
 default_script_file = "/home/cfmi.arpal.org/satsuolo/library/package_recolour/app/app_cell/convert_swath2cell/ascat/h122/app_swath2cell_h122.py"
 default_settings_file = "/home/cfmi.arpal.org/satsuolo/Umidita_suolo/script/algorithm_organizer_cell/convert_swath2cell/ascat/h122/ascat_swath2cell_nrt_ssm_h122.json"
 
@@ -57,7 +62,9 @@ default_summary_extra = {
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# generic utils
+## generic utils
+
+# helper to check nones
 def is_none(value):
     if value is None:
         return True
@@ -65,13 +72,13 @@ def is_none(value):
         return True
     return False
 
-
+# helper to format value to string
 def format_value(value):
     if isinstance(value, datetime):
         return value.strftime("%Y-%m-%d %H:%M")
     return str(value)
 
-
+# helper to format template
 def format_template(template_string, context_dict=None):
     if is_none(template_string):
         return template_string
@@ -85,6 +92,8 @@ def format_template(template_string, context_dict=None):
 
 # ----------------------------------------------------------------------------------------------------------------------
 # time utils
+
+# helper to normalize time
 def normalize_time(
         time_obj,
         round_mode="day",
@@ -164,7 +173,7 @@ def normalize_time(
             '"hour_nearest", "hour_step", "flat"'
         )
 
-
+# helper to parse time
 def parse_time(
         time_string,
         round_mode="day",
@@ -184,7 +193,7 @@ def parse_time(
         round_flat=round_flat
     )
 
-
+# helper to get time now
 def get_time_now(
         time_string=None,
         round_mode="day",
@@ -229,7 +238,7 @@ def get_time_now(
         round_flat=round_flat
     )
 
-
+# helper to get time range
 def get_time_range(
         time_now=None,
         time_period=2,
@@ -279,7 +288,7 @@ def get_time_range(
 
     return time_from, time_to
 
-
+# helper to iterate over time steps
 def iter_time_steps(time_start, time_end, step_hours=24, reverse=False):
 
     if step_hours <= 0:
@@ -300,7 +309,7 @@ def iter_time_steps(time_start, time_end, step_hours=24, reverse=False):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# summary env/context utils
+## summary env/context utils
 def build_summary_context(time_now=None, time_start=None, time_end=None, extra_dict=None):
 
     context = {

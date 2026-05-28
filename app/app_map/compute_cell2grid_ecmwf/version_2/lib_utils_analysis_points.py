@@ -3,7 +3,7 @@ Library Features:
 
 Name:           lib_utils_analysis_points
 Author(s):      Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:           '20260421'
+Date:           '20260525'
 Version:        '1.0.0'
 """
 
@@ -16,10 +16,10 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from scipy.spatial import cKDTree
-
 from lib_utils_geo import regrid_domain
 from lib_utils_io import create_cell_grid
+from scipy.spatial import cKDTree
+
 from config_info import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -164,7 +164,7 @@ def collect_porosity_to_dataframe(parameters, file_list):
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
-# helper to collect points to dataframe
+# helper to collect points
 def collect_points_to_dataframe(source_settings, file_list, grid, max_distance_km=25):
 
     value_var = source_settings.get("value_col", "surface_soil_moisture")
@@ -222,10 +222,17 @@ def collect_points_to_dataframe(source_settings, file_list, grid, max_distance_k
                 * scale_factor
             )
 
-            if not (lon.shape == lat.shape == data_time.shape == data_value.shape):
+            if data_time.shape[0] > 1:
+                time_idx = data_time.argmax()
+                data_time = data_time[[time_idx]]
+                data_value = data_value[:, time_idx]
+            else:
+                data_value = data_value[:, 0] if data_value.ndim == 2 else data_value
+
+            if not (lon.shape[0] == lat.shape[0] == data_value.shape[0]):
                 raise ValueError(
-                    f'{file_path}: shape mismatch among lon/lat/time/{value_var}: '
-                    f'{lon.shape}, {lat.shape}, {data_time.shape}, {data_value.shape}'
+                    f"{file_path}: shape mismatch among lon/lat/{value_var}: "
+                    f"{lon.shape}, {lat.shape}, {data_value.shape}"
                 )
 
             file_info["raw_points"] = int(lon.shape[0])
@@ -388,6 +395,7 @@ def snap_points(source_settings, points_df,
         times = pd.to_datetime(df["time"])
     else:
         times = pd.Series(pd.to_datetime(time), index=df.index)
+
 
     valid_data = (
         np.isfinite(lons) &
@@ -584,8 +592,8 @@ def fill_points_to_dataframe(source_settings, points_df, roi_km=25):
             mask_values[idx] = 2
             mask_tags[idx] = "filled-by-roi"
 
-
     df[value_var] = vals
+    df["filled_by_roi"] = filled_flag
     df["mask_value"] = mask_values
     df["mask_tag"] = mask_tags
 
@@ -785,90 +793,6 @@ def filter_points_by_limits(source_settings, points_df):
     return df, info
 # ----------------------------------------------------------------------------------------------------------------------
 
-
-# ----------------------------------------------------------------------------------------------------------------------
-# remove duplicates from points
-def deduplicate_latest_points(df, value_var, reference_time=None, reference_flag=False):
-
-    info = {
-        "initial_rows": 0,
-        "reference_active": bool(reference_flag),
-        "reference_time": reference_time,
-        "filtered_by_reference_time": 0,
-        "duplicates_by_value": 0,
-        "duplicates_by_gpi": 0,
-        "final_rows": 0,
-    }
-
-    if df.empty:
-        logger.warning(" ===> DataFrame is empty")
-        return df.copy(), info
-
-    info["initial_rows"] = len(df)
-
-    logger.info(" ::: DEDUPLICATE POINTS ... ")
-    logger.info(f" :::: Initial rows: {info['initial_rows']}")
-
-    df = df.copy()
-
-    # filter by reference time if active
-    if reference_flag:
-        if reference_time is None:
-            logger.warning(" ===> Reference flag is active but reference_time is None")
-        else:
-            rows_before_filter = len(df)
-
-            df = df.loc[df["time"] <= reference_time].copy()
-
-            info["filtered_by_reference_time"] = rows_before_filter - len(df)
-
-            logger.info(f" :::: Reference time active: {reference_time}")
-            logger.info(
-                f" :::: Rows filtered by reference time: "
-                f"{info['filtered_by_reference_time']}"
-            )
-
-    if df.empty:
-        logger.warning(" ===> DataFrame is empty after reference time filtering")
-        info["final_rows"] = 0
-        return df.copy(), info
-
-    # sort by gpi and time
-    df = df.sort_values(["gpi", "time"]).copy()
-
-    # duplicates based on ["gpi", value_var]
-    dup_mask_value = df.duplicated(subset=["gpi", value_var], keep="last")
-    dup_points_value = df.loc[dup_mask_value, ["gpi", "time", value_var]]
-
-    info["duplicates_by_value"] = len(dup_points_value)
-    logger.info(f" :::: Duplicates by value: {info['duplicates_by_value']}")
-
-    # remove duplicates by value, keeping latest
-    df = df.drop_duplicates(subset=["gpi", value_var], keep="last")
-
-    # duplicates based on ["gpi"]
-    dup_mask_gpi = df.duplicated(subset=["gpi"], keep="last")
-    dup_points_gpi = df.loc[dup_mask_gpi, ["gpi", "time", value_var]]
-
-    info["duplicates_by_gpi"] = len(dup_points_gpi)
-    logger.info(f" :::: Duplicates by gpi/locations: {info['duplicates_by_gpi']}")
-
-    # keep latest point per gpi
-    df = (
-        df.sort_values(["gpi", "time"])
-          .drop_duplicates(subset=["gpi"], keep="last")
-    )
-
-    # final sorting
-    df = df.sort_values("gpi").reset_index(drop=True)
-
-    info["final_rows"] = len(df)
-    logger.info(f" :::: Final rows: {info['final_rows']}")
-
-    logger.info(" ::: DEDUPLICATE POINTS ... DONE")
-
-    return df, info
-# ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # convert point values from SMAP VWC to ASCAT-like SSM using porosity

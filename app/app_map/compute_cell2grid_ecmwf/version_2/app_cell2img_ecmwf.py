@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-RECOLOUR APPS - SMAP SPL2SMP_E CELL2GRID
+RECOLOUR APPS - ECMWF RZEM LAYERS/PROFILE CELL2GRID
 
 General command line:
-python app_cell2grid_smap.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
+python app_cell2grid_ecmwf.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 """
 
 # ----------------------------------------------------------------------------------------------------------------------

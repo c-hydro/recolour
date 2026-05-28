@@ -11,10 +11,64 @@ Version:        '1.0.0'
 # libraries
 import logging
 import numpy as np
+from pygeogrids.grids import BasicGrid
 
 from config_info import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# helper to regrid domain
+def regrid_domain(lons, lats, mask, resolution_km=9.0):
+
+    valid_lons = lons[mask].ravel().astype(np.float64)
+    valid_lats = lats[mask].ravel().astype(np.float64)
+
+    resolution_deg = resolution_km / 111.0
+
+    lon_min = np.nanmin(valid_lons)
+    lon_max = np.nanmax(valid_lons)
+    lat_min = np.nanmin(valid_lats)
+    lat_max = np.nanmax(valid_lats)
+
+    reg_lons_1d = np.arange(
+        lon_min,
+        lon_max + resolution_deg,
+        resolution_deg,
+        dtype=np.float64
+    )
+
+    reg_lats_1d = np.arange(
+        lat_min,
+        lat_max + resolution_deg,
+        resolution_deg,
+        dtype=np.float64
+    )
+
+    reg_lons_2d, reg_lats_2d = np.meshgrid(reg_lons_1d, reg_lats_1d)
+
+    source_grid = BasicGrid(
+        lon=valid_lons,
+        lat=valid_lats
+    )
+
+    nearest_gpi, distance = source_grid.find_nearest_gpi(
+        reg_lons_2d.ravel(),
+        reg_lats_2d.ravel(),
+        max_dist=resolution_km * 1000.0
+    )
+
+    nearest_gpi = np.asarray(nearest_gpi)
+    distance = np.asarray(distance)
+
+    reg_mask = (
+        (nearest_gpi >= 0) &
+        np.isfinite(distance)
+    ).reshape(reg_lons_2d.shape)
+
+    return reg_lons_2d, reg_lats_2d, reg_mask
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------

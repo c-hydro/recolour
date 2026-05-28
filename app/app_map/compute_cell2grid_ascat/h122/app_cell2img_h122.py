@@ -2,16 +2,14 @@
 # -*- coding: utf-8 -*-
 
 """
-RECOLOUR APPS - SSM H122 CELL2IMG
+RECOLOUR APPS - SSM CELL2IMG CONVERTER - REprocess paCkage for sOiL mOistUre pRoducts
 
-__date__ = '20260421'
-__version__ = '3.0.0'
 __author__ =
     'Fabio Delogu (fabio.delogu@cimafoundation.org)'
 __library__ = 'recolour'
 
 General command line:
-python app_cell2img_ssm_h122.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
+python app_cell2img_h122.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Notes:
 - Values are generated using nearest point-to-grid assignment through pyresample
@@ -28,11 +26,13 @@ import time
 import sys
 import argparse
 
+from datetime import datetime
+
 from lib_utils_logging import get_logger
 from lib_utils_io import read_file_json
 from lib_utils_time import parse_reference_time
 from lib_data import process, save
-from config_utils import LOGGER_NAME, ALG_NAME, ALG_RELEASE, ALG_VERSION
+from config_info import LOGGER_NAME, ALG_NAME, ALG_RELEASE, ALG_VERSION
 
 # set logger
 logger = logging.getLogger(LOGGER_NAME)
@@ -51,7 +51,7 @@ def main():
 
     # get reference time
     try:
-        reference_time = parse_reference_time(args.time_run)
+        reference_time, reference_info = parse_reference_time(args.time_run, time_settings=settings['time'])
     except Exception as exc:
         print(f" ===> ERROR: parsing time: {exc}")
         sys.exit(1)
@@ -82,9 +82,19 @@ def main():
     try:
         logger.info(f" ----> Get reference time: {reference_time.strftime('%Y-%m-%d %H:%M:%S')}")
         if args.time_run:
-            logger.info(f" ----> Set by user: {args.time_run} (rounded to hour)")
+            logger.info(f" ----> Set by user: {args.time_run} (apply time configuration)")
         else:
-            logger.info(" ----> Set by system (rounded to hour)")
+            logger.info(" ----> Set by system (aqpply time configuration)")
+
+        # print reference info
+        if reference_info is not None:
+            logger.info(" ----> Time Info ...")
+            for info_key, info_value in reference_info.items():
+                if isinstance(info_value, datetime):
+                    info_value = info_value.strftime('%Y-%m-%d %H:%M:%S')
+                logger.info(f" -----> {info_key}: {info_value}")
+            logger.info(" ----> Time Info ... DONE")
+
         logger.info(" ---> Set time ... DONE")
 
     except Exception as exc:
@@ -97,7 +107,11 @@ def main():
     # process datasets
     logger.info(' ---> Process datasets ... ')
     try:
-        soil_moisture_map, time_lag_map, profile, stats, time_start, time_end = process(settings, reference_time)
+        (soil_moisture_map_processed, soil_moisture_map_interp, time_lag_map,
+         distances_map_interp, mask_type_map_interp,
+         profile, stats,
+         time_start, time_end) = process(
+            settings, reference_time, debug_points=False, debug_maps=False)
         logger.info(' ---> Process datasets ... DONE')
 
     except Exception as exc:
@@ -110,9 +124,18 @@ def main():
     # save datasets
     logger.info(' ---> Save datasets ... ')
     try:
-        save(soil_moisture_map, time_lag_map, profile,
-             stats, time_start, time_end, reference_time,
-             settings, start_time)
+        save(
+            soil_moisture_map_processed, soil_moisture_map_interp,
+            time_lag_map,
+            distances_map_interp, mask_type_map_interp,
+            profile,
+            stats,
+            time_start,
+            time_end,
+            reference_time,
+            settings,
+            start_time
+        )
         logger.info(' ---> Save datasets ... DONE')
 
     except Exception as exc:

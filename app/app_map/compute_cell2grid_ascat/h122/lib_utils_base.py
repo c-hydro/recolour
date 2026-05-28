@@ -11,11 +11,12 @@ Version:        '1.0.0'
 # libraries
 import logging
 import os
+import numpy as np
 
 from glob import glob
 
 from lib_utils_time import iter_time_steps, resolve_time_tags
-from config_utils import LOGGER_NAME
+from config_info import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
 # ----------------------------------------------------------------------------------------------------------------------
@@ -49,24 +50,67 @@ def resolve_generic_tags(template_string, tags):
     return template_resolved
 # ----------------------------------------------------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------------------------------------------------------
+# helper to discover porosity files
+def discover_porosity_files(porosity_settings, cell_list, cell_digits=4, strict=True):
+
+    porosity_folder = porosity_settings["folder"]
+    porosity_filename_template = porosity_settings.get("filename", "soilgrids_cell_{cell:04d}.nc")
+
+    selected_files = []
+    missing_files = []
+    seen_files = set()
+
+    unique_cells = sorted(np.unique(cell_list).astype(np.int32))
+
+    for cell_id in unique_cells:
+
+        cell_tags = format_cell_tags(cell_id, cell_digits=cell_digits)
+
+        try:
+            porosity_filename = porosity_filename_template.format(
+                cell=int(cell_id),
+                cell_n=cell_tags["cell_n"]
+            )
+        except KeyError:
+            porosity_filename = resolve_generic_tags(
+                porosity_filename_template,
+                cell_tags
+            )
+
+        file_path = os.path.join(porosity_folder, porosity_filename)
+
+        if os.path.exists(file_path):
+            if file_path not in seen_files:
+                seen_files.add(file_path)
+                selected_files.append(file_path)
+        else:
+            missing_files.append(file_path)
+
+    if strict and missing_files:
+        msg = "\n".join(missing_files)
+        raise RuntimeError(
+            "Porosity conversion is enabled, but some required porosity files are missing:\n"
+            f"{msg}"
+        )
+
+    return sorted(selected_files)
+# ----------------------------------------------------------------------------------------------------------------------
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 # helper to discover source files
-def discover_source_files(settings, time_start, time_end, reference_time):
-
-    parameters_settings = settings.get("parameters", {})
-    source_settings = settings.get("source", {})
+def discover_source_files(source_settings, time_settings,
+                          time_start, time_end, reference_time,
+                          cell_list=None, cell_digits=4):
 
     source_folder_template = source_settings["folder"]
     source_filename_template = source_settings.get("filename", "h122_cell_{cell_n}.nc")
 
-    selected_cells = parameters_settings.get("cells", None)
-    cell_digits = int(parameters_settings.get("cell_digits", 4))
-
     selected_files = []
     seen_files = set()
 
-    for time_step in iter_time_steps(settings, time_start, time_end):
+    for time_step in iter_time_steps(time_settings, time_start, time_end):
         common_tags = {
             "time_step": time_step,
             "time_start": time_start,
@@ -81,8 +125,8 @@ def discover_source_files(settings, time_start, time_end, reference_time):
         if not os.path.exists(src_folder):
             continue
 
-        if selected_cells is not None:
-            for cell_id in selected_cells:
+        if cell_list is not None:
+            for cell_id in cell_list:
                 cell_tags = format_cell_tags(cell_id, cell_digits=cell_digits)
 
                 source_filename = resolve_generic_tags(

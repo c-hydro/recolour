@@ -186,7 +186,9 @@ class Swath(Filenames):
             attrs_list[0].pop("global_attributes_flag")
             result = {}
             for attr in global_attributes_to_pass_on_merge:
-                if val := attrs_list[0].get(attr, False):
+
+                val = attrs_list[0].get(attr, False)
+                if val:
                     result[attr] = val
             return result
 
@@ -225,7 +227,8 @@ class SwathGridFiles(ChronFiles):
         fn_templ_in,
         sf_templ_in,
         grid_name,
-        date_field_fmt,
+        date_field_fmt_in="%Y%m%d*",
+        date_field_fmt_out='%Y%m%d_%H00',
         cell_fn_format=None,
         cls_kwargs=None,
         err=True,
@@ -296,7 +299,8 @@ class SwathGridFiles(ChronFiles):
                          fn_read_fmt, sf_read_fmt, fn_write_fmt, sf_write_fmt,
                          cache_size)
 
-        self.date_field_fmt = date_field_fmt
+        self.date_field_fmt_in = date_field_fmt_in
+        self.date_field_fmt_out = date_field_fmt_out
         self.grid_name = grid_name
         self.grid = registry.get(grid_name)
 
@@ -314,6 +318,7 @@ class SwathGridFiles(ChronFiles):
             path_in, filename_in,
             path_out, filename_out,
             product_id,
+            date_fmt_field_in='%Y%m%d%H%M%S', date_field_fmt_out='%Y%m%d',
             cell_fn_format='{:4d}', grid_name='fibgrid_6.25',
             **kwargs
     ):
@@ -329,6 +334,7 @@ class SwathGridFiles(ChronFiles):
 
             product_class = default_class(
                 path_in, filename_in, path_out, filename_out,
+                date_fmt_field_in=date_fmt_field_in, date_field_fmt_out=date_field_fmt_out,
                 cell_fn_format=cell_fn_format, grid_name=grid_name)
 
         else:
@@ -357,7 +363,8 @@ class SwathGridFiles(ChronFiles):
             fn_templ_in=product_class.fn_pattern_in, sf_templ_in=product_class.sf_pattern_in,
             fn_templ_out=product_class.fn_pattern_out, sf_templ_out=product_class.sf_pattern_out,
             grid_name=product_class.grid_name, cell_fn_format=product_class.cell_fn_format,
-            date_field_fmt=product_class.date_field_fmt_in,
+            date_field_fmt_in=product_class.date_field_fmt_in,
+            date_field_fmt_out=product_class.date_field_fmt_out,
             fn_read_fmt=product_class.fn_read_fmt, sf_read_fmt=product_class.sf_read_fmt,
             fn_write_fmt=product_class.fn_write_fmt, sf_write_fmt=product_class.sf_write_fmt,
             preprocessor=product_class.preprocess_,
@@ -491,6 +498,8 @@ class SwathGridFiles(ChronFiles):
             date_field_fmt="%Y%m%d_%H%M",
             date_field="date", fmt_kwargs={},):
 
+        date_field_fmt = self.date_field_fmt_out
+
         file_tmpl = FilenameTemplate(
             root_path=self.root_path_out, fn_templ=self.fn_templ_out, sf_templ=self.sf_templ_out)
 
@@ -559,7 +568,7 @@ class SwathGridFiles(ChronFiles):
             dt_delta,
             search_date_fmt,
             date_field,
-            date_field_fmt=self.date_field_fmt,
+            date_field_fmt=self.date_field_fmt_in,
             end_inclusive=end_inclusive,
             **fmt_kwargs,
         )

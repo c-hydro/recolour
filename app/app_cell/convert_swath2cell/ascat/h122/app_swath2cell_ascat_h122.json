@@ -14,17 +14,19 @@
 
     "source": {
         "folder": "/home/fabio/Desktop/recolour/dset/ascat_swath/h122/{time_step:%Y/%m/%d/%H}/",
-        "filename": "W_IT-HSAF-ROME,SAT,SSM-ASCAT-METOP{sat}-6.25km-H122_C_LIIB_{placeholder}_{placeholder1}_{date}____.nc"
+        "filename": "W_IT-HSAF-ROME,SAT,SSM-ASCAT-METOP{sat}-6.25km-H122_C_LIIB_{placeholder}_{placeholder1}_{date}____.nc",
+        "date_fmt_field": "%Y%m%d*"
     },
     "destination": {
         "folder": "/home/fabio/Desktop/recolour/exec/ascat_swath/h122/{time_run:%Y/%m/%d}/",
-        "filename": "h122_cell_{cell}_{date}.nc"
+        "filename": "h122_cell_{cell}_{date}.nc",
+        "date_fmt_field": "%Y%m%d"
     },
 
     "time": {
         "time_start": null,
         "time_end": null,
-        "time_delta": "1D",
+        "time_delta": "2D",
         "time_frequency": "H",
         "floor_start_to_midnight": true,
         "floor_end_to_midnight": false

@@ -1,15 +1,16 @@
+
 # ----------------------------------------------------------------------------------------------------------------------
 # algorithm info
 PROJECT_NAME = 'recolour'
-ALG_NAME = 'Application to convert ssm files to swath2cell'
+ALG_NAME = 'Application to convert ssm h122 cell files to raster images'
 ALG_TYPE = 'Package'
-ALG_VERSION = '2.0.1'
-ALG_RELEASE = '2026-05-18'
+ALG_VERSION = '3.1.0'
+ALG_RELEASE = '2026-05-20'
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # constants
-LOGGER_NAME = "app_swath2cell_ascat"
+LOGGER_NAME = "app_cell2img"
 TIME_FMT_CLI = "%Y-%m-%d %H:%M"
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -17,10 +18,14 @@ TIME_FMT_CLI = "%Y-%m-%d %H:%M"
 # version history
 ALG_HISTORY = [
     {
-        'version': '2.0.0',
-        'release': '2026-05-18',
-        'comment': 'ASCAT swaths2cell converter (second generation).'
+        'version': '3.1.0',
+        'release': '2026-05-20',
+        'comment': 'Adapt to new swath2cell procedures, fix bugs related to datasets variables, fix typos'
     },
-
+    {
+        'version': '3.0.0',
+        'release': '2026-04-21',
+        'comment': 'ASCAT cell2img converter (third generation).'
+    }
 ]
 # ----------------------------------------------------------------------------------------------------------------------
