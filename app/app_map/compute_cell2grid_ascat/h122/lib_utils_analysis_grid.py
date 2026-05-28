@@ -22,6 +22,25 @@ from config_info import LOGGER_NAME
 logger = logging.getLogger(LOGGER_NAME)
 # ----------------------------------------------------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------------------------------------------------------
+# method to clean map
+def clean_map(values, clip_min=0, clip_max=100, no_data=-9999):
+
+    values = values.astype(np.float32)
+
+    # Handle NaN nodata
+    if np.isnan(no_data):
+        valid_mask = ~np.isnan(values)
+        values[valid_mask] = np.clip(values[valid_mask], clip_min, clip_max)
+        values[~valid_mask] = np.nan
+    # Handle numeric nodata
+    else:
+        valid_mask = values != no_data
+        values[valid_mask] = np.clip(values[valid_mask],clip_min,clip_max)
+        values[~valid_mask] = no_data
+
+    return values
+# ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # helper to smooth map

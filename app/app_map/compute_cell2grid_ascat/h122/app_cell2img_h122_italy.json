@@ -1,32 +1,110 @@
 {
     "parameters": {
-        "cells": [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430],
-        "cell_digits": 4,
-        "mask_file": "/home/fabio/Desktop/recolour/dset/ascat_auxiliary/domain/grid_reference_500m.tiff",
-        "mask_band": 1,
-        "fill_value": -9999.0,
+
         "roi_km": 12.5,
-        "apply_reference_time": true,
-        "apply_mask_extension": true,
-        "extension_pixels": 30,
-        "apply_mask_boundary": true,
-        "boundary_pixels": 15,
-        "apply_smoothing": false,
-        "smoothing_method": "mean",
-        "smoothing_sigma": 1
+        "fill_value": -9999.0,
+
+        "mask_points_by_reference_time": {
+          "enabled": true
+        },
+
+        "snap_points_over_regular_grid": {
+          "enabled": true,
+          "parameters": {"roi_km": 9}
+        },
+
+        "interpolate_points": {
+          "__comment__": "method: nearest {}, mean {}, idw {k_neighbours: 8, power: 1.5}",
+          "enabled": true,
+          "method": "nearest",
+          "parameters": {"k_neighbours": 8, "power": 1.5}
+        },
+
+        "interpolate_others": {
+            "enabled": true,
+            "method": "nearest",
+            "parameters": {}
+        },
+
+        "mask_map_extension": {
+          "enabled": false,
+          "parameters": {"extension_pixels": 30}
+        },
+
+        "mask_map_boundary": {
+          "enabled": false,
+          "parameters": {"boundary_pixels": 15}
+        },
+
+        "smooth_map" : {
+          "enabled": false,
+          "method": "gaussian",
+          "parameters": {
+            "sigma": 2, "iterations": 2
+          }
+        },
+
+        "convert_map": {
+          "enabled": false,
+          "method": "vwc_to_ssm",
+          "parameters": {
+            "units": "%", "clip_min": 0.0, "clip_max": 100.0, "fill_value": -9999.0
+          }
+        },
+
+        "scale_map": {
+          "enabled": false,
+          "method": "min_max_scaling",
+          "parameters" : {
+            "variables": {
+              "mean": "soil_moisture_mean", "std": "soil_moisture_std",
+              "min": "soil_moisture_min", "max": "soil_moisture_max"
+            },
+          "units": "%", "clip_min": 0.0, "clip_max": 100.0, "fill_value": -9999.0
+          }
+        },
+
+        "cell_list": [1357, 1358, 1359, 1393, 1394, 1395, 1429, 1430],
+        "cell_digits": 4
     },
+
+    "geo" : {
+        "grid": {
+          "name": "fibgrid_6.25",
+          "max_distance_km": 25
+        },
+        "mask": {
+          "folder": "/home/fabio/Desktop/recolour/dset/ascat_auxiliary/domain/",
+          "filename": "grid_reference_500m.tiff",
+          "mask_band": 1
+        },
+        "porosity": {
+          "folder": "/home/fabio/Desktop/recolour/exec/soil/data/soil_grids/cells/",
+          "filename": "soilgrids_cell_{cell:04d}.nc",
+          "variable_name": "porosity_0_5cm_mean",
+          "min_value": 0.05,
+          "max_value": 0.90
+        }
+    },
+
+
     "source": {
         "folder": "/home/fabio/Desktop/recolour/dset/ascat_cell_nrt/ssm/h122/{time_step:%Y/%m/%d}/",
         "filename": "h122_cell_{cell_n}_{time_run:%Y%m%d}.nc",
-        "variable_name": "surface_soil_moisture"
+        "variable_name": "surface_soil_moisture",
+        "scale_factor": 1
     },
+
     "destination": {
         "folder": "/home/fabio/Desktop/recolour/exec/ascat_cell_nrt/ssm/h122/{time_run:%Y/%m/%d}/",
         "filename": "h122_italy_{time_run:%Y%m%d_%H%M}.tif",
         "mode": "tiff",
+
+        "variable_name": "surface_soil_moisture",
+        "min_value": 0.0, "max_value": 100.0, "no_data": -9999,
+
         "dry_run": false,
-        "overwrite": true,
-        "variable_name": "surface_soil_moisture"
+        "overwrite": true
     },
     "time": {
         "time_start": null,
