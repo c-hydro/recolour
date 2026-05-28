@@ -94,18 +94,16 @@ def load_target_grid(mask_file, mask_band=1):
 # helper to write output map
 def write_output_map(
         destination_file,
-        soil_moisture_map_smoothed,
-        soil_moisture_map_interp,
-        time_lag_map,
+        soil_moisture_map_processed, soil_moisture_map_raw,
+        time_lag_map, distances_map, mask_type_map,
         profile,
-        variable_name_smooth,
-        variable_name_interp,
-        variable_name_time_lag,
+        variable_name_processed, variable_name_raw,
+        variable_name_time_lag, variable_name_distance, variable_name_mask_type,
         fill_value):
 
     out_profile = profile.copy()
     out_profile.update(
-        count=3,
+        count=5,
         dtype="float32",
         compress="deflate",
         nodata=np.nan if np.isnan(fill_value) else float(fill_value),
@@ -117,11 +115,15 @@ def write_output_map(
 
     with rasterio.open(destination_file, "w", **out_profile) as dst:
 
-        dst.write(soil_moisture_map_smoothed.astype(np.float32), 1)
-        dst.write(soil_moisture_map_interp.astype(np.float32), 2)
+        dst.write(soil_moisture_map_processed.astype(np.float32), 1)
+        dst.write(soil_moisture_map_raw.astype(np.float32), 2)
         dst.write(time_lag_map.astype(np.float32), 3)
+        dst.write(distances_map.astype(np.float32), 4)
+        dst.write(mask_type_map.astype(np.float32), 5)
 
-        dst.set_band_description(1, variable_name_smooth)
-        dst.set_band_description(2, variable_name_interp)
+        dst.set_band_description(1, variable_name_processed)
+        dst.set_band_description(2, variable_name_raw)
         dst.set_band_description(3, variable_name_time_lag)
+        dst.set_band_description(4, variable_name_distance)
+        dst.set_band_description(5, variable_name_mask_type)
 # ----------------------------------------------------------------------------------------------------------------------

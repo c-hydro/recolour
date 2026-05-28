@@ -3,13 +3,13 @@ Library Features:
 
 Name:           lib_plot
 Author(s):      Fabio Delogu (fabio.delogu@cimafoundation.org)
-Date:           '20260525'
-Version:        '1.0.0'
+Date:           '20260528'
+Version:        '1.1.0'
 """
 # ----------------------------------------------------------------------------------------------------------------------
 # libraries
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.cm import ScalarMappable
@@ -40,7 +40,10 @@ def extract_points(df, vars_list, lon_name="lon", lat_name="lat"):
 # helper to plot points to map
 def plot_points(grid_lons, grid_lats, grid_vals,
                 src_lons, src_lats, src_vals,
-                domain_mask=None, method=None, roi_km=None):
+                domain_mask=None,
+                method=None,
+                roi_km=None,
+                point_styles=None):
 
     fig, ax = plt.subplots(figsize=(10, 10))
 
@@ -49,6 +52,7 @@ def plot_points(grid_lons, grid_lats, grid_vals,
         np.nanmin(grid_lats), np.nanmax(grid_lats)
     ]
 
+    # Domain mask
     if domain_mask is not None:
 
         domain_cmap = ListedColormap(["#6FA8DC", "#F5F5F5"])
@@ -65,71 +69,113 @@ def plot_points(grid_lons, grid_lats, grid_vals,
 
         grid_vals_plot = np.ma.masked_where(domain_mask == 0, grid_vals)
 
-        # sea/land colorbar
         domain_norm = BoundaryNorm([-0.5, 0.5, 1.5], domain_cmap.N)
 
         sm = ScalarMappable(cmap=domain_cmap, norm=domain_norm)
         sm.set_array([])
 
-        #cbar = plt.colorbar(
-        #    sm,
-        #    ax=ax,
-        #    ticks=[0, 1],
-        #    fraction=0.046,
-        #    pad=0.04
-        #)
-
-        #cbar.ax.set_yticklabels(["sea", "land"])
-
     else:
         grid_vals_plot = grid_vals
 
-    # Data map only over valid land/domain pixels
-    im = ax.imshow(
+    # Background map
+    ax.imshow(
         grid_vals_plot,
         origin="upper",
         extent=extent,
         alpha=0.65
     )
 
-    #plt.colorbar(im, ax=ax, label="interpolated map")
+    # Default plotting configuration
+    default_style = {
+        "facecolor": "black",
+        "edgecolor": "black",
+        "size": 16,
+        "linewidth": 0.3,
+        "marker": "o",
+        "label": None
+    }
 
-    # Points: > 0 black, otherwise red
+    # Optional overrides only for selected values
+    # Example:
+    # point_styles = {
+    #     0: {"facecolor": "white"},
+    #     1: {"facecolor": "red"},
+    #     2: {"facecolor": "orange"}
+    # }
+
     src_vals = np.asarray(src_vals)
 
-    ok_points = src_vals > 0
-    bad_points = ~ok_points
+    # CASE 1: custom styles defined
+    if point_styles is not None:
 
-    ax.scatter(
-        src_lons[ok_points],
-        src_lats[ok_points],
-        c="black",
-        s=16,
-        edgecolors="black",
-        linewidths=0.3,
-        label="points > 0"
-    )
+        unique_values = np.unique(src_vals)
 
-    ax.scatter(
-        src_lons[bad_points],
-        src_lats[bad_points],
-        c="yellow",
-        s=16,
-        edgecolors="black",
-        linewidths=0.3,
-        label="points <= 0 / fill"
-    )
+        for value in unique_values:
+
+            mask = src_vals == value
+
+            style = default_style.copy()
+
+            # override only provided fields
+            if value in point_styles:
+                style.update(point_styles[value])
+
+            ax.scatter(
+                src_lons[mask],
+                src_lats[mask],
+                c=style["facecolor"],
+                edgecolors=style["edgecolor"],
+                s=style["size"],
+                linewidths=style["linewidth"],
+                marker=style["marker"],
+                label=(
+                    style["label"]
+                    if style["label"] is not None
+                    else f"value = {value}"
+                )
+            )
+
+    # CASE 2: fallback to old behaviour
+    else:
+
+        ok_points = src_vals >= 0
+        bad_points = src_vals < 0
+
+        ax.scatter(
+            src_lons[ok_points],
+            src_lats[ok_points],
+            c="black",
+            s=default_style["size"],
+            edgecolors=default_style["edgecolor"],
+            linewidths=default_style["linewidth"],
+            marker=default_style["marker"],
+            label="points >= 0"
+        )
+
+        ax.scatter(
+            src_lons[bad_points],
+            src_lats[bad_points],
+            c="yellow",
+            s=default_style["size"],
+            edgecolors=default_style["edgecolor"],
+            linewidths=default_style["linewidth"],
+            marker=default_style["marker"],
+            label="points < 0"
+        )
 
     ax.set_xlabel("longitude")
     ax.set_ylabel("latitude")
 
     title = "points to map"
+
     if method is not None:
         title += f" | method={method}"
+
     if roi_km is not None:
         title += f" | roi={roi_km} km"
 
     ax.set_title(title)
+
     ax.legend(loc="best")
 
     plt.show(block=True)

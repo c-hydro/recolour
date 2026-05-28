@@ -98,8 +98,7 @@
     "filename": "smap_liguria_{time_step:%Y%m%d}.tif",
 
     "variable_name": "surface_soil_moisture",
-    "variable_name_interp": "surface_soil_moisture_interp",
-    "variable_name_time_lag": "time_lag",
+    "min_value": 0.0, "max_value": 100.0, "no_data": -9999,
 
     "overwrite": true,
     "dry_run": false
