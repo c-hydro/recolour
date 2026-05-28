@@ -16,7 +16,7 @@ import time
 
 from datetime import datetime
 
-from lib_utils_basic_OLD import make_folder
+from lib_utils_base import make_folder
 from lib_utils_time import resolve_time_tags
 from config_info import LOGGER_NAME, ALG_NAME, ALG_VERSION, ALG_RELEASE
 
