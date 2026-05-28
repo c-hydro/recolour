@@ -316,6 +316,9 @@ def collect_points_to_dataframe(source_settings, file_list, grid, max_distance_k
     else:
         merge_frames = pd.concat(frames, ignore_index=True)
 
+    merge_frames['mask_value'] = 0
+    merge_frames['mask_tag'] = 'unfilled'
+
     info["final_rows"] = int(len(merge_frames))
 
     logger.info(f" :::: Files total: {info['files_total']}")
@@ -370,8 +373,10 @@ def snap_points(source_settings, points_df,
         "gpi": grid_gpi,
         "lon": grid_lon,
         "lat": grid_lat,
-        "time": grid_time,
+        "time": pd.NaT,
         value_var: no_data,
+        "mask_value": 0,
+        "mask_tag": "unfilled"
     })
 
     if points_df.empty:
@@ -385,11 +390,19 @@ def snap_points(source_settings, points_df,
     lats = df["lat"].to_numpy(dtype=np.float64)
     vals = df[value_var].to_numpy(dtype=np.float64)
 
+    # Use original point times if available, otherwise fallback to function time
+    if "time" in df.columns:
+        times = pd.to_datetime(df["time"])
+    else:
+        times = pd.Series(pd.to_datetime(time), index=df.index)
+
+
     valid_data = (
         np.isfinite(lons) &
         np.isfinite(lats) &
         np.isfinite(vals)
     )
+    valid_times = times[valid_data].to_numpy()
 
     info["valid_data_points"] = int(np.sum(valid_data))
     info["invalid_data_points"] = int(len(df) - np.sum(valid_data))
@@ -431,6 +444,7 @@ def snap_points(source_settings, points_df,
     df_values = pd.DataFrame({
         "gpi": nearest_gpi[valid_grid],
         value_var: valid_vals[valid_grid],
+        "time": valid_times[valid_grid],
         "distance_grid_m": distance[valid_grid],
     })
 
@@ -444,10 +458,11 @@ def snap_points(source_settings, points_df,
     )
 
     points_grid = points_grid.set_index("gpi")
-
     points_grid.loc[df_values.index, value_var] = df_values[value_var]
+    points_grid.loc[df_values.index, "time"] = df_values["time"]
     points_grid.loc[df_values.index, "distance_grid_m"] = df_values["distance_grid_m"]
-
+    points_grid.loc[df_values.index, "mask_value"] = 1
+    points_grid.loc[df_values.index, "mask_tag"] = 'snap'
     points_grid = points_grid.reset_index()
 
     if source_file is not None:
@@ -455,15 +470,16 @@ def snap_points(source_settings, points_df,
 
     info["final_rows"] = int(len(points_grid))
     info["no_data_points"] = int((points_grid[value_var] == no_data).sum())
+    info["snapped_points"] = int(points_grid["mask_value"].sum())
+    info["unsnapped_points"] = int((points_grid["mask_value"] == 0).sum())
 
     logger.info(f" :::: Final regular-grid rows: {info['final_rows']}")
     logger.info(f" :::: No-data grid points: {info['no_data_points']}")
+
     logger.info(" ::: ORGANIZE POINTS ON DOMAIN REGULAR GRID ... DONE")
 
     return points_grid, info
 # ----------------------------------------------------------------------------------------------------------------------
-
-
 
 # ----------------------------------------------------------------------------------------------------------------------
 # helper to fill points
@@ -490,6 +506,21 @@ def fill_points_to_dataframe(source_settings, points_df, roi_km=25):
         return points_df.copy(), info
 
     df = points_df.copy()
+
+    # Optional fields
+    has_mask_value = "mask_value" in df.columns
+    has_mask_tag = "mask_tag" in df.columns
+
+    if has_mask_value:
+        mask_values = df["mask_value"].to_numpy().copy()
+    else:
+        mask_values = np.zeros(len(df), dtype=np.int32)
+
+    if has_mask_tag:
+        mask_tags = df["mask_tag"].astype(str).to_numpy().copy()
+    else:
+        mask_tags = np.full(len(df), "unfilled", dtype=object)
+
     info["initial_rows"] = len(df)
 
     lons = df[lon_name].to_numpy(dtype=np.float64)
@@ -558,8 +589,13 @@ def fill_points_to_dataframe(source_settings, points_df, roi_km=25):
             vals[idx] = np.nanmean(valid_vals[neighbour_ids])
             filled_flag[idx] = True
 
+            mask_values[idx] = 2
+            mask_tags[idx] = "filled-by-roi"
+
     df[value_var] = vals
     df["filled_by_roi"] = filled_flag
+    df["mask_value"] = mask_values
+    df["mask_tag"] = mask_tags
 
     info["filled_points"] = int(np.sum(filled_flag))
     info["unfilled_points"] = int(info["missing_points"] - info["filled_points"])

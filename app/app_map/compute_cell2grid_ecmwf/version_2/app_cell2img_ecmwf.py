@@ -96,8 +96,10 @@ def main():
     # process datasets
     logger.info(' ---> Process datasets ... ')
     try:
-        (soil_moisture_map_smooth, soil_moisture_map_interp, time_lag_map,
-         profile, stats, time_start, time_end) = process(settings, reference_time)
+        (soil_moisture_map_processed, soil_moisture_map_interp, time_lag_map,
+         distances_map_interp, mask_type_map_interp,
+         profile, stats, time_start, time_end) = process(
+            settings, reference_time, debug_points=False, debug_maps=False)
         logger.info(' ---> Process datasets ... DONE')
 
     except Exception as exc:
@@ -111,8 +113,9 @@ def main():
     logger.info(' ---> Save datasets ... ')
     try:
         save(
-            soil_moisture_map_smooth, soil_moisture_map_interp,
+            soil_moisture_map_processed, soil_moisture_map_interp,
             time_lag_map,
+            distances_map_interp, mask_type_map_interp,
             profile,
             stats,
             time_start,
