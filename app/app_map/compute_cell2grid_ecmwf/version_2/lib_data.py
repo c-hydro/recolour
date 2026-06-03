@@ -314,13 +314,13 @@ def process(settings, reference_time, debug_points=False, debug_maps=True):
     if dry_run:
         logger.info(" ----> Discover source files ... DONE")
         logger.info(" ----> Process execution ... DRY RUN. EXIT WITHOUT WRITING PRODUCT")
-        return None, None, None, profile, stats, time_start, time_end
+        return None, None, None, None, None, profile, stats, time_start, time_end
 
     # no files available
     if not source_files:
         logger.info(" ----> Discover source files ... NO FILES")
         logger.info(" ----> Process execution ... STOP. NOTHING TO DO")
-        return None, None, None, profile, stats, time_start, time_end
+        return None, None, None, None, None, profile, stats, time_start, time_end
 
     # invalid interpolation parameter
     if roi_km <= 0:
@@ -345,7 +345,7 @@ def process(settings, reference_time, debug_points=False, debug_maps=True):
     if points_df.empty:
         logger.info(" ----> Collect points from source files ... NO VALID POINTS")
         logger.info(" ----> Process execution ... STOP. NOTHING TO DO")
-        return None, None, None, profile, stats, time_start, time_end
+        return None, None, None, None, None, profile, stats, time_start, time_end
 
     # points debug
     if debug_points:
