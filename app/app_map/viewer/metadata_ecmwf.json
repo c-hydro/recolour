@@ -1,0 +1,158 @@
+{
+  "product": {
+    "name": "ecmwf_rzsm_profile_10cm",
+    "display_name": "ECMWF - RZSM 0-10cm",
+    "description": "Generic multi-band raster viewer.",
+    "filename": "ecmwf_rzsm_profile_h26_10cm_20260604_0000.tif",
+    "generic_name": "smap",
+    "default_layer": 1,
+    "opacity": 0.78,
+    "show_colorbar": true,
+    "file_note": "Edit product.filename to select the GeoTIFF/source raster used by this viewer.",
+    "title_note": "Edit product.display_name to change the bold product title used in the export panel.",
+    "source_path": "/home/fabio/Documents/Work_Area/Code_Development/Workspace/recolour/app/app_map/viewer/ecmwf_rzsm_profile_h26_10cm_20260604_0000.tif",
+    "source_basename": "ecmwf_rzsm_profile_h26_10cm_20260604_0000.tif"
+  },
+  "layers": [
+    {
+      "band": 1,
+      "id": "surface_soil_moisture_processed",
+      "name": "Surface soil moisture",
+      "generic_layer_name": "ecmwf - root zone soil moisture",
+      "colorbar": {
+        "min": 0,
+        "max": 100,
+        "units": "[-] saturation",
+        "label": "Root zone soil moisture [-] saturation",
+        "cmap": "RdYlBu",
+        "image": "colorbar_band_1_surface_soil_moisture_processed.png",
+        "type": "continuous"
+      },
+      "opacity": 0.78,
+      "visible": true,
+      "image": "ecmwf_band_1_rzsm_10cm_processed.png",
+      "statistics": {
+        "min": 37.53236389160156,
+        "max": 93.40617370605469,
+        "mean": 71.09409479109473,
+        "valid_pixels": 97764
+      }
+    },
+    {
+      "band": 2,
+      "id": "surface_soil_moisture_raw",
+      "name": "Surface soil moisture raw",
+      "generic_layer_name": "ecmwf - root zone soil moisture raw",
+      "colorbar": {
+        "min": 0,
+        "max": 100,
+        "units": "[-] saturation",
+        "label": "Root zone soil moisture [-] saturation",
+        "cmap": "RdYlBu",
+        "image": "colorbar_band_2_surface_soil_moisture_raw.png",
+        "type": "continuous"
+      },
+      "opacity": 0.78,
+      "visible": false,
+      "image": "ecmwf_band_2_rzsm_10cm_processed.png",
+      "statistics": {
+        "min": 37.53236389160156,
+        "max": 93.40617370605469,
+        "mean": 71.09409479109473,
+        "valid_pixels": 97764
+      }
+    },
+    {
+      "band": 3,
+      "id": "time_lags",
+      "name": "Time lags",
+      "generic_layer_name": "smap - time lags",
+      "colorbar": {
+        "min": 1,
+        "max": 250,
+        "units": "hours",
+        "label": "Time lags [hours]",
+        "cmap": "plasma",
+        "image": "colorbar_band_3_time_lags.png",
+        "type": "continuous"
+      },
+      "opacity": 0.78,
+      "visible": false,
+      "mask_values_outside_colorbar": true,
+      "image": "ecmwf_band_3_time_lags.png",
+      "statistics": {
+        "min": 0.0,
+        "max": 10.986666679382324,
+        "mean": 2.896711114463683,
+        "valid_pixels": 370800
+      }
+    },
+    {
+      "band": 4,
+      "id": "distances",
+      "name": "Distances",
+      "generic_layer_name": "ecmwf - distances",
+      "colorbar": {
+        "min": 1,
+        "max": 7500,
+        "units": "meters",
+        "label": "Distances [meters]",
+        "cmap": "magma",
+        "image": "colorbar_band_4_distances.png",
+        "type": "continuous"
+      },
+      "opacity": 0.78,
+      "visible": false,
+      "image": "ecmwf_band_4_distances.png",
+      "statistics": {
+        "min": 780.54248046875,
+        "max": 6388.4970703125,
+        "mean": 4158.863577244661,
+        "valid_pixels": 97764
+      },
+      "mask_values_outside_colorbar": true
+    },
+    {
+      "band": 5,
+      "id": "type",
+      "name": "Type",
+      "generic_layer_name": "ecmwf - type",
+      "colorbar": {
+        "min": 0,
+        "max": 2,
+        "units": "class",
+        "label": "Type",
+        "cmap": "categorical",
+        "image": "colorbar_band_5_type.png",
+        "type": "categorical"
+      },
+      "opacity": 0.82,
+      "visible": false,
+      "categories": {
+        "1": "snapped from original position to destination grid",
+        "2": "filled by roi (using the snapped points)"
+      },
+      "image": "ecmwf_band_5_type.png",
+      "statistics": {
+        "min": 0.0,
+        "max": 2.0,
+        "mean": 0.2922141316073355,
+        "valid_pixels": 370800
+      }
+    }
+  ],
+  "crs": "GEOGCS[\"WGS 84\",DATUM[\"World Geodetic System 1984\",SPHEROID[\"WGS 84\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST]]",
+  "extent_epsg4326": [
+    7.494829062351291,
+    43.77668471359692,
+    10.069829062351292,
+    44.67668471359692
+  ],
+  "width": 1030,
+  "height": 360,
+  "bands": 5,
+  "nodata": -9999.0,
+  "generated_at_utc": "2026-06-09T12:22:21+00:00",
+  "crs_display": "EPSG:4326 (WGS84)",
+  "viewer_version": "v8-side-legend-georef-icons"
+}
