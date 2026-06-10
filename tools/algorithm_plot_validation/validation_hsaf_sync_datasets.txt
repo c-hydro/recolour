@@ -1,0 +1,6 @@
+
+# sync remote file to local (run from local)
+rsync -avz --progress --delete \
+    -e "ssh -p 9522" \
+    root@172.16.104.74:/share/VALIDATION_SM_HSAF/results/2026/GLOBAL_H16_V2/ \
+    /home/fabio/Desktop/recolour/dset/validation_hsaf/results/2026/GLOBAL_H16_V2/
