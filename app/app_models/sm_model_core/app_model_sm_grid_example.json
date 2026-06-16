@@ -1,0 +1,254 @@
+{
+  "algorithm": {
+    "general": {
+      "title": "Running tool of cnr soil moisture model",
+      "web-site": "",
+      "source": "Python library developed by CIMA Research Foundation",
+      "history": "2.0.0 [20260615]",
+      "project-info": "cf-marche",
+      "algorithm": "Algorithm developed by CNR-IRPI"
+    },
+    "flags": {
+      "reset_data_static": false,
+      "reset_data_dynamic": false,
+      "reset_model_results": false,
+      "reset_model_metrics": false,
+      "reset_model_figure": true
+    },
+    "info": {
+      "domain_name": "marche"
+    },
+    "template": {
+      "datasets": {
+        "point_name": "string_point_name",
+        "variable_name": "string_variable_name"
+      },
+      "time" : {
+        "source_data_sub_path_time_k1": "%Y/%m/%d",
+        "source_data_datetime_k1": "%Y%m%d%H",
+        "source_data_sub_path_time_k2": "%Y/%m/%d",
+        "source_data_datetime_k2": "%Y%m%d%H",
+        "source_data_sub_path_time_k3": "%Y/%m/%d",
+        "source_data_datetime_k3": "%Y%m%d%H",
+        "destination_data_sub_path_time": "%Y/%m/%d/%H",
+        "destination_data_datetime": "%Y%m%d%H%M",
+        "model_results_sub_path_time": "%Y/%m/%d/%H",
+        "model_results_datetime": "%Y%m%d%H%M",
+        "model_metrics_sub_path_time": "%Y/%m/%d/%H",
+        "model_metrics_datetime": "%Y%m%d%H%M",
+        "model_figure_sub_path_time": "%Y/%m/%d/%H",
+        "model_figure_datetime": "%Y%m%d%H%M"
+      }
+    }
+  },
+  "data": {
+    "static": {
+      "source": {
+        "registry": {
+          "folder_name": "/hydro/data/data_static/sm_cnr/",
+          "file_name": "sm_model_grid_registry.csv",
+          "format": "csv",
+          "filters": {"depth": null},
+          "fields": {
+            "code": "code",
+            "longitude": "longitude",
+            "latitude": "latitude",
+            "altitude": "altitude",
+            "catchment": "catchment",
+            "name": "name",
+            "units": "units",
+            "depth": "depth",
+            "porosity": "porosity",
+            "valid": "valid",
+            "tag": "tag",
+            "amm_level_1": "amm_level_1",
+            "amm_level_2": "amm_level_2"
+          },
+          "delimiter": ","
+        },
+        "parameters": {
+          "folder_name": "/hydro/data/data_static/sm_cnr/",
+          "file_name": "sm_model_grid_params.csv",
+          "format": "csv",
+          "filters": {},
+          "fields": {
+            "name": "Name",
+            "tag": "Tag",
+            "code": "ID",
+            "w_p": "W_p",
+            "w_max": "W_max",
+            "alpha": "alpha",
+            "m2": "m2",
+            "ks": "Ks",
+            "kc": "Kc",
+            "theta_min": "Theta_min",
+            "theta_max": "Theta_max"
+          },
+          "delimiter": ","
+        }
+      },
+      "destination": {
+        "folder_name": "/hydro/data/data_static/sm_cnr/",
+        "file_name": "sm_model_grid_info.workspace"
+      }
+    },
+
+    "dynamic": {
+      "__comment__": "one_file_all_points, one_file_one_point",
+      "mode": "one_file_all_points",
+      "source": {
+        "rain": {
+          "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_2d/{source_data_sub_path_time_k1}",
+          "file_name": "obs_db_rain_{source_data_datetime_k1}.csv",
+          "format": "csv_2d",
+          "delimiter": ",",
+          "filters": {},
+          "time": {
+            "time_start": null,
+            "time_end": null,
+            "time_frequency": "H",
+            "time_rounding": "H",
+            "time_format": "%Y%m%d%H"
+          },
+          "fields": {
+            "time": "time",
+            "values_k1": "{point_tag}"
+          }
+        },
+        "air_temperature": {
+          "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_2d/{source_data_sub_path_time_k2}",
+          "file_name": "obs_db_t_{source_data_datetime_k1}.csv",
+          "format": "csv_2d",
+          "delimiter": ",",
+          "filters": {},
+          "time": {
+            "time_start": null,
+            "time_end": null,
+            "time_frequency": "H",
+            "time_rounding": "H",
+            "time_format": "%Y%m%d%H"
+          },
+          "fields": {
+            "time": "time",
+            "values_k2": "{point_tag}"
+          }
+        },
+        "soil_moisture": {
+          "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_2d/{source_data_sub_path_time_k3}",
+          "file_name": "obs_db_swi_t1_{source_data_datetime_k1}.csv",
+          "format": "csv_2d",
+          "delimiter": ",",
+          "filters": {},
+          "time": {
+            "time_start": null,
+            "time_end": null,
+            "time_frequency": "H",
+            "time_rounding": "H",
+            "time_format": "%Y%m%d%H"
+          },
+          "fields": {
+            "time": "time",
+            "values_k3": "{point_tag}"
+          }
+        }
+      },
+      "destination": {
+        "folder_name": "/hydro/analysis/sm_cnr/model_grid/data/{destination_data_sub_path_time}",
+        "file_name": "sm_model_grid_swi_t1_{destination_data_datetime}_{point_name}_datasets.csv",
+        "format": "csv",
+        "filters": {},
+        "time": {
+          "time_start": null,
+          "time_end": null,
+          "time_frequency": "H",
+          "time_rounding": "H",
+          "time_format": "%Y-%m-%d %H:%M:%S"
+        },
+        "fields": {
+          "time": "time",
+          "values_k1": "rain",
+          "values_k2": "air_temperature",
+          "values_k3": "soil_moisture"
+        },
+        "no_data": -9999.0
+      }
+    }
+  },
+  "model": {
+    "results" : {
+      "__comment__": "type: [all_pnt_one_var, one_pnt_all_var]",
+      "folder_name": "/hydro/analysis/sm_cnr/model_grid/results/{model_results_sub_path_time}",
+      "file_name": "sm_model_grid_swi_t1_{model_results_datetime}_{point_name}_results.csv",
+      "format": "csv",
+      "time": {
+        "time_start": null,
+        "time_end": null,
+        "time_frequency": "H",
+        "time_rounding": "H",
+        "time_format": "%Y-%m-%d %H:%M:%S"
+      },
+      "fields": {
+        "time": "time",
+        "values_k1": "rain",
+        "values_k2": "air_temperature",
+        "values_k3": "theta_observed",
+        "values_model": "theta_simulated"
+      },
+      "no_data": -9999.0
+    },
+    "metrics": {
+      "folder_name": "/hydro/analysis/sm_cnr/model_grid/results/{model_metrics_sub_path_time}",
+      "file_name": "sm_model_grid_swi_t1_{model_metrics_datetime}_{point_name}_metrics.csv",
+      "format": "csv",
+      "time": {},
+      "fields": {
+        "ns": "ns", "ns_ln_q": "ns_ln_q", "ns_rad_q": "ns_rad_q", "kge": "kge", "rmse": "rmse", "rq": "rq",
+        "time": "time",
+        "name": "name",
+        "tag": "tag",
+        "catchment":"catchment",
+        "longitude":"longitude",
+        "latitude": "latitude"
+      },
+      "no_data": -9999.0
+    },
+    "figure": {
+      "__comment__": "type: time_series, maps",
+      "folder_name": "/hydro/analysis/sm_cnr/model_grid/figure/{model_figure_sub_path_time}",
+      "file_name": "sm_model_grid_swi_t1_{model_figure_datetime}_{point_name}_figure.png",
+      "mode": "maps",
+      "format": "png",
+      "time": {},
+      "fields": {
+        "title": "Theta simulated map",
+        "subtitle": "cnr soil moisture model (rain, air_t, swi_t01)"
+      },
+      "no_data": -9999.0,
+      "settings": {
+        "time_series": {
+          "dpi": 150, "spacing_x": {"type": "days", "offset": 5}
+        },
+        "maps": {
+          "__comment__": "time_select: last_strict, last_mod, last_obs",
+          "dpi":  150, "time_select": "last_mod"}
+      }
+    }
+  },
+  "time" : {
+    "time_reference": null,
+    "time_frequency": "H",
+    "time_rounding": "H",
+    "time_period": 12,
+    "time_start": null,
+    "time_end": null,
+    "time_cycle_hours": 6
+  },
+  "tmp": {
+    "folder_name": "/hydro/tmp/analyzer_sm_cnr",
+    "file_name": null
+  },
+  "log": {
+    "folder_name": "/hydro/log/analyzer_sm_cnr/",
+    "file_name": "soil_moisture_grid_execution.txt"
+  }
+}

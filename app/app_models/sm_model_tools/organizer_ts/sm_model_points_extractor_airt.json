@@ -1,0 +1,78 @@
+{
+  "time_now": "202606101200",
+  "radius_m": 1000,
+  "time": {
+    "time_start": "now",
+    "period_hours": 900,
+    "step_hours": 1
+  },
+  "points": {
+    "file": "/hydro/data/data_static/sm_cnr/sm_model_grid_registry.csv",
+    "delimiter": ",",
+    "lon_col": "longitude",
+    "lat_col": "latitude",
+    "id_col": "tag"
+  },
+  "variables": {
+    "rain": {
+      "enabled": false,
+      "type": "netcdf",
+      "file_template": "/hydro/data/data_dynamic/outcome/sm_cnr/maps/ws/{time:%Y}/{time:%m}/{time:%d}/ws.db.{time:%Y%m%d%H00}.nc",
+      "variable_name": "Rain",
+      "lon_name": "longitude",
+      "lat_name": "latitude",
+      "radius_m": 1000,
+      "nodata_values": [-9999],
+      "missing_file_value": -9998,
+      "precision": 1,
+      "extend_radius_if_empty": true,
+      "extend_radius_factor": 2.0,
+      "extend_radius_max": 10000,
+      "raise_on_error": false
+    },
+    "t": {
+      "enabled": true,
+      "type": "netcdf",
+      "file_template": "/hydro/data/data_dynamic/outcome/sm_cnr/maps/ws/{time:%Y}/{time:%m}/{time:%d}/ws.db.{time:%Y%m%d%H00}.nc",
+      "variable_name": "Air_Temperature",
+      "lon_name": "longitude",
+      "lat_name": "latitude",
+      "radius_m": 1000,
+      "nodata_values": [-9999],
+      "missing_file_value": -9998,
+      "precision": 1,
+      "extend_radius_if_empty": true,
+      "extend_radius_factor": 2.0,
+      "extend_radius_max": 10000,
+      "raise_on_error": false
+    },
+    "sm": {
+      "enabled": false,
+      
+	  "type": "tiff",
+	  "frequency": "daily",
+	  "daily_hour": 0,
+      
+      "file_template": "/hydro/data/data_dynamic/outcome/sm_cnr/maps/satellite/copernicus/swi/{time:%Y}/{time:%m}/{time:%d}/copernicus_swi_{time:%Y%m%d}.tif",
+      "band": 1,
+      "method": "radius_mean",
+      "radius_m": 1000,
+      "valid_min": 0,
+      "valid_max": 100,
+      "nodata_values": [-9999, 255],
+      "missing_file_value": -9998,
+      "precision": 1,
+      "nn_if_invalid": true,
+      "extend_radius_if_empty": true,
+      "extend_radius_factor": 2.0,
+      "extend_radius_max": 10000,
+      "raise_on_error": false
+    }
+  },
+  "output": {
+    "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_2d/{time_now:%Y}/{time_now:%m}/{time_now:%d}/",
+    "file_template": "obs_db_{var_name}_{time_now:%Y%m%d%H}.csv",
+    "delimiter": ",",
+    "precision": 3
+  }
+}
