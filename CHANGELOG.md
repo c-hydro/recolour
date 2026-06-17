@@ -1,6 +1,15 @@
 # Changelog
 
-## Version 2.5.0 (2026-06-10)
+## Version 2.5.0 (2026-06-17)
+
+- **PROJECT:** soil moisture model framework    
+  - **APPS – SM_MODEL_CORE:** 
+    - app_model_sm_main.py version 2 (grid and points applications)
+  - **APPS – SM_MODEL_TOOLS:** 
+    - organizer_geo for terrain and ancillary (to create a full filled domain);
+    - organizer_ts for extracting points from rain, air_t and ssm or swi layers
+  - **TOOLS – DOWNLOADER COPERNICUS SWI:** copernicus_downloader_swi.py
+
 - **PROJECT:** operational framework grid   
   - **APPS – CELL:** 
     - app_swath2cell_ascat h16 version 1 (refactor and update to use new libraries and python 3.11);
