@@ -14,7 +14,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from lib_utils_base import discover_source_files, resolve_generic_tags
+from lib_utils_base import discover_source_files, discover_porosity_files, resolve_generic_tags
 from lib_utils_io import load_target_grid, write_output_map, load_cell_grid
 from lib_utils_report import collect_report, save_report
 from lib_utils_geo import map_points_to_grid_indices
@@ -501,7 +501,7 @@ def process(settings, reference_time, debug_points=False, debug_maps=False):
 
         # points debug
         if debug_points:
-            porosity_name = 'porosity'
+            variable_name = 'porosity'
             points_dict = extract_points(points_df, vars_list=[variable_name])
             points_var = points_dict[variable_name]
             plot_points(grid_lons, grid_lats, domain_mask,

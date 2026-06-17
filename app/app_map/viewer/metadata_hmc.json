@@ -1,0 +1,62 @@
+{
+  "product": {
+    "name": "hmc_soil_moisture",
+    "display_name": "HMC - Soil Moisture",
+    "description": "Generic single-band HMC soil-moisture raster viewer. Uses band 1 only and displays soil moisture on a 0-100 scale.",
+    "filename": "sm_hmc_202606041200.tiff",
+    "generic_name": "hmc",
+    "default_layer": 1,
+    "opacity": 0.78,
+    "show_colorbar": true,
+    "file_note": "HMC input is expected as a single-band GeoTIFF. Band 1 is soil moisture.",
+    "title_note": "HMC band 1 soil moisture displayed as 0-100. If an input raster is stored as 0-1, scale_mode converts it to 0-100; rasters already in 0-100 are unchanged.",
+    "source_path": "/home/fabio/Desktop/tmp/arpal/ascat_openlayers_viewer_metadata_file_v12_0/sm_hmc_202606041200.tiff",
+    "source_basename": "sm_hmc_202606041200.tiff"
+  },
+  "layers": [
+    {
+      "band": 1,
+      "id": "soil_moisture",
+      "name": "Soil moisture",
+      "generic_layer_name": "hmc - soil moisture",
+      "scale_mode": "fraction_to_percent_if_needed",
+      "colorbar": {
+        "min": 0,
+        "max": 100,
+        "units": "[%]",
+        "label": "Soil moisture [%]",
+        "cmap": "soil_moisture_dry_wet",
+        "image": "colorbar_band_1_hmc_soil_moisture.png",
+        "type": "continuous"
+      },
+      "opacity": 0.78,
+      "visible": true,
+      "image": "hmc_band_1_soil_moisture.png",
+      "mask_values_outside_colorbar": true,
+      "scale_applied": {
+        "mode": "fraction_to_percent_if_needed",
+        "factor": 100.0,
+        "applied": true
+      },
+      "statistics": {
+        "min": 0.0,
+        "max": 100.0,
+        "mean": 27.26312502507173,
+        "valid_pixels": 251148
+      }
+    }
+  ],
+  "crs": "GEOGCS[\"WGS 84\",DATUM[\"World Geodetic System 1984\",SPHEROID[\"WGS 84\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST]]",
+  "nodata": null,
+  "viewer_version": "v12.0-hmc-single-band",
+  "width": 1645,
+  "height": 739,
+  "bands": 1,
+  "extent_epsg4326": [
+    7.3303005,
+    43.4931005,
+    10.291144500000634,
+    44.82223850000028
+  ],
+  "generated_at_utc": "2026-06-10T13:04:25+00:00"
+}

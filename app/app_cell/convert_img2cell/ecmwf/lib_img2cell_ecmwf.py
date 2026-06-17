@@ -370,14 +370,31 @@ class Img2Ts(object):
                             dataout.add_global_attr(
                                 'geospatial_lon_max', np.max(cell_lons))
 
-                            dataout.write_all(
-                                cell_gpis, data, dates,
-                                lons=cell_lons, lats=cell_lats,
-                                attributes=self.ts_attributes)
-
-                            # OLD METHODS
-                            # dataout.write_ts_all_loc( cell_gpis, data, dates, lons=cell_lons, lats=cell_lats, attributes=self.ts_attributes)
-
+                            if hasattr(dataout, "write_all"):
+                                # New library
+                                dataout.write_all(
+                                    cell_gpis,
+                                    data,
+                                    dates,
+                                    lons=cell_lons,
+                                    lats=cell_lats,
+                                    attributes=self.ts_attributes
+                                )
+                            elif hasattr(dataout, "write_ts_all_loc"):
+                                # Old library
+                                dataout.write_ts_all_loc(
+                                    cell_gpis,
+                                    data,
+                                    dates,
+                                    lons=cell_lons,
+                                    lats=cell_lats,
+                                    attributes=self.ts_attributes
+                                )
+                            else:
+                                raise AttributeError(
+                                    f"Neither 'write_all' nor 'write_ts_all_loc' is available in "
+                                    f"{type(dataout).__name__}"
+                                )
                     elif not self.orthogonal:
 
                         cell_string = self.cell_tmpl % cell

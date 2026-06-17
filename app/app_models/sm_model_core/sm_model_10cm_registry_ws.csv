@@ -1,0 +1,21 @@
+name,catchment,code,longitude,latitude,altitude,units,depth,porosity,valid,tag,amm_level_1,amm_level_2,amm_level_3
+  Villa Fastiggi,Foglia,112,12.86939,43.89061,22,-,10,-9999,1,  villa_fastiggi,  Marche,  PU,  Pesaro
+  Camerino,Potenza,130,13.067975,43.140064,581,-,10,-9999,1,  camerino,  Marche,  MC,  Camerino
+  Sassotetto,Tenna,204,13.241568,43.006702,1365,-,10,-9999,1,  sassotetto,  Marche,  MC,  Sarnano
+  Colleponi,Esino,505,12.904464,43.43375,253.5,-,10,-9999,1,  colleponi,  Marche,  AN,  Genga
+  Fabriano Centro,Esino,605,12.904034,43.330273,354,-,10,-9999,1,  fabriano_centro,  Marche,  AN,  Fabriano
+  Macerata Montalbano,Chienti,609,13.4187,43.29224,294,-,10,-9999,1,  macerata_montalbano,  Marche,  MC,  Macerata
+  Fiastra Trebbio,Chienti,604,13.155992,43.034702,747,-,10,-9999,1,  fiastra_trebbio,  Marche,  MC,  Fiastra
+  Pian di Pieca,Chienti,607,13.28157,43.080029,465,-,10,-9999,1,  pian_di_pieca,  Marche,  MC,  San Ginesio
+  Serravalle di Chienti,Chienti,612,12.9175,43.030556,754,-,10,-9999,1,  serravalle_chienti,  Marche,  MC,  Serravalle di Chienti
+  Jesi,Esino,110,13.229972,43.531944,100,-,10,-9999,1,  jesi,  Marche,  AN,  Jesi
+  Loro Piceno,Chienti,124,13.403673,43.159931,430,-,10,-9999,1,  loro_piceno,  Marche,  MC,  Loro Piceno
+  Pievebovigliana,Chienti,723,13.086903,43.072571,451,-,10,-9999,1,  pievebovigliana,  Marche,  MC,  Valfornace
+  Frontino,Foglia,721,12.358807,43.756294,601,-,10,-9999,1,  frontino,  Marche,  PU,  Frontino
+  Monte Carpegna,Foglia,719,12.320153,43.80088,1415,-,10,-9999,1,  monte_carpegna,  Marche,  PU,  Carpegna
+  Monte San Vicino,Esino,733,13.0623,43.318874,1220,-,10,-9999,1,  monte_san_vicino,  Marche,  MC,  Matelica
+  Ponte della Barchetta,Esino,187,13.305608,43.550804,38,-,10,-9999,1,  ponte_barchetta,  Marche,  AN,  Jesi
+  Montemurello,Esino,737,13.108291,43.530338,220,-,10,-9999,1,  montemurello,  Marche,  AN,  Montecarotto
+  Caldarola,Chienti,740,13.219204,43.143112,295,-,10,-9999,1,  caldarola,  Marche,  MC,  Caldarola
+  Pieve di Cagna,Foglia,742,12.562908,43.757397,290,-,10,-9999,1,  pieve_cagna,  Marche,  PU,  Urbino
+  Montegranaro,Chienti,736,13.63643,43.218124,130,-,10,-9999,1,  montegranaro,  Marche,  FM,  Montegranaro

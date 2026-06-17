@@ -8,14 +8,19 @@
       "enabled": true
     },
 
+    "snap_points_over_regular_grid": {
+      "enabled": true,
+      "parameters": {"roi_km": 9}
+    },
+
     "interpolate_points": {
       "__comment__": "method: nearest {}, mean {}, idw {k_neighbours: 8, power: 1.5}",
       "enabled": true,
-      "method": "idw",
+      "method": "nearest",
       "parameters": {"k_neighbours": 8, "power": 1.5}
     },
 
-    "interpolate_time": {
+    "interpolate_others": {
       "enabled": true,
       "method": "nearest",
       "parameters": {}
@@ -32,7 +37,7 @@
     },
 
     "smooth_map" : {
-      "enabled": true,
+      "enabled": false,
       "method": "gaussian",
       "parameters": {
         "sigma": 2, "iterations": 2

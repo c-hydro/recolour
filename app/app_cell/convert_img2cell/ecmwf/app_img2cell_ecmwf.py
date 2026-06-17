@@ -14,6 +14,7 @@ General command line:
 python app_img2cell_ecmwf.py -settings_file configuration.json -time_now "YYYY-MM-DD HH:MM"
 
 Version(s):
+20260529 (1.9.1) --> Fix bugs related to new datasets
 20260505 (1.9.0) --> Review code for profile datasets and global datasets
 20240502 (1.8.0) --> Fix bugs related to geo-referencing and grid creation
 20240415 (1.7.0) --> Update codes and fix bugs
@@ -43,8 +44,8 @@ from lib_reshuffle_ecmwf import main as main_runner
 project_name = 'recolour'
 alg_name = 'img2cell'
 alg_type = 'Application'
-alg_version = '1.9.0'
-alg_release = '2026-05-05'
+alg_version = '1.9.1'
+alg_release = '2026-05-29'
 # -------------------------------------------------------------------------------------
 
 

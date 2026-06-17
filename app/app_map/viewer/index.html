@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Raster OpenLayers Viewer v12.0</title>
+  <!-- Viewer v12.0 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.5.0/ol.css">
+  <script src="https://cdn.jsdelivr.net/npm/ol@v10.5.0/dist/ol.js"></script>
+  <style>
+    html, body, #map { margin:0; width:100%; height:100%; font-family: Arial, sans-serif; }
+    .panel { position:absolute; z-index:10; background:rgba(255,255,255,.94); padding:12px; border-radius:8px; box-shadow:0 1px 8px rgba(0,0,0,.25); }
+    #layers { top:12px; left:12px; min-width:330px; max-width:390px; }
+    #saveBox { top:12px; right:12px; width:300px; text-align:center; }
+    #versionBadge { position:absolute; z-index:30; top:8px; left:50%; transform:translateX(-50%); background:rgba(31,41,55,.82); color:white; padding:2px 7px; border-radius:999px; font-size:11px; letter-spacing:.2px; }
+    #legend { bottom:12px; right:12px; width:340px; max-width:38vw; }
+    #info { bottom:12px; left:12px; max-width:620px; font-size:12px; }
+    .row { margin:8px 0; }
+    .muted { color:#555; font-size:12px; }
+    .title { font-size:16px; font-weight:bold; margin-bottom:4px; }
+    .legend-item { display:none; margin-top:8px; }
+    .legend-item.active { display:block; }
+    .legend-item img { width:100%; }
+    .categories { font-size:12px; margin-top:6px; line-height:1.35; }
+    input[type=range] { width:115px; vertical-align:middle; }
+    code { background:#eee; padding:1px 3px; border-radius:3px; }
+    .metadata-value { white-space: normal; overflow-wrap: break-word; word-break: break-word; }
+    details { margin-top:6px; }
+    details pre { max-height:110px; max-width:100%; overflow:auto; background:#f3f3f3; padding:6px; border-radius:5px; font-size:11px; white-space:pre-wrap; word-break:break-all; }
+    button { cursor:pointer; border:1px solid #555; background:#f7f7f7; border-radius:5px; padding:7px 10px; margin-top:6px; font-weight:600; }
+    #saveMapButton { width:100%; background:#eaf2ff; }
+    #saveBox { width:180px; }
+    button:hover { background:#ececec; }
+    #saveStatus { margin-left:6px; }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+<div id="versionBadge">v12.0</div>
+<div id="saveBox" class="panel"><button id="saveMapButton" type="button">Export PNG</button><div id="saveStatus" class="muted"></div></div>
+<div id="layers" class="panel">
+  <div class="title" id="viewerTitle">Raster layers</div>
+  <div class="muted" id="viewerDescription"></div>
+  <div id="layerControls"></div>
+</div>
+<div id="legend" class="panel">
+  <b>Colorbar / legend</b>
+  <div id="legendContent"></div>
+</div>
+<div id="info" class="panel">
+  <b>Info</b><br>
+  <span id="geoInfo"></span>
+</div>
+<script>
+function shortCRS(metadata) {
+  if (metadata.crs_display) return metadata.crs_display;
+  const crs = String(metadata.crs || '');
+  const crsUpper = crs.toUpperCase();
+  if (crsUpper.includes('WGS 84') || crsUpper.includes('WGS84') || crs.includes('EPSG","4326') || crsUpper.includes('EPSG:4326')) return 'EPSG:4326 (WGS84)';
+  if (crsUpper.includes('3857') || crsUpper.includes('WEB MERCATOR')) return 'EPSG:3857 (Web Mercator)';
+  if (metadata.extent_epsg4326) return 'EPSG:4326 (assumed from extent_epsg4326)';
+  return 'Unknown / custom CRS';
+}
+
+function downloadDataUrl(dataUrl, filename) {
+  const link = document.createElement('a');
+  link.href = dataUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function getActiveLayerDef(metadata, rasterLayers) {
+  const active = [];
+  rasterLayers.forEach((layer, idx) => {
+    if (layer.getVisible()) active.push(metadata.layers[idx]);
+  });
+  return active.length ? active[active.length - 1] : metadata.layers[0];
+}
+
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = String(text).split(/\s+/);
+  let line = '';
+  for (const word of words) {
+    const testLine = line ? line + ' ' + word : word;
+    if (ctx.measureText(testLine).width > maxWidth && line) {
+      ctx.fillText(line, x, y);
+      y += lineHeight;
+      line = word;
+    } else {
+      line = testLine;
+    }
+  }
+  if (line) ctx.fillText(line, x, y);
+  return y + lineHeight;
+}
+
+function wrapTextLines(ctx, text, maxWidth) {
+  const words = String(text).split(/\s+/);
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const testLine = line ? line + ' ' + word : word;
+    if (ctx.measureText(testLine).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = testLine;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function compactUtc(isoText) {
+  const text = String(isoText || '');
+  const m = text.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  return m ? `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]} UTC` : text;
+}
+
+function variableLabel(layerDef) {
+  const name = layerDef.name || layerDef.generic_layer_name || 'Variable';
+  const units = layerDef.colorbar?.units || '';
+  return units ? `${name} [${units.replace(/^\[|\]$/g, '')}]` : name;
+}
+
+function drawCompass(ctx, x, y, size) {
+  const cx = x + size / 2;
+  const cy = y + size / 2;
+  ctx.save();
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#9ca3af';
+  ctx.lineWidth = 1;
+  ctx.fillRect(x, y, size, size);
+  ctx.strokeRect(x, y, size, size);
+
+  ctx.strokeStyle = '#111827';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx, y + 18);
+  ctx.lineTo(cx, y + size - 18);
+  ctx.moveTo(x + 18, cy);
+  ctx.lineTo(x + size - 18, cy);
+  ctx.stroke();
+
+  // arrow heads for North and East
+  ctx.fillStyle = '#111827';
+  ctx.beginPath();
+  ctx.moveTo(cx, y + 9);
+  ctx.lineTo(cx - 5, y + 22);
+  ctx.lineTo(cx + 5, y + 22);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x + size - 9, cy);
+  ctx.lineTo(x + size - 22, cy - 5);
+  ctx.lineTo(x + size - 22, cy + 5);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.font = 'bold 14px Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('N', cx, y + 7);
+  ctx.fillText('S', cx, y + size - 7);
+  ctx.fillText('W', x + 8, cy);
+  ctx.fillText('E', x + size - 8, cy);
+  ctx.restore();
+}
+
+function roundedRect(ctx, x, y, width, height, radius) {
+  const r = Math.min(radius, width / 2, height / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + width - r, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+  ctx.lineTo(x + width, y + height - r);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  ctx.lineTo(x + r, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function drawBox(ctx, x, y, width, height, title, options = {}) {
+  const radius = options.radius ?? 10;
+  ctx.save();
+  ctx.shadowColor = options.shadow === false ? 'transparent' : 'rgba(0,0,0,0.25)';
+  ctx.shadowBlur = options.shadow === false ? 0 : 10;
+  ctx.shadowOffsetY = options.shadow === false ? 0 : 2;
+  roundedRect(ctx, x, y, width, height, radius);
+  ctx.fillStyle = options.fill || 'rgba(255,255,255,0.88)';
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.strokeStyle = options.stroke || 'rgba(17,24,39,0.18)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  if (title) {
+    ctx.fillStyle = '#111827';
+    ctx.font = 'bold 16px Arial, sans-serif';
+    ctx.fillText(title, x + 12, y + 24);
+  }
+  ctx.restore();
+}
+
+
+
+function basenamePath(path) {
+  const text = String(path || '');
+  return text.split(/[\\/]/).filter(Boolean).pop() || text || 'n/a';
+}
+
+function extractDateFromFilename(filename) {
+  const text = String(filename || '');
+  const m = text.match(/(\d{8})[_-]?(\d{4})?/);
+  if (!m) return '';
+  const d = m[1];
+  const t = m[2] || '0000';
+  return `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)} ${t.slice(0,2)}:${t.slice(2,4)} UTC`;
+}
+
+function formatExtent(extent4326) {
+  if (!extent4326 || extent4326.length !== 4) return 'n/a';
+  return `[${extent4326.map(v => Number(v).toFixed(6)).join(', ')}]`;
+}
+
+function drawProductPanel(ctx, x, y, metadata) {
+  const product = metadata.product || {};
+  const displayName = product.display_name || product.title || product.name || 'Raster product';
+  const filenameFull = product.source_basename || product.filename || metadata.source_file || 'n/a';
+  const filename = basenamePath(filenameFull);
+  const crsShort = shortCRS(metadata).replace(' (WGS84)', '');
+  const sizeText = `${metadata.width || 'n/a'} × ${metadata.height || 'n/a'} px | ${metadata.bands || 'n/a'} bands`;
+  const generated = compactUtc(metadata.generated_at_utc || '');
+
+  ctx.save();
+  const padX = 10;
+  const padY = 8;
+  const maxWidth = 330;
+  const minWidth = 190;
+  const contentWidth = maxWidth - padX * 2;
+
+  ctx.font = 'bold 17px Arial, sans-serif';
+  const titleWidth = Math.min(contentWidth, Math.ceil(ctx.measureText(displayName).width));
+  ctx.font = '14px Arial, sans-serif';
+  const bodyItems = [crsShort, sizeText, filename, generated].filter(Boolean);
+  const bodyWidths = bodyItems.map(t => Math.min(contentWidth, Math.ceil(ctx.measureText(t).width)));
+  let boxWidth = Math.min(maxWidth, Math.max(minWidth, titleWidth, ...bodyWidths) + padX * 2);
+  const textWidth = boxWidth - padX * 2;
+
+  ctx.font = '14px Arial, sans-serif';
+  const wrappedFilename = wrapTextLines(ctx, filename, textWidth);
+  const wrappedGenerated = generated ? wrapTextLines(ctx, generated, textWidth) : [];
+  const lineH = 16;
+  const titleH = 19;
+  const infoH = 17;
+  const gapAfterTitle = 8;
+  let boxHeight = padY + titleH + gapAfterTitle + infoH + lineH * 2 + wrappedFilename.length * lineH + wrappedGenerated.length * lineH + padY;
+
+  drawBox(ctx, x, y, boxWidth, boxHeight, null, { fill: 'rgba(255,255,255,0.86)', radius: 7 });
+  let yy = y + padY + 14;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#111827';
+  ctx.font = 'bold 17px Arial, sans-serif';
+  ctx.fillText(displayName, x + padX, yy, textWidth);
+
+  yy += gapAfterTitle + 12;
+  ctx.font = 'bold 15px Arial, sans-serif';
+  ctx.fillStyle = '#111827';
+  ctx.fillText('Info', x + padX, yy, textWidth);
+
+  yy += lineH;
+  ctx.font = '14px Arial, sans-serif';
+  ctx.fillStyle = '#374151';
+  ctx.fillText(crsShort, x + padX, yy, textWidth);
+  yy += lineH;
+  ctx.fillText(sizeText, x + padX, yy, textWidth);
+  yy += lineH;
+  for (const line of wrappedFilename) {
+    ctx.fillText(line, x + padX, yy, textWidth);
+    yy += lineH;
+  }
+  for (const line of wrappedGenerated) {
+    ctx.fillText(line, x + padX, yy, textWidth);
+    yy += lineH;
+  }
+  ctx.restore();
+  return { width: boxWidth, height: boxHeight };
+}
+function drawGeorefPanel(ctx, x, y, width, height, metadata, activeLayerDef, map) {
+  const extent4326 = metadata.extent_epsg4326 || [];
+  const viewExtent3857 = map.getView().calculateExtent(map.getSize());
+  const viewExtent4326 = ol.proj.transformExtent(viewExtent3857, 'EPSG:3857', 'EPSG:4326');
+  const sourceFile = metadata.product?.filename || metadata.source_file || 'n/a';
+  const crsShort = shortCRS(metadata);
+
+  drawBox(ctx, x, y, width, height, 'Georeference');
+  drawCompass(ctx, x + width - 82, y + 12, 64);
+
+  ctx.font = '13px Arial, sans-serif';
+  ctx.fillStyle = '#1f2937';
+  let yy = y + 48;
+  const lines = [
+    `CRS: ${crsShort}`,
+    `Raster extent (W,S,E,N):`,
+    `${extent4326.map(v => Number(v).toFixed(6)).join(', ')}`,
+    `Current view (W,S,E,N):`,
+    `${viewExtent4326.map(v => Number(v).toFixed(6)).join(', ')}`,
+    `Size: ${metadata.width} x ${metadata.height} px`,
+    `Bands: ${metadata.bands}; NoData: ${metadata.nodata}`,
+    `Source: ${sourceFile}`
+  ];
+  for (const line of lines) {
+    yy = drawWrappedText(ctx, line, x + 12, yy, width - 108, 15);
+  }
+}
+
+async function exportMap(map, metadata, rasterLayers) {
+  const status = document.getElementById('saveStatus');
+  status.textContent = 'rendering...';
+
+  map.once('rendercomplete', async function () {
+    const mapCanvas = document.createElement('canvas');
+    const size = map.getSize();
+    mapCanvas.width = size[0];
+    mapCanvas.height = size[1];
+    const mapContext = mapCanvas.getContext('2d');
+
+    Array.prototype.forEach.call(
+      map.getViewport().querySelectorAll('.ol-layer canvas, canvas.ol-layer'),
+      function (canvas) {
+        if (canvas.width > 0) {
+          const opacity = canvas.parentNode.style.opacity || canvas.style.opacity;
+          mapContext.globalAlpha = opacity === '' ? 1 : Number(opacity);
+          let matrix;
+          const transform = canvas.style.transform;
+          if (transform && transform.startsWith('matrix')) {
+            matrix = transform.match(/^matrix\(([^\(]*)\)$/)[1].split(',').map(Number);
+          } else {
+            matrix = [1, 0, 0, 1, 0, 0];
+          }
+          CanvasRenderingContext2D.prototype.setTransform.apply(mapContext, matrix);
+          mapContext.drawImage(canvas, 0, 0);
+        }
+      }
+    );
+    mapContext.globalAlpha = 1;
+    mapContext.setTransform(1, 0, 0, 1, 0, 0);
+
+    const activeLayerDef = getActiveLayerDef(metadata, rasterLayers);
+    const cacheVersion = metadata.generated_at_utc || Date.now();
+    const colorbarUrl = `${activeLayerDef.colorbar.image}?v=${encodeURIComponent(cacheVersion)}`;
+
+    // Export layout v12.0:
+    // - exact map size with no white band;
+    // - compact palette box in lower center;
+    // - product/file/date box in upper-left;
+    // - N/S W/E compass in upper-right.
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = mapCanvas.width;
+    outCanvas.height = mapCanvas.height;
+    const out = outCanvas.getContext('2d');
+    out.drawImage(mapCanvas, 0, 0);
+
+    const margin = 16;
+
+    // Upper-left compact Info box.
+    drawProductPanel(out, margin, margin, metadata);
+
+    // Compact lower-center palette/legend box.
+    const boxWidth = activeLayerDef.categories
+      ? Math.min(340, outCanvas.width - margin * 2)
+      : Math.min(310, outCanvas.width - margin * 2);
+    const boxHeight = activeLayerDef.categories ? 136 : 102;
+    const boxX = Math.round((outCanvas.width - boxWidth) / 2);
+    const boxY = Math.max(margin, outCanvas.height - boxHeight - margin);
+    drawBox(out, boxX, boxY, boxWidth, boxHeight, null, { fill: 'rgba(255,255,255,0.84)', radius: 8 });
+
+    const innerX = boxX + 12;
+    const innerW = boxWidth - 24;
+    let yy = boxY + 18;
+
+    out.save();
+    out.textAlign = 'center';
+    out.fillStyle = '#111827';
+    out.font = 'bold 15px Arial, sans-serif';
+    out.fillText(activeLayerDef.name || 'Variable', boxX + boxWidth / 2, yy);
+    yy += 17;
+
+    const units = activeLayerDef.colorbar?.units || '';
+    if (units) {
+      out.font = '14px Arial, sans-serif';
+      out.fillStyle = '#374151';
+      out.fillText(units, boxX + boxWidth / 2, yy);
+      yy += 11;
+    } else {
+      yy += 3;
+    }
+
+    if (activeLayerDef.categories) {
+      // Categorical legend: draw colored swatches plus labels in the exported PNG.
+      // This fixes the case where band 5 exported only category text without a visible colorbar/legend.
+      const categoryColors = ['#d9d9d9', '#1f78b4', '#33a02c', '#e31a1c', '#ff7f00', '#6a3d9a'];
+      const entries = Object.entries(activeLayerDef.categories);
+      out.textAlign = 'left';
+      out.font = '14px Arial, sans-serif';
+      out.fillStyle = '#374151';
+      yy += 8;
+      const swatch = 11;
+      const lineH = 17;
+      for (let i = 0; i < entries.length; i++) {
+        const [key, value] = entries[i];
+        if (yy > boxY + boxHeight - 10) break;
+        const colorIdx = Number.isFinite(Number(key)) ? Number(key) : i;
+        const color = categoryColors[colorIdx % categoryColors.length];
+        const sx = innerX + 2;
+        const sy = yy - 10;
+        out.fillStyle = color;
+        out.fillRect(sx, sy, swatch, swatch);
+        out.strokeStyle = '#374151';
+        out.lineWidth = 0.6;
+        out.strokeRect(sx, sy, swatch, swatch);
+        out.fillStyle = '#374151';
+        out.fillText(`${key}: ${value}`, sx + swatch + 7, yy, innerW - swatch - 10);
+        yy += lineH;
+      }
+    } else {
+      try {
+        const colorbar = await loadImage(colorbarUrl);
+        const cbWidth = Math.min(250, innerW);
+        const cbHeight = Math.min(28, Math.round(cbWidth * colorbar.height / colorbar.width));
+        const cbX = Math.round(boxX + (boxWidth - cbWidth) / 2);
+        const cbY = yy + 5;
+        out.drawImage(colorbar, cbX, cbY, cbWidth, cbHeight);
+        out.font = '13px Arial, sans-serif';
+        out.fillStyle = '#374151';
+        out.textAlign = 'left';
+        out.fillText(`${activeLayerDef.colorbar.min}`, cbX, cbY + cbHeight + 15);
+        out.textAlign = 'right';
+        out.fillText(`${activeLayerDef.colorbar.max}`, cbX + cbWidth, cbY + cbHeight + 15);
+      } catch (err) {
+        out.textAlign = 'center';
+        out.fillStyle = '#b91c1c';
+        out.fillText('Colorbar unavailable', boxX + boxWidth / 2, yy + 22);
+      }
+    }
+    out.restore();
+
+    // Separate compass only, upper-right corner.
+    const compassSize = 58;
+    drawCompass(out, outCanvas.width - compassSize - margin, margin, compassSize);
+
+    // Minimal version tag.
+    out.font = '11px Arial, sans-serif';
+    out.fillStyle = 'rgba(31,41,55,0.65)';
+    out.textAlign = 'right';
+    out.fillText('v12.0', outCanvas.width - 10, outCanvas.height - 8);
+    out.textAlign = 'left';
+
+    const safeName = (metadata.product?.name || 'raster').replace(/[^a-z0-9_-]+/gi, '_').toLowerCase();
+    const varName = (activeLayerDef.id || activeLayerDef.name || 'variable').replace(/[^a-z0-9_-]+/gi, '_').toLowerCase();
+    const stamp = new Date().toISOString().replace(/[:.]/g, '').slice(0, 15);
+    try {
+      downloadDataUrl(outCanvas.toDataURL('image/png'), `${safeName}_${varName}_export_png_${stamp}.png`);
+      status.textContent = 'exported PNG';
+      setTimeout(() => { status.textContent = ''; }, 3000);
+    } catch (err) {
+      console.error(err);
+      status.textContent = 'save failed (possibly CORS from base map)';
+    }
+  });
+  map.renderSync();
+}
+
+async function init() {
+  const params = new URLSearchParams(window.location.search);
+  const metadataFile = params.get('metadata') || 'metadata.json';
+  const metadata = await fetch(metadataFile).then(r => { if (!r.ok) throw new Error('Cannot load metadata: ' + metadataFile); return r.json(); });
+  metadata.__metadata_file = metadataFile;
+  const sourceFileFull = metadata.product.source_basename || metadata.product.filename || metadata.source_file || 'undefined';
+  const sourceFile = basenamePath(sourceFileFull);
+  const cacheVersion = metadata.generated_at_utc || Date.now();
+  const versionedUrl = (url) => `${url}?v=${encodeURIComponent(cacheVersion)}`;
+  document.title = `${metadata.product.display_name} - OpenLayers Viewer`;
+  document.getElementById('viewerTitle').textContent = `${metadata.product.display_name} raster layers`;
+  document.getElementById('viewerDescription').textContent = `${metadata.product.description || ''} Metadata: ${metadata.__metadata_file}; source file: ${sourceFile}`;
+
+  const extent4326 = metadata.extent_epsg4326;
+  const extent3857 = ol.proj.transformExtent(extent4326, 'EPSG:4326', 'EPSG:3857');
+  const base = new ol.layer.Tile({
+    source: new ol.source.OSM({ crossOrigin: 'anonymous' })
+  });
+
+  const rasterLayers = metadata.layers.map((d) => new ol.layer.Image({
+    title: d.generic_layer_name || d.name,
+    opacity: d.opacity ?? 0.78,
+    visible: d.visible === true,
+    source: new ol.source.ImageStatic({
+      url: versionedUrl(d.image),
+      imageExtent: extent3857,
+      projection: 'EPSG:3857',
+      crossOrigin: 'anonymous'
+    })
+  }));
+
+  const map = new ol.Map({
+    target: 'map',
+    layers: [base, ...rasterLayers],
+    view: new ol.View({
+      center: ol.proj.fromLonLat([(extent4326[0]+extent4326[2])/2, (extent4326[1]+extent4326[3])/2]),
+      zoom: 9
+    })
+  });
+  map.getView().fit(extent3857, { padding: [40,40,40,40] });
+  const saveButton = document.getElementById('saveMapButton');
+  if (saveButton) saveButton.onclick = () => exportMap(map, metadata, rasterLayers);
+
+  const controls = document.getElementById('layerControls');
+  const legend = document.getElementById('legendContent');
+
+  function updateLegend() {
+    document.querySelectorAll('.legend-item').forEach((el, idx) => {
+      el.classList.toggle('active', rasterLayers[idx].getVisible());
+    });
+  }
+
+  metadata.layers.forEach((layerDef, idx) => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = rasterLayers[idx].getVisible();
+    cb.id = `layer_${idx}`;
+    cb.onchange = () => { rasterLayers[idx].setVisible(cb.checked); updateLegend(); };
+
+    const label = document.createElement('label');
+    label.htmlFor = cb.id;
+    const st = layerDef.statistics || {};
+    const ctype = layerDef.colorbar.type || (layerDef.categories ? 'categorical' : 'continuous');
+    label.innerHTML = ` <b>${layerDef.name}</b><br><span class="muted">${layerDef.colorbar.min} – ${layerDef.colorbar.max} ${layerDef.colorbar.units}; ${ctype}; valid pixels: ${st.valid_pixels ?? 'n/a'}</span>`;
+
+    const opacity = document.createElement('input');
+    opacity.type = 'range'; opacity.min = 0; opacity.max = 1; opacity.step = 0.05; opacity.value = rasterLayers[idx].getOpacity();
+    opacity.oninput = () => rasterLayers[idx].setOpacity(Number(opacity.value));
+
+    row.appendChild(cb);
+    row.appendChild(label);
+    row.appendChild(document.createElement('br'));
+    row.appendChild(document.createTextNode('Opacity '));
+    row.appendChild(opacity);
+    controls.appendChild(row);
+
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    let categories = '';
+    if (layerDef.categories) {
+      categories = '<div class="categories">' + Object.entries(layerDef.categories).map(([k,v]) => `<b>${k}</b>: ${v}`).join('<br>') + '</div>';
+    }
+    item.innerHTML = `<div><b>${layerDef.name}</b> <span class="muted">${layerDef.colorbar.units || ''}</span></div><img src="${versionedUrl(layerDef.colorbar.image)}" alt="${layerDef.colorbar.label}">${categories}`;
+    legend.appendChild(item);
+  });
+  updateLegend();
+
+  const crsShort = shortCRS(metadata);
+  const crsFull = metadata.crs || 'Unknown';
+  document.getElementById('geoInfo').innerHTML =
+    `CRS: <code>${crsShort}</code><br>` +
+    `Extent EPSG:4326: [${extent4326.map(v => v.toFixed(6)).join(', ')}]<br>` +
+    `Size: ${metadata.width} x ${metadata.height} pixels; bands: ${metadata.bands}<br>` +
+    `Source file: <code>${sourceFile}</code><br>` +
+    `Assets generated: <code>${metadata.generated_at_utc || 'n/a'}</code>` +
+    `<details><summary>Advanced CRS information</summary><pre class="metadata-value">${crsFull}</pre></details>`;
+}
+init();
+</script>
+</body>
+</html>

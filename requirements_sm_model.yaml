@@ -1,0 +1,23 @@
+name: sm_cnr_libraries
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.11
+  - pandas
+  - geopandas
+  - requests
+  - rasterio
+  - numpy
+  - xarray
+  - netcdf4
+  - dask
+  - bottleneck
+  - boto3
+  - contextily
+  - cartopy
+  - pykdtree
+  - pip
+  - setuptools
+  - wheel
