@@ -26,6 +26,33 @@ log_stream = logging.getLogger(logger_name)
 logging.getLogger('pandas').setLevel(logging.WARNING)
 # ----------------------------------------------------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------------------------------------------------------
+# method to read metrics
+def read_metrics_csv(file_name,
+                      file_fields,
+                      registry_fields,
+                      file_sep=',',
+                      file_decimal='.',
+                      **kwargs):
+
+    try:
+        metrics_data = pd.read_csv(
+            file_name,
+            sep=file_sep,
+            decimal=file_decimal
+        )
+    except Exception as exc:
+        log_stream.error(f' ===> Error reading file "{file_name}": {exc}')
+        raise RuntimeError(f'Unable to read file "{file_name}"') from exc
+
+    if file_fields is None:
+        file_fields = {}
+
+    return metrics_data
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to read datasets in csv format
 def read_datasets_csv(file_name,
                       file_fields,
                       registry_fields,
@@ -77,6 +104,14 @@ def read_datasets_csv(file_name,
 
         if time_col != 'time':
             fields_data_map = fields_data_map.rename(columns={time_col: 'time'})
+
+        columns_map = {
+            file_col: field_name
+            for field_name, file_col in file_fields.items()
+            if field_name != 'time'
+        }
+
+        fields_data_map = fields_data_map.rename(columns=columns_map)
 
     # ---------------------------------------------------------------------
     # Case 2: read/extract one point
@@ -162,7 +197,7 @@ def read_datasets_csv(file_name,
 
     return fields_data_select
 
-
+# method to extract point from dframe
 def extract_point_from_dframe(fields_data_all,
                               file_fields,
                               point_tag,
@@ -214,7 +249,7 @@ def extract_point_from_dframe(fields_data_all,
     fields_data_point.attrs = deepcopy(fields_data_all.attrs)
 
     return fields_data_point
-
+# ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to read datasets in csv format

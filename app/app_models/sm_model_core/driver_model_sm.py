@@ -13,7 +13,7 @@ import logging
 import os
 import pandas as pd
 
-from lib_data_io_csv import read_datasets_csv, write_datasets_csv, write_metrics_csv
+from lib_data_io_csv import read_datasets_csv, read_metrics_csv, write_datasets_csv, write_metrics_csv
 
 from lib_utils_io import fill_string_with_time, fill_string_with_info
 from lib_utils_generic import make_folder
@@ -153,6 +153,40 @@ class DriverModel:
 
         # info end method
         log_stream.info(' ------> Read model datasets ... DONE')
+
+        return fields_obj
+
+    # -------------------------------------------------------------------------------------
+
+    # -------------------------------------------------------------------------------------
+    # method to get datasets object
+    def get_obj_metrics(self, file_name, file_format='csv', file_type='datasets',
+                         file_fields=None, time_fields=None, registry_fields=None):
+
+        # info start method
+        log_stream.info(' ------> Read model metrics ... ')
+
+        # check file existence
+        if not os.path.exists(file_name):
+            log_stream.error(' ===> File does not exist')
+            raise IOError('File parameters must be available')
+
+        # check file format
+        if file_format == 'csv':
+
+            # get metrics in ascii format
+            fields_obj = read_metrics_csv(
+                file_name,
+                file_fields=file_fields, registry_fields=registry_fields,
+                file_sep=',', file_decimal='.')
+
+        else:
+            # exit with error if file format is not supported
+            log_stream.error(' ===> File format "' + file_format + '" is not supported')
+            raise NotImplemented('Case not implemented yet')
+
+        # info end method
+        log_stream.info(' ------> Read model metrics ... DONE')
 
         return fields_obj
     # -------------------------------------------------------------------------------------
@@ -493,7 +527,7 @@ class DriverModel:
                     registry_fields=fields_registry
                 )
 
-                dframe_metrics = self.get_obj_datasets(
+                dframe_metrics = self.get_obj_metrics(
                     file_path_metrics_point,
                     file_format='csv',
                     time_fields=None,

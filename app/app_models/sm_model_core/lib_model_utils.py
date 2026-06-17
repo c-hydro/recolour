@@ -13,9 +13,10 @@ Version:       '1.0.0'
 import logging
 import os
 import json
-
+import cartopy
 import numpy as np
 import pandas as pd
+
 import geopandas as gpd
 import contextily as ctx
 
@@ -26,7 +27,13 @@ from lib_info_args import logger_name
 
 import matplotlib.dates as mdates
 from matplotlib.colors import LinearSegmentedColormap
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import cartopy.io.img_tiles as cimgt
+
+from copy import deepcopy
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 
 # logging
 log_stream = logging.getLogger(logger_name)
@@ -320,7 +327,7 @@ def plot_model_results_ts(file_name, dframe_results, dframe_metrics,
     time_index_resolution = dframe_results.index.resolution
 
     if time_index_resolution == 'hour':
-        time_index_frequency = 'H'
+        time_index_frequency = 'h'
     else:
         log_stream.error(' ===> Time resolution not expected in the dataframe obj')
         raise NotImplemented('Case not implemented yet')
@@ -331,10 +338,10 @@ def plot_model_results_ts(file_name, dframe_results, dframe_metrics,
 
     # get ts values
     values_time = dframe_expected.index
-    values_rain = dframe_expected['rain'].values
-    values_air_t = dframe_expected['air_temperature'].values
-    values_theta_obs = dframe_expected['theta_observed'].values
-    values_theta_sim = dframe_expected['theta_simulated'].values
+    values_rain = deepcopy(dframe_expected['rain'].values)
+    values_air_t = deepcopy(dframe_expected['air_temperature'].values)
+    values_theta_obs = deepcopy(dframe_expected['theta_observed'].values)
+    values_theta_sim = deepcopy(dframe_expected['theta_simulated'].values)
 
     # nullify no data values
     values_rain[values_rain == no_data_rain] = np.nan
@@ -417,7 +424,8 @@ def plot_model_results_ts(file_name, dframe_results, dframe_metrics,
     ax1.set_xlim([time_period_tick_start, time_period_tick_end])
     ax1.set_ylim([y_min_sm, y_max_sm])
     ax1.tick_params(labelbottom=False)
-    ax1.grid(b=True)
+    ax1.grid(visible=True)
+    #ax1.grid(b=True)
 
     # lower panel (rain)
     ax2 = plt.axes([0.1, 0.1, 0.8, 0.40])
@@ -426,7 +434,8 @@ def plot_model_results_ts(file_name, dframe_results, dframe_metrics,
     ax2.set_ylim([y_min_rain, y_max_rain])
     ax2.set_xlim(time_period_tick_start, time_period_tick_end)
     ax2.tick_params(axis='x', labelrotation=45, labelsize=6)
-    ax2.grid(b=True)
+    ax2.grid(visible=True)
+    #ax2.grid(b=True)
 
     ax3 = ax2.twinx()
     ax3.plot(values_time, values_air_t, color='r', linewidth=0.2, label='air temperature')
@@ -447,20 +456,33 @@ def plot_model_results_maps(
         file_name, dframe_results,
         fig_fields=None,
         fig_dpi=150, fig_show=True,
-        y_min_sm=0.1, y_max_sm=0.6,
-        no_data_theta_obs=-9999.0, no_data_theta_sim=-9999.0,
+        y_min_sm=0.0, y_max_sm=1.0,
+        no_data_theta_sim=-9999.0,
         lon_name='longitude', lat_name='latitude',
         theta_name='theta_simulated',
         time_name='time',
         buffer_ratio=0.10,
+        fig_background='osm',
+        fig_color_map_type=None,
+        fig_color_map_label='soil moisture',
+        fig_color_tick_loc=None,
+        fig_color_tick_label=None,
+        fig_zoom=8,
         **kwargs):
 
-    # create destination folder
+    try:
+        import lib_img_tiles as cimgt_custom
+    except ImportError:
+        cimgt_custom = None
+
+    # -------------------------------------------------------------------------
+    # Create destination folder
     folder_name = os.path.dirname(file_name)
     if folder_name:
         os.makedirs(folder_name, exist_ok=True)
 
-    # get figure fields
+    # -------------------------------------------------------------------------
+    # Figure metadata
     title_string = 'Soil Moisture Map'
     subtitle_string = None
     time_reference = None
@@ -470,101 +492,39 @@ def plot_model_results_maps(
         subtitle_string = fig_fields.get('subtitle', subtitle_string)
         time_reference = fig_fields.get('time_reference', None)
 
-    # retrieve data time from dataframe
+    # Data time
     time_data = None
 
     if time_name in dframe_results.columns:
-        time_values = pd.to_datetime(
-            dframe_results[time_name].dropna().unique()
-        )
+        time_values = pd.to_datetime(dframe_results[time_name].dropna().unique())
         if len(time_values) > 0:
             time_data = time_values[0]
 
     elif isinstance(dframe_results.index, pd.DatetimeIndex):
         time_data = dframe_results.index[0]
 
-    # format time_reference, otherwise NA
-    if time_reference is not None:
-        time_reference = pd.to_datetime(
-            time_reference
-        ).strftime('%Y-%m-%d %H:%M')
-    else:
-        time_reference = 'NA'
-
-    # format time_data, otherwise NA
-    if time_data is not None:
-        time_data = pd.to_datetime(
-            time_data
-        ).strftime('%Y-%m-%d %H:%M')
-    else:
-        time_data = 'NA'
-
-    # build title
-    title_lines = [title_string]
-
-    # line 2: always show time_reference and time_data
-    title_lines.append(
-        f'Time Ref: {time_reference} UTC | '
-        f'Time Data: {time_data} UTC'
+    time_reference = (
+        pd.to_datetime(time_reference).strftime('%Y-%m-%d %H:%M')
+        if time_reference is not None else 'NA'
     )
 
-    # line 3: user-defined subtitle, if available
+    time_data = (
+        pd.to_datetime(time_data).strftime('%Y-%m-%d %H:%M')
+        if time_data is not None else 'NA'
+    )
+
+    title_lines = [
+        title_string,
+        f'Time Ref: {time_reference} UTC | Time Data: {time_data} UTC'
+    ]
+
     if subtitle_string is not None:
         title_lines.append(subtitle_string)
 
     full_title = '\n'.join(title_lines)
 
-    # default soil moisture colormap
-    sm_cmap_default = {
-        "name": "sm.cmap",
-        "colors": [
-            [0.58431372549, 0.266666666667, 0.0, 1.0],
-            [0.709803921569, 0.494117647059, 0.0, 1.0],
-            [0.737254901961, 0.545098039216, 0.0, 1.0],
-            [0.894117647059, 0.827450980392, 0.0, 1.0],
-            [0.992156862745, 1.0, 0.63137254902, 1.0],
-            [0.870588235294, 0.909803921569, 0.913725490196, 1.0],
-            [0.650980392157, 0.933333333333, 0.96862745098, 1.0],
-            [0.309803921569, 0.662745098039, 0.976470588235, 1.0],
-            [0.243137254902, 0.509803921569, 0.83137254902, 1.0],
-            [0.160784313725, 0.333333333333, 0.658823529412, 1.0],
-            [0.109803921569, 0.219607843137, 0.549019607843, 1.0]
-        ],
-        "vmin": 0.0,
-        "vmax": 1.0,
-        "tick_label": [
-            "0", "0.1", "0.2", "0.3", "0.4",
-            "0.5", "0.6", "0.7", "0.8", "0.9", "1.0"
-        ],
-        "tick_loc": [
-            0.0, 0.1, 0.2, 0.3, 0.4,
-            0.5, 0.6, 0.7, 0.8, 0.9, 1.0
-        ]
-    }
-
-    # load sm.cmap from same folder as this .py file, otherwise use default
-    cmap_file = os.path.join(os.path.dirname(__file__), 'sm.cmap')
-
-    if os.path.exists(cmap_file):
-        try:
-            with open(cmap_file, 'r') as fp:
-                cmap_obj = json.load(fp)
-        except Exception:
-            cmap_obj = sm_cmap_default
-    else:
-        cmap_obj = sm_cmap_default
-
-    sm_cmap = LinearSegmentedColormap.from_list(
-        cmap_obj.get('name', 'sm.cmap'),
-        cmap_obj['colors']
-    )
-
-    cmap_vmin = cmap_obj.get('vmin', y_min_sm)
-    cmap_vmax = cmap_obj.get('vmax', y_max_sm)
-    cmap_tick_loc = cmap_obj.get('tick_loc', None)
-    cmap_tick_label = cmap_obj.get('tick_label', None)
-
-    # copy and clean dataframe
+    # -------------------------------------------------------------------------
+    # Clean dataframe
     dframe_plot = dframe_results.copy()
 
     dframe_plot[theta_name] = dframe_plot[theta_name].replace(
@@ -578,39 +538,36 @@ def plot_model_results_maps(
     if dframe_plot.empty:
         raise RuntimeError('No valid points available to plot')
 
-    # compute grid resolution
-    lon_values = np.sort(dframe_plot[lon_name].unique())
-    lat_values = np.sort(dframe_plot[lat_name].unique())
-
-    dx = np.median(np.diff(lon_values)) if lon_values.size > 1 else 0.01
-    dy = np.median(np.diff(lat_values)) if lat_values.size > 1 else 0.01
-
-    # create cell polygons in WGS84
-    dframe_plot = dframe_plot.copy()
-    dframe_plot['geometry'] = [
-        box(
-            lon - dx / 2.0,
-            lat - dy / 2.0,
-            lon + dx / 2.0,
-            lat + dy / 2.0
-        )
-        for lon, lat in zip(
-            dframe_plot[lon_name].values,
-            dframe_plot[lat_name].values
-        )
-    ]
-
-    gdf_cells = gpd.GeoDataFrame(
-        dframe_plot,
-        geometry='geometry',
-        crs='EPSG:4326'
+    # -------------------------------------------------------------------------
+    # Create 2D grid from dataframe
+    dframe_grid = dframe_plot.pivot_table(
+        index=lat_name,
+        columns=lon_name,
+        values=theta_name,
+        aggfunc='mean'
     )
 
-    # compute bbox in lon/lat with buffer
-    lon_min = dframe_plot[lon_name].min()
-    lon_max = dframe_plot[lon_name].max()
-    lat_min = dframe_plot[lat_name].min()
-    lat_max = dframe_plot[lat_name].max()
+    lat_values = dframe_grid.index.values.astype(np.float32)
+    lon_values = dframe_grid.columns.values.astype(np.float32)
+    map_data = dframe_grid.values.astype(np.float32)
+
+    map_lons_2d, map_lats_2d = np.meshgrid(lon_values, lat_values)
+
+    # Mask values outside limits
+    if y_min_sm is not None:
+        map_data[map_data < y_min_sm] = np.nan
+    if y_max_sm is not None:
+        map_data[map_data > y_max_sm] = np.nan
+
+    # -------------------------------------------------------------------------
+    # Bounds with buffer
+    lon_min = np.nanmin(lon_values)
+    lon_max = np.nanmax(lon_values)
+    lat_min = np.nanmin(lat_values)
+    lat_max = np.nanmax(lat_values)
+
+    dx = np.nanmedian(np.diff(np.sort(lon_values))) if lon_values.size > 1 else 0.01
+    dy = np.nanmedian(np.diff(np.sort(lat_values))) if lat_values.size > 1 else 0.01
 
     lon_buffer = max((lon_max - lon_min) * buffer_ratio, dx)
     lat_buffer = max((lat_max - lat_min) * buffer_ratio, dy)
@@ -620,68 +577,137 @@ def plot_model_results_maps(
     lat_min -= lat_buffer
     lat_max += lat_buffer
 
-    # convert cells and bbox to Web Mercator
-    gdf_cells_3857 = gdf_cells.to_crs(epsg=3857)
+    # -------------------------------------------------------------------------
+    # Colormap
+    if fig_color_map_type is None:
+        sm_colors = [
+            [0.58431372549, 0.266666666667, 0.0, 1.0],
+            [0.709803921569, 0.494117647059, 0.0, 1.0],
+            [0.894117647059, 0.827450980392, 0.0, 1.0],
+            [0.992156862745, 1.0, 0.63137254902, 1.0],
+            [0.650980392157, 0.933333333333, 0.96862745098, 1.0],
+            [0.309803921569, 0.662745098039, 0.976470588235, 1.0],
+            [0.160784313725, 0.333333333333, 0.658823529412, 1.0],
+            [0.109803921569, 0.219607843137, 0.549019607843, 1.0]
+        ]
+        fig_color_map_obj = colors.LinearSegmentedColormap.from_list(
+            'sm.cmap', sm_colors
+        )
 
-    bbox = gpd.GeoDataFrame(
-        geometry=gpd.points_from_xy(
-            [lon_min, lon_max],
-            [lat_min, lat_max]
-        ),
-        crs='EPSG:4326'
-    ).to_crs(epsg=3857)
+    elif isinstance(fig_color_map_type, colors.Colormap):
+        fig_color_map_obj = deepcopy(fig_color_map_type)
 
-    x_min = bbox.geometry.x.min()
-    x_max = bbox.geometry.x.max()
-    y_min = bbox.geometry.y.min()
-    y_max = bbox.geometry.y.max()
+    elif isinstance(fig_color_map_type, str):
+        fig_color_map_obj = plt.get_cmap(fig_color_map_type)
 
-    # create figure
-    fig, ax = plt.subplots(figsize=(8, 8))
+    else:
+        raise NotImplementedError('Variable colormap case not implemented yet')
 
-    ax.set_xlim(x_min, x_max)
-    ax.set_ylim(y_min, y_max)
+    if fig_color_tick_loc is None:
+        fig_color_tick_loc = np.linspace(y_min_sm, y_max_sm, 6)
 
-    # add OpenStreetMap background
-    ctx.add_basemap(
-        ax,
-        source=ctx.providers.OpenStreetMap.Mapnik,
-        crs=gdf_cells_3857.crs
-    )
+    if fig_color_tick_label is None:
+        fig_color_tick_label = [f'{v:.2f}' for v in fig_color_tick_loc]
 
-    # plot soil moisture cells
-    gdf_cells_3857.plot(
-        ax=ax,
-        column=theta_name,
-        cmap=sm_cmap,
-        linewidth=0.0,
-        edgecolor='none',
-        alpha=0.85,
-        legend=True,
-        vmin=cmap_vmin,
-        vmax=cmap_vmax,
-        legend_kwds={
-            'label': 'Relative Soil Moisture [-]',
-            'shrink': 0.75,
-            'ticks': cmap_tick_loc
-        }
-    )
+    # -------------------------------------------------------------------------
+    # CRS
+    plot_crs = cartopy.crs.Mercator()
+    data_crs = cartopy.crs.PlateCarree()
 
-    # colorbar tick labels
-    if cmap_tick_label is not None:
-        colorbar_ax = fig.axes[-1]
-        colorbar_ax.set_yticklabels(cmap_tick_label)
+    # Background
+    if fig_background == 'osm':
+        if cimgt_custom is not None:
+            map_background = cimgt_custom.OSM()
+        else:
+            map_background = cimgt.OSM()
 
-    ax.set_axis_off()
-    ax.set_title(
+    elif fig_background == 'google':
+        map_background = cimgt.GoogleTiles()
+
+    else:
+        raise NotImplementedError('Variable background case not implemented yet')
+
+    # -------------------------------------------------------------------------
+    # Figure
+    fig = plt.figure(figsize=(12, 10))
+
+    fig.suptitle(
         full_title,
-        fontsize=10,
-        fontweight='bold'
+        fontsize=12,
+        color='black',
+        fontweight='bold',
+        y=0.97
     )
 
-    plt.tight_layout()
+    ax = fig.add_axes([0.1, 0.10, 0.75, 0.75], projection=plot_crs)
 
-    fig.savefig(file_name, dpi=fig_dpi, bbox_inches='tight')
+
+    ax.set_extent(
+        [lon_min, lon_max, lat_min, lat_max],
+        crs=data_crs
+    )
+
+    gl = ax.gridlines(
+        crs=data_crs,
+        draw_labels=True,
+        linewidth=2,
+        color='gray',
+        alpha=0.5,
+        linestyle='--'
+    )
+
+    # New API
+    if hasattr(gl, 'top_labels'):
+        gl.top_labels = False
+        gl.right_labels = False
+        gl.bottom_labels = True
+        gl.left_labels = True
+    # Old API
+    else:
+        gl.xlabels_top = False
+        gl.ylabels_right = False
+        gl.xlabels_bottom = True
+        gl.ylabels_left = True
+
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'size': 8, 'color': 'gray', 'weight': 'bold'}
+    gl.ylabel_style = {'size': 8, 'color': 'gray', 'weight': 'bold'}
+
+    ax.add_image(map_background, fig_zoom)
+
+    sc = ax.pcolormesh(
+        map_lons_2d,
+        map_lats_2d,
+        map_data,
+        zorder=3,
+        cmap=fig_color_map_obj,
+        transform=data_crs,
+        vmin=y_min_sm,
+        vmax=y_max_sm
+    )
+
+    # Colorbar
+    divider = make_axes_locatable(ax)
+    ax_cb = divider.new_horizontal(size="5%", pad=0.1, axes_class=plt.Axes)
+    fig.add_axes(ax_cb)
+
+    cb = plt.colorbar(sc, cax=ax_cb, extend='both')
+    cb.set_label(
+        f'{fig_color_map_label} [-]',
+        size=12,
+        color='gray',
+        weight='normal'
+    )
+    cb.ax.tick_params(labelsize=10, labelcolor='gray')
+
+    if fig_color_tick_loc is not None:
+        cb.set_ticks(fig_color_tick_loc)
+
+    if fig_color_tick_label is not None:
+        cb.set_ticklabels(fig_color_tick_label)
+
+    fig.savefig(file_name, dpi=fig_dpi)
 
     if fig_show:
         plt.show()
