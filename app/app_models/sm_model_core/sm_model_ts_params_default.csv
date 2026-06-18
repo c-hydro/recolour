@@ -1,4 +1,4 @@
-Nome,Cod. Stazione,W_p,W_max,alpha,m2,Ks,Kc,Theta_min,Theta_max,Tag
+Nome,Cod.Stazione,W_p,W_max,alpha,m2,Ks,Kc,Theta_min,Theta_max,Tag
 Jesi,110,0.48,73.55,11.12,4.34,1.14,1.45,19,48.6,  jesi
 Villa Fastiggi,112,0.8,277.8,8.77,9.89,1.68,1.36,13,56.3,  villa_fastiggi
 Loro Piceno,124,0.5,73.99,8.23,8.07,9.46,1.39,9.8,52,  loro_piceno

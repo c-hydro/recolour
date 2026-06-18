@@ -1,0 +1,21 @@
+Nome,Cod.Stazione,W_p,W_max,alpha,m2,Ks,Kc,Theta_min,Theta_max,Tag
+Jesi,110,0.537,70.032,10.631,7.531,1.416,1.466,18.99,45.4,  jesi
+Villa Fastiggi,112,0.496,112.462,12.884,5.273,1.037,1.492,25.85,55.02,  villa_fastiggi
+Loro Piceno,124,0.468,161.103,9.445,7.408,4.094,1.497,9.76,49.52,  loro_piceno
+Camerino,130,0.505,85.880,9.595,11.333,30.854,1.495,21.72,36.81,  camerino
+Ponte della Barchetta,187,0.499,80.947,9.141,9.658,7.549,1.347,20.13,40.87,  ponte_barchetta
+Sassotetto,204,0.525,57.519,2.012,10.640,40.706,1.486,8.25,28.19,  sassotetto
+Colleponi,505,0.506,67.517,8.539,9.891,7.164,1.491,22,48.76,  colleponi
+Fiastra Trebbio,604,0.616,56.549,6.521,14.530,13.310,1.471,19.85,39.12,  fiastra_trebbio
+Fabriano Centro,605,0.519,49.393,9.150,13.197,30.191,1.488,25.54,46.54,  fabriano_centro
+Pian di Pieca,607,0.500,47.791,9.404,6.278,11.976,1.387,17.1,46.71,  pian_di_pieca
+Macerata Montalbano,609,0.496,60.029,10.127,10.673,4.821,1.495,24.03,46.28,  macerata_montalbano
+Serravalle di Chienti,612,0.483,62.840,8.941,14.252,4.675,1.381,16.54,36.21,  serravalle_chienti
+Monte Carpegna,719,0.507,62.263,13.870,14.888,1.020,1.487,27.59,60.32,  monte_carpegna
+Frontino,721,0.501,51.418,9.180,6.621,2.534,1.415,26.29,49.89,  frontino
+Pievebovigliana,723,0.512,88.856,10.737,13.357,1.984,1.479,25.09,37,  pievebovigliana
+Monte San Vicino,733,0.473,71.328,5.052,12.598,38.144,0.786,22.31,50,  monte_san_vicino
+Montegranaro,736,0.490,52.051,10.626,13.895,1.428,1.486,24.85,46.53,  montegranaro
+Montemurello,737,0.492,90.132,12.312,14.043,1.123,1.497,25.74,50.31,  montemurello
+Caldarola,740,0.468,61.922,3.850,8.452,40.073,1.477,22.59,38.95,  caldarola
+Pieve di Cagna,742,0.468,47.302,9.188,13.305,5.660,1.493,24.96,44.42,  pieve_cagna

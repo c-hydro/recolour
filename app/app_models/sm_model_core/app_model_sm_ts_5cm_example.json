@@ -169,7 +169,9 @@
           "values_k2": "air_temperature",
           "values_k3": "soil_moisture"
         },
-        "no_data": -9999.0
+        "no_data": -9999.0,
+        "fill_data_step_air_temperature": 2,
+        "fill_data_step_soil_moisture": 2
       }
     }
   },

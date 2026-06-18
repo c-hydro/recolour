@@ -94,15 +94,17 @@ def filter_model_data(
     dframe_data.loc[mask_sm, var_tag_sm] = np.nan
 
     # fill nans with interpolation
-    dframe_data[var_tag_airt] = dframe_data[var_tag_airt].interpolate(
-        limit=interp_limit_airt,
-        limit_direction=interp_direction_airt
-    )
+    if interp_limit_airt > 0:
+        dframe_data[var_tag_airt] = dframe_data[var_tag_airt].interpolate(
+            limit=interp_limit_airt,
+            limit_direction=interp_direction_airt
+        )
 
-    dframe_data[var_tag_sm] = dframe_data[var_tag_sm].interpolate(
-        limit=interp_limit_sm,
-        limit_direction=interp_direction_sm
-    )
+    if interp_limit_sm > 0:
+        dframe_data[var_tag_sm] = dframe_data[var_tag_sm].interpolate(
+            limit=interp_limit_sm,
+            limit_direction=interp_direction_sm
+        )
 
     # dframe fields default
     if dframe_fields is None:
