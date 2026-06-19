@@ -124,7 +124,7 @@
     "folder": "/home/fabio/Desktop/recolour/exec/ecmwf_cell_nrt/report/{time_step:%Y/%m/%d}",
     "filename": "cell2grid_ecmwf_report_%Y%m%d_%H%M.json"
   },
-    "logging": {
+  "logging": {
     "folder": "/home/fabio/Desktop/recolour/exec/ecmwf_cell_nrt/log/{time_step:%Y/%m/%d}",
     "filename": "cell2grid_ecmwf.log",
     "level": "INFO",
