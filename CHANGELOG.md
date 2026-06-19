@@ -1,13 +1,14 @@
 # Changelog
 
-## Version 2.5.0 (2026-06-17)
+## Version 2.5.0 (2026-06-19)
 
 - **PROJECT:** soil moisture model framework    
   - **APPS – SM_MODEL_CORE:** 
     - app_model_sm_main.py version 2 (grid and points applications)
   - **APPS – SM_MODEL_TOOLS:** 
-    - organizer_geo for terrain and ancillary (to create a full filled domain);
+    - organizer_geo for terrain and ancillary (to create a full filled domain)
     - organizer_ts for extracting points from rain, air_t and ssm or swi layers
+    - organizer_grid for converting points to interpolated grid soil moisture layer
   - **TOOLS – DOWNLOADER COPERNICUS SWI:** copernicus_downloader_swi.py
 
 - **PROJECT:** operational framework grid   
