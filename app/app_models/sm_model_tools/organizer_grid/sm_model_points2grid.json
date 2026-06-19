@@ -1,0 +1,65 @@
+{
+  "time": {
+    "time_run": "2026-06-18 04:00",
+    "time_frequency": "h"
+  },
+  "data_static": {
+    "registry": {
+      "folder": "/hydro/data/data_static/sm_cnr/model_grid/registry/",
+      "filename": "sm_model_grid_registry.csv",
+      "delimiter": ",",
+      "tag_col": "tag",
+      "lon_col": "longitude",
+      "lat_col": "latitude",
+      "valid_col": "valid",
+      "use_only_valid": true
+    },
+    "grid": {
+      "folder": "/hydro/data/data_static/sm_cnr/geo/",
+      "filename": "marche.dem.txt",
+      "band": 1,
+      "nodata_values": [-9999]
+    }
+  },
+  "interpolation": {
+    "method": "idw",
+    "roi_m": 20000,
+    "min_points": 1,
+    "max_points": 8,
+    "idw_power": 2.0,
+    "no_data": -9999
+  },
+  "data_dynamic": {
+    "source": {
+      "folder": "/hydro/analysis/sm_cnr/model_grid/results/{yyyy}/{mm}/{dd}/{HH}/",
+      "filename": "sm_model_grid_swi_t1_{yyyymmddhh}00_point_{point}_results.csv",
+      "delimiter": ",",
+      "time_col": "time",
+      "time_format": "%Y-%m-%d %H:%M",
+      "selection_method": "last_mod",
+      "selection_columns": {
+        "theta_simulated": "theta_simulated",
+        "theta_observed": "theta_observed"
+      },
+      "nodata_values": [-9999, -9998],
+      "strict_nodata": -9999,
+      "valid_min": 0,
+      "valid_max": 1,
+      "registry_lon_col": "longitude",
+      "registry_lat_col": "latitude"
+    },
+    "destination": {
+      "folder": "/hydro/data/data_dynamic/outcome/sm_cnr/maps/soil_moisture/{yyyy}/{mm}/{dd}/",
+      "filename": "soil_moisture_{yyyymmddhh}.tif",
+      "compress": "deflate",
+      "name": "soil_moisture",
+      "no_data": null
+    },
+    "logging": {
+      "folder": "/hydro/log/sm_model/organizer_map/",
+      "filename": "sm_model_points2grid.log",
+      "level": "INFO",
+      "rotate_daily": true
+    }
+  }
+}

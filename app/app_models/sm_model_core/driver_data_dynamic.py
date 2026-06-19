@@ -375,8 +375,8 @@ class DriverData:
                 )
 
         return obj_collections
-        # --------------------------------------------------------------------------------------------------------------
 
+    # helper to select dataframe
     def select_point_dframe(self, dframe_all, file_fields, point_tag, point_name=None, field_time='time'):
 
         if dframe_all is None:
@@ -419,6 +419,7 @@ class DriverData:
 
         return dframe_point
 
+    # --------------------------------------------------------------------------------------------------------------
 
     # ------------------------------------------------------------------------------------------------------------------
     # helper to organize data by one_file_one_point

@@ -9,9 +9,9 @@
       "algorithm": "Algorithm developed by CNR-IRPI"
     },
     "flags": {
-      "reset_data_static": true,
+      "reset_data_static": false,
       "reset_data_dynamic": false,
-      "reset_model_results": false,
+      "reset_model_results": true,
       "reset_model_metrics": false,
       "reset_model_figure": true
     },
@@ -24,11 +24,11 @@
         "variable_name": "string_variable_name"
       },
       "time" : {
-        "source_data_sub_path_time_k1": "%Y/%m/%d",
+        "source_data_sub_path_time_k1": "%Y/%m/%d/",
         "source_data_datetime_k1": "%Y%m%d%H",
-        "source_data_sub_path_time_k2": "%Y/%m/%d",
+        "source_data_sub_path_time_k2": "%Y/%m/%d/",
         "source_data_datetime_k2": "%Y%m%d%H",
-        "source_data_sub_path_time_k3": "%Y/%m/%d",
+        "source_data_sub_path_time_k3": "%Y/%m/%d/",
         "source_data_datetime_k3": "%Y%m%d%H",
         "destination_data_sub_path_time": "%Y/%m/%d/%H",
         "destination_data_datetime": "%Y%m%d%H%M",
@@ -45,7 +45,7 @@
     "static": {
       "source": {
         "registry": {
-          "folder_name": "/hydro/data/data_static/sm_cnr/",
+          "folder_name": "/hydro/data/data_static/sm_cnr/model_grid/registry/",
           "file_name": "sm_model_grid_registry.csv",
           "format": "csv",
           "filters": {"depth": null},
@@ -67,7 +67,7 @@
           "delimiter": ","
         },
         "parameters": {
-          "folder_name": "/hydro/data/data_static/sm_cnr/",
+          "folder_name": "/hydro/data/data_static/sm_cnr/model_grid/parameters/",
           "file_name": "sm_model_grid_params.csv",
           "format": "csv",
           "filters": {},
@@ -98,7 +98,7 @@
       "mode": "one_file_all_points",
       "source": {
         "rain": {
-          "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_2d/{source_data_sub_path_time_k1}",
+          "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_grid/{source_data_sub_path_time_k1}",
           "file_name": "obs_db_rain_{source_data_datetime_k1}.csv",
           "format": "csv_2d",
           "delimiter": ",",
@@ -116,7 +116,7 @@
           }
         },
         "air_temperature": {
-          "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_2d/{source_data_sub_path_time_k2}",
+          "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_grid/{source_data_sub_path_time_k2}",
           "file_name": "obs_db_t_{source_data_datetime_k1}.csv",
           "format": "csv_2d",
           "delimiter": ",",
@@ -134,7 +134,7 @@
           }
         },
         "soil_moisture": {
-          "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_2d/{source_data_sub_path_time_k3}",
+          "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_grid/{source_data_sub_path_time_k3}",
           "file_name": "obs_db_swi_t1_{source_data_datetime_k1}.csv",
           "format": "csv_2d",
           "delimiter": ",",
@@ -194,7 +194,9 @@
         "values_k3": "theta_observed",
         "values_model": "theta_simulated"
       },
-      "no_data": -9999.0
+      "no_data": -9999.0,
+      "fill_data_step_air_temperature": 2,
+      "fill_data_step_soil_moisture": 0
     },
     "metrics": {
       "folder_name": "/hydro/analysis/sm_cnr/model_grid/results/{model_metrics_sub_path_time}",
@@ -241,7 +243,7 @@
     "time_period": 12,
     "time_start": null,
     "time_end": null,
-    "time_cycle_hours": 6
+    "time_cycle_hours": 1
   },
   "tmp": {
     "folder_name": "/hydro/tmp/analyzer_sm_cnr",

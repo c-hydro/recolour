@@ -84,6 +84,11 @@ class DriverModel:
         self.time_results = self.alg_model_results[self.time_tag]
         self.fields_results = self.alg_model_results[self.fields_tag]
         self.file_path_results = os.path.join(self.folder_name_results, self.file_name_results)
+
+        self.no_data_results = self.alg_model_results.get('no_data', -9999)
+        self.fill_data_step_results_air_t = self.alg_model_results.get('fill_data_step_air_temperature', 2)
+        self.fill_data_step_results_sm = self.alg_model_results.get('fill_data_step_soil_moisture', 2)
+
         # model metrics object(s)
         self.folder_name_metrics = self.alg_model_metrics['folder_name']
         self.file_name_metrics = self.alg_model_metrics['file_name']
@@ -376,7 +381,11 @@ class DriverModel:
                         file_fields=None, registry_fields=data_registry)
 
                     # filter model data
-                    dframe_data = filter_model_data(dframe_data, dframe_fields=self.fields_data)
+                    dframe_data = filter_model_data(
+                        dframe_data, dframe_fields=self.fields_data,
+                        interp_limit_sm=self.fill_data_step_results_sm,
+                        interp_limit_airt=self.fill_data_step_results_air_t)
+
                     # organize model data
                     values_data, values_time = organize_model_data(dframe_data)
                     # organize model parameters
