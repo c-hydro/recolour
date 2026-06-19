@@ -9,7 +9,7 @@ __author__ =
 __library__ = 'sm_model_tools'
 
 General command line:
-python app_model_points2grid.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
+python sm_model_points2grid.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
 20260618 (1.0.0) --> Beta release for sm_model libraries
