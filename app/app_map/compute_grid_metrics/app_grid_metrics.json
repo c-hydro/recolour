@@ -1,0 +1,182 @@
+{
+  "log": {
+    "level": "INFO",
+    "folder": "/home/fabio/Desktop/recolour/exec/log/",
+    "filename": "sm_grid_metrics_{time_run:%Y%m%d_%H%M}.log"
+  },
+
+  "time": {
+    "time_start": "2026-07-03 23:00",
+    "time_end": "2026-07-06 23:00",
+    "ref_month": null, "ref_day": null, "ref_hour": "23", "ref_minutes": "00",
+    "frequency": "D",
+    "format": "%Y-%m-%d %H:%M"
+  },
+
+  "geo": {
+    "reference": {
+      "terrain": {
+        "name": "terrain",
+        "type": "ascii_grid",
+        "compression": false,
+        "folder": "/home/fabio/Desktop/recolour/dset/hmc_auxiliary/domain/",
+        "filename": "marche.dem.txt",
+        "band": 1, "crs": "EPSG:4326",
+        "scale_factor": 1.0, "offset": 0.0,
+        "valid_min": -500.0, "valid_max": 9000.0,
+        "nodata_values": [-9999.0]
+      },
+      "cn": {
+        "name": "curve_number",
+        "type": "ascii_grid",
+        "compression": false,
+        "folder": "/home/fabio/Desktop/recolour/dset/hmc_auxiliary/domain/",
+        "filename": "marche.cn.txt",
+        "band": 1,
+        "crs": "EPSG:4326",
+        "scale_factor": 1.0,
+        "offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 100.0,
+        "nodata_values": [-9999.0]
+      }
+    },
+    "other": {
+      "terrain": {
+        "name": "terrain",
+        "type": "ascii_grid",
+        "compression": false,
+        "folder": "/home/fabio/Desktop/recolour/dset/hmc_auxiliary/domain/",
+        "filename": "marche.dem.txt",
+        "band": 1, "crs": "EPSG:4326",
+        "scale_factor": 1.0, "offset": 0.0,
+        "valid_min": -500.0, "valid_max": 9000.0,
+        "nodata_values": [-9999.0]
+      }
+    }
+  },
+
+  "datasets": {
+    "reference": {
+      "name": "hmc_vtotal",
+      "role": "reference",
+
+      "type": "netcdf_hmc_state",
+      "compression": true,
+      "compression_type": "gzip",
+
+      "folder": "/home/fabio/Desktop/recolour/dset/metrics/data/model_hmc/{time:%Y/%m/}",
+      "filename": "hmc.state-grid.{time:%Y%m%d%H%M}.nc.gz",
+
+      "variable": "VTot",
+      "longitude": "Longitude",  "latitude": "Latitude",
+      "crs": "EPSG:4326",
+
+      "engine": "h5netcdf",
+
+      "scale_factor": 1.0, "offset": 0.0,
+      "valid_min": 0.0, "valid_max": null,
+      "nodata_values": [-9999.0, -9e15],
+
+      "compression_settings": {"temporary_folder": "/tmp/sm_grid_metrics"},
+
+      "scaling": {"enabled": true, "minimum_v": 0.001, "clip_min": 0.0, "clip_max": 1.0}
+    },
+
+    "other": {
+      "name": "external_soil_moisture",
+      "role": "candidate",
+
+      "type": "tiff",
+      "compression": false,
+
+      "folder": "/home/fabio/Desktop/recolour/dset/metrics/data/model_cnr/{time:%Y/%m/%d}",
+      "filename": "soil_moisture_{time:%Y%m%d%H}.tif",
+
+      "band": 1, "crs": "EPSG:4326",
+      "scale_factor": 1.0, "offset": 0.0,
+      "valid_min": 0.0, "valid_max": 1.0,
+      "nodata_values": [-9999.0],
+
+      "scaling": {}
+    }
+  },
+
+  "metrics": {
+    "min_observations": 5,
+    "dtype": "float64",
+    "continue_on_error": true
+  },
+
+  "weights": {
+    "method": "correlation_error",
+    "maximum_weight": 0.8,
+    "correlation": {"minimum": 0.3, "power": 1.0},
+    "error": {"power": 2.0, "minimum_std": 0.01},
+    "observations": {"minimum": 5, "target": 6}
+  },
+
+  "img": {
+    "enabled": true,
+
+    "folder": "/home/fabio/Desktop/recolour/exec/metrics/images/",
+    "filename": "sm_weights_{name}.png",
+
+    "layers": [
+      "weight",
+      "weight_correlation",
+      "weight_error",
+      "weight_observations",
+      "normalized_error"
+    ],
+
+    "dpi": 150,
+    "figsize": [10, 8],
+    "colormap": "viridis",
+
+    "title": "Soil moisture nudging weight: {name}",
+    "colorbar_label": "Weight",
+
+    "show_colorbar": true, "show_axis": true, "grid": false,
+    "transpose": false, "flip_vertical": false,
+    "vmin": null, "vmax": null,
+
+    "ranges": {
+      "weight": {"vmin": 0.0, "vmax": 1.0},
+      "weight_correlation": {"vmin": 0.0, "vmax": 1.0},
+      "weight_error": {"vmin": 0.0, "vmax": 1.0},
+      "weight_observations": {"vmin": 0.0, "vmax": 1.0},
+      "normalized_error": {"vmin": 0.0, "vmax": 2.0}
+    }
+  },
+
+  "results": {
+    "enabled": true,
+    "folder": "/home/fabio/Desktop/recolour/exec/metrics/results/",
+
+    "layers": [
+      "weight",
+      "weight_correlation",
+      "weight_error",
+      "weight_observations",
+      "normalized_error"
+    ],
+
+    "dtype": "float32",
+    "nodata": -9999.0,
+
+    "tiff": {
+      "enabled": true,
+      "filename": "sm_weights_{name}.tif",
+      "compression": "deflate",
+      "tiled": true
+    },
+
+    "ascii": {
+      "enabled": true,
+      "filename": "sm_weights_{name}.asc",
+      "decimals": 6
+    }
+  }
+
+}
