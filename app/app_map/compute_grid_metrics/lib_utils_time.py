@@ -13,13 +13,76 @@ import logging
 import re
 import pandas as pd
 
-from typing import Optional
+from typing import Dict, List, Optional
 
 from config_info import LOGGER_NAME, TIME_FMT_CLI
 
 logger = logging.getLogger(LOGGER_NAME)
+
+# set seasons tags and reference
+SEASON_MONTHS = {"DJF": [12, 1, 2],"MAM": [3, 4, 5],"JJA": [6, 7, 8],"SON": [9, 10, 11],}
 # ----------------------------------------------------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------------------------------------------------------
+# method to create seasons period
+def create_seasons_period(
+        reference_time_period: pd.DatetimeIndex,
+        seasons: Optional[List[str]] = None,
+) -> Dict[str, pd.DatetimeIndex]:
+    """
+    Split a DatetimeIndex into seasonal DatetimeIndexes.
+
+    Parameters
+    ----------
+    reference_time_period : pd.DatetimeIndex
+        Input time period.
+
+    seasons : list[str], optional
+        Seasons to extract. Supported values are:
+            ALL, DJF, MAM, JJA, SON
+
+        If None or empty, only ALL is returned.
+
+    Returns
+    -------
+    dict
+        Example:
+        {
+            "ALL": DatetimeIndex(...),
+            "DJF": DatetimeIndex(...),
+            "JJA": DatetimeIndex(...)
+        }
+    """
+
+    if not isinstance(reference_time_period, pd.DatetimeIndex):
+        raise TypeError("'reference_time_period' must be a pandas.DatetimeIndex.")
+
+    if seasons is None or len(seasons) == 0:
+        seasons = ["ALL"]
+
+    seasons = [season.upper() for season in seasons]
+
+    output = {}
+
+    for season in seasons:
+
+        if season == "ALL":
+            output["ALL"] = reference_time_period
+            continue
+
+        if season not in SEASON_MONTHS:
+            raise ValueError(
+                f"Unknown season '{season}'. "
+                f"Supported seasons are: ALL, DJF, MAM, JJA, SON."
+            )
+
+        months = SEASON_MONTHS[season]
+        output[season] = reference_time_period[
+            reference_time_period.month.isin(months)
+        ]
+
+    return output
+# ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to create time period

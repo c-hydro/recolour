@@ -36,6 +36,7 @@ logger = logging.getLogger(LOGGER_NAME)
 # constants
 SUPPORTED_DATASET_TYPES = {"netcdf_hmc_state", "tiff",}
 
+DEFAULT_TAG = "ALL"
 DEFAULT_FREQUENCY = "D"
 DEFAULT_REFERENCE_GROUP = "reference"
 DEFAULT_OTHER_GROUP = "other"
@@ -49,7 +50,7 @@ class DynamicDatasets:
             self,
             datasets_cfg: Mapping[str, Any],
             geo: Mapping[str, Any],
-            time_period: Any, time_frequency: str = DEFAULT_FREQUENCY,
+            time_period: Any, time_frequency: str = DEFAULT_FREQUENCY, time_tag: str = DEFAULT_TAG,
             reference_group: str = DEFAULT_REFERENCE_GROUP, other_group: str = DEFAULT_OTHER_GROUP,
             check_grids: bool = True, check_grids_once: bool = True,
             raise_error: bool = True, skip_missing: bool = True,):
@@ -68,6 +69,7 @@ class DynamicDatasets:
         self.time_period = time_period
         self.time_start = self._parse_time(time_value=time_period[0],time_name="time_start",)
         self.time_end = self._parse_time(time_value=time_period[-1],time_name="time_end",)
+        self.time_tag = time_tag
 
         if self.time_start > self.time_end:
             raise ValueError(f"time_start '{self.time_start}' is later than time_end '{self.time_end}'.")
@@ -982,7 +984,6 @@ class DynamicDatasets:
 
         # --------------------------------------------------------------------------
         # get weight maps
-
         weights_data = analysis_data.get(
             "weights",
             None,
@@ -1029,7 +1030,6 @@ class DynamicDatasets:
 
         # --------------------------------------------------------------------------
         # get grid information
-
         if "grid" not in analysis_data:
             raise KeyError(
                 "Analysis data do not contain the 'grid' section."
@@ -1079,7 +1079,6 @@ class DynamicDatasets:
 
         # --------------------------------------------------------------------------
         # log weight information
-
         if weights_summary is not None:
             weight_info = weights_summary["summary"]
 
@@ -1129,7 +1128,6 @@ class DynamicDatasets:
 
         # --------------------------------------------------------------------------
         # organize summary
-
         analysis_summary = {
             "metrics": metrics_summary,
             "weights": weights_summary,

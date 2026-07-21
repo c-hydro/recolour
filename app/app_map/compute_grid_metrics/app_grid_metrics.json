@@ -6,7 +6,7 @@
   },
 
   "time": {
-    "time_start": "2026-07-03 23:00",
+    "time_start": "2025-07-03 23:00",
     "time_end": "2026-07-06 23:00",
     "ref_month": null, "ref_day": null, "ref_hour": "23", "ref_minutes": "00",
     "frequency": "D",
@@ -103,6 +103,8 @@
   },
 
   "metrics": {
+    "__comment__": "seasons tags:  ALL, DJF, MAM, JJA, SON",
+    "seasons": ["ALL", "DJF", "MAM", "JJA", "SON"],
     "min_observations": 5,
     "dtype": "float64",
     "continue_on_error": true
@@ -120,7 +122,7 @@
     "enabled": true,
 
     "folder": "/home/fabio/Desktop/recolour/exec/metrics/images/",
-    "filename": "sm_weights_{name}.png",
+    "filename": "sm_weights_{name}_{season}.png",
 
     "layers": [
       "weight",
@@ -167,14 +169,14 @@
 
     "tiff": {
       "enabled": true,
-      "filename": "sm_weights_{name}.tif",
+      "filename": "sm_weights_{name}_{season}.tif",
       "compression": "deflate",
       "tiled": true
     },
 
     "ascii": {
       "enabled": true,
-      "filename": "sm_weights_{name}.asc",
+      "filename": "sm_weights_{name}_{season}.asc",
       "decimals": 6
     }
   }

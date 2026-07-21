@@ -27,7 +27,7 @@ import numpy as np
 from app.app_map.compute_grid_metrics import lib_results
 from lib_utils_logging import get_logger
 from lib_utils_io import read_file_json
-from lib_utils_time import create_time_period
+from lib_utils_time import create_time_period, create_seasons_period
 
 from lib_geo import GeoDatasets
 from lib_data import DynamicDatasets
@@ -67,6 +67,9 @@ def main():
         print(f" ===> ERROR: parsing time: {exc}")
         sys.exit(1)
 
+    # get seasons time period
+    seasons_time_period = create_seasons_period(reference_time_period, seasons=metrics_cfg.get('seasons', 'ALL'))
+
     # get logger
     get_logger(logger, settings, reference_time=reference_time_period[-1])
     # ------------------------------------------------------------------------------------------------------------------
@@ -84,6 +87,7 @@ def main():
     logger.info(f" ---> Time end:           {reference_time_info['end']}")
     logger.info(f" ---> Time frequency:     {reference_time_info['frequency']}")
     logger.info(f" ---> Time steps:         {reference_time_info['steps']}")
+    logger.info(f" ---> Seasons:            {metrics_cfg.get('seasons', 'ALL')}")
 
     # datasets
     logger.info(" ---> Reference:         %s (%s)",
@@ -114,41 +118,65 @@ def main():
     # ------------------------------------------------------------------------------------------------------------------
 
     # ------------------------------------------------------------------------------------------------------------------
-    # drive dynamic datasets
-    driver_data = DynamicDatasets(
-        datasets_cfg=settings["datasets"],
-        geo=geo_datasets,
-        time_period=reference_time_period,
-        time_frequency=reference_time_info['frequency'],
-        reference_group="reference", other_group="other",
-        check_grids=True, raise_error=True,
-    )
-    # organize dynamic datasets
-    dynamic_datasets = driver_data.organize()
-    # analyze dynamic datasets
-    dynamic_analysis = driver_data.analyze_metrics(
-        metrics_cfg=settings.get("metrics",{})
-    )
+    # iterate over seasons
+    for season_tag, season_period in seasons_time_period.items():
 
-    # compute spatial nudging weights
-    dynamic_analysis = driver_data.analyze_weights(
-        analysis_data=dynamic_analysis,
-        weights_cfg=settings.get("weights",{})
-    )
+        # info seasons start
+        logger.info(
+            f" ----> Season {season_tag:<4}: "
+            f"{season_period[0]:%Y-%m-%d %H:%M} --> {season_period[-1]:%Y-%m-%d %H:%M} "
+            f"({len(season_period)} steps) ... ")
 
-    # summarize dynamic datasets
-    dynamic_summary = driver_data.summarize(dynamic_analysis)
+        # check seasons steps
+        if len(season_period) > 0:
 
-    # initialize output driver
-    driver_results = Results(
-        img_cfg=settings.get("img",{}),
-        results_cfg=settings.get("results",{},),
-    )
+            # drive dynamic datasets
+            driver_data = DynamicDatasets(
+                datasets_cfg=settings["datasets"],
+                geo=geo_datasets,
+                time_tag=season_tag,
+                time_period=season_period,
+                time_frequency=reference_time_info['frequency'],
+                reference_group="reference", other_group="other",
+                check_grids=True, raise_error=True,
+            )
+            # organize dynamic datasets
+            dynamic_datasets = driver_data.organize()
+            # analyze dynamic datasets
+            dynamic_analysis = driver_data.analyze_metrics(
+                metrics_cfg=settings.get("metrics",{})
+            )
 
-    # create PNG, GeoTIFF and ASCII outputs
-    dynamic_results = driver_results.organize(
-        analysis_summary=dynamic_summary,
-    )
+            # compute spatial nudging weights
+            dynamic_analysis = driver_data.analyze_weights(
+                analysis_data=dynamic_analysis,
+                weights_cfg=settings.get("weights",{})
+            )
+
+            # summarize dynamic datasets
+            dynamic_summary = driver_data.summarize(dynamic_analysis)
+
+            # initialize output driver
+            driver_results = Results(
+                time_tag=season_tag,
+                img_cfg=settings.get("img",{}),
+                results_cfg=settings.get("results",{},),
+            )
+
+            # create PNG, GeoTIFF and ASCII outputs
+            dynamic_results = driver_results.organize(
+                analysis_summary=dynamic_summary,
+            )
+
+        else:
+            # warning for no time steps available in the periods
+            logger.warning(f" ===> {season_tag:<4}: empty (0 steps)")
+
+        # info seasons end
+        logger.info(
+            f" ----> Season {season_tag:<4}: "
+            f"{season_period[0]:%Y-%m-%d %H:%M} --> {season_period[-1]:%Y-%m-%d %H:%M} "
+            f"({len(season_period)} steps) ... DONE")
     # ------------------------------------------------------------------------------------------------------------------
 
     # ------------------------------------------------------------------------------------------------------------------

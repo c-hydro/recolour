@@ -37,9 +37,13 @@ class Results:
 
     def __init__(
             self,
+            time_tag: str = "ALL",
             img_cfg: Optional[Dict[str, Any]] = None,
             results_cfg: Optional[Dict[str, Any]] = None,
     ):
+
+        # set time tag
+        self.time_tag = time_tag
 
         # normalize configurations
         self.img_cfg = (
@@ -535,8 +539,8 @@ class Results:
             latitude=latitude,
         )
 
+        season_name = self.time_tag
         output_files = {}
-
         for layer_name, layer_values in layers_data.items():
 
             logger.info(
@@ -609,7 +613,7 @@ class Results:
             figure.tight_layout()
 
             file_name = self.img_filename.format(
-                name=layer_name,
+                name=layer_name, season=season_name
             )
 
             file_path = os.path.join(
@@ -707,6 +711,7 @@ class Results:
             "ascii": {},
         }
 
+        season_name = self.time_tag
         for layer_name, layer_values in layers_data.items():
 
             values_output = np.asarray(
@@ -725,7 +730,7 @@ class Results:
             if self.tiff_enabled:
 
                 file_name_tiff = self.tiff_filename.format(
-                    name=layer_name,
+                    name=layer_name, season=season_name
                 )
 
                 file_path_tiff = os.path.join(
@@ -747,7 +752,7 @@ class Results:
             if self.ascii_enabled:
 
                 file_name_ascii = self.ascii_filename.format(
-                    name=layer_name,
+                    name=layer_name, season=season_name
                 )
 
                 file_path_ascii = os.path.join(
