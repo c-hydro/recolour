@@ -3,11 +3,15 @@
   "radius_m": 1000,
   "time": {
     "time_start": "now",
-    "period_hours": 900,
+    "period_hours": 24,
     "step_hours": 1
   },
+  "parallel": {
+    "enabled": true,
+    "max_workers": 24
+  },
   "points": {
-    "file": "/hydro/data/data_static/sm_cnr/sm_model_grid_registry.csv",
+    "file": "/hydro/data/data_static/sm_cnr/model_grid/registry/sm_model_grid_registry.csv",
     "delimiter": ",",
     "lon_col": "longitude",
     "lat_col": "latitude",
@@ -70,8 +74,8 @@
     }
   },
   "output": {
-    "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_2d/{time_now:%Y}/{time_now:%m}/{time_now:%d}/",
-    "file_template": "obs_db_{var_name}_{time_now:%Y%m%d%H}.csv",
+    "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_grid/period_24h/{time_now:%Y}/{time_now:%m}/{time_now:%d}/",
+    "file_template": "obs_day_{var_name}_{time_now:%Y%m%d%H}.csv",
     "delimiter": ",",
     "precision": 3
   }

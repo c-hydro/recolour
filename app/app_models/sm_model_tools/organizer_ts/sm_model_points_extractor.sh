@@ -10,12 +10,12 @@ script_date='2026/06/12'
 fp_env_file="/hydro/library/fp_libs_python_sm_cnr/sm_cnr_settings"
 
 # Python script and settings
-fp_script="/hydro/library/fp_package_connectors/sm_model_tools/sm_model_points_extractor.py"
-fp_settings="/hydro/library/fp_package_connectors/sm_model_tools/sm_model_points_extractor.json"
+fp_script="/hydro/library/fp_package_connectors/sm_model_tools/organizer_ts/sm_model_points_extractor_v2.py"
+fp_settings="/hydro/library/fp_package_connectors/sm_model_tools/organizer_ts/sm_model_points_extractor.json"
 
 # Lock folder/file
 folder_lock="/tmp/sm_model"
-fp_lock="${folder_lock}/run_extract_points_radius.lock"
+fp_lock="${folder_lock}/run_extract_points_radius_v2.lock"
 
 # -----------------------------------------------------------------------------------------
 # Parse arguments
@@ -46,6 +46,8 @@ done
 if [ -z "${time_now}" ]; then
     time_now=$(date "+%Y-%m-%d %H:%M")
 fi
+
+time_now="2025-05-01 00:00"
 
 # -----------------------------------------------------------------------------------------
 

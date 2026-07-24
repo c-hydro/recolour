@@ -36,6 +36,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+from concurrent.futures import ProcessPoolExecutor, as_completed
+
 import numpy as np
 
 try:
@@ -488,69 +490,249 @@ def format_value(value: float, precision: int) -> Any:
         return int(VALUE_INVALID)
     return round(value, precision)
 
+def extract_time_step(
+        t: datetime,
+        var_key: str,
+        var_cfg: Dict[str, Any],
+        points: Sequence[Point],
+        time_now: datetime,
+        global_radius_m: float,
+) -> Optional[Tuple[datetime, str, List[float]]]:
+    """
+    Extract all point values for one variable and one time step.
+
+    Returns:
+        (time_step, time_tag, values)
+
+    Returns None when a daily variable must be skipped because the current
+    time step does not correspond to its configured daily hour.
+    """
+
+    variable_type = str(var_cfg.get("type", "netcdf")).lower()
+    file_template = var_cfg["file_template"]
+    missing_file_value = float(
+        var_cfg.get("missing_file_value", VALUE_MISSING_FILE)
+    )
+
+    # Daily GeoTIFF variables are processed only at the configured hour.
+    if (
+            variable_type == "tiff"
+            and str(var_cfg.get("frequency", "daily")).lower() == "daily"
+    ):
+        daily_hour = int(var_cfg.get("daily_hour", 0))
+
+        if t.hour != daily_hour:
+            return None
+
+    t_tag = t.strftime("%Y%m%d%H")
+    file_path = format_path(file_template, t, time_now)
+
+    log_info(
+        f"TIME {t_tag} | {var_key} | "
+        f"PID {os.getpid()} | file: {file_path}"
+    )
+
+    if not os.path.exists(file_path):
+        log_warning(
+            f"TIME {t_tag} | {var_key} | "
+            f"FILE NOT FOUND: {file_path}"
+        )
+
+        values = [missing_file_value for _ in points]
+
+        return t, t_tag, values
+
+    try:
+        if variable_type == "netcdf":
+            values = extract_netcdf_values(
+                path=file_path,
+                var_cfg=var_cfg,
+                points=points,
+                global_radius_m=global_radius_m,
+                var_key=var_key,
+            )
+
+        elif variable_type == "tiff":
+            values = extract_tiff_values(
+                path=file_path,
+                var_cfg=var_cfg,
+                points=points,
+                global_radius_m=global_radius_m,
+                var_key=var_key,
+            )
+
+        else:
+            raise ValueError(
+                f"Unsupported variable type '{variable_type}' "
+                f"for variable '{var_key}'"
+            )
+
+    except Exception as exc:
+        if var_cfg.get("raise_on_error", False):
+            raise
+
+        log_warning(
+            f"TIME {t_tag} | {var_key} | READ FAILED: {exc}"
+        )
+
+        values = [VALUE_INVALID for _ in points]
+
+    return t, t_tag, values
 
 def extract_variable_series(
-    var_key: str,
-    var_cfg: Dict[str, Any],
-    steps: Sequence[datetime],
-    points: Sequence[Point],
-    time_now: datetime,
-    global_radius_m: float,
-    delimiter: str,
-    output_cfg: Dict[str, Any],
+        var_key: str,
+        var_cfg: Dict[str, Any],
+        steps: Sequence[datetime],
+        points: Sequence[Point],
+        time_now: datetime,
+        global_radius_m: float,
+        delimiter: str,
+        output_cfg: Dict[str, Any],
+        parallel_cfg: Optional[Dict[str, Any]] = None,
 ) -> None:
+
     if not var_cfg.get("enabled", True):
         log_info(f"VARIABLE {var_key}: disabled")
         return
 
-    variable_type = var_cfg.get("type", "netcdf")
-    file_template = var_cfg["file_template"]
-    missing_file_value = float(var_cfg.get("missing_file_value", VALUE_MISSING_FILE))
-    precision = int(var_cfg.get("precision", output_cfg.get("precision", 3)))
+    parallel_cfg = parallel_cfg or {}
 
-    point_ids = [p.point_id for p in points]
+    parallel_enabled = bool(
+        var_cfg.get(
+            "parallel_enabled",
+            parallel_cfg.get("enabled", False),
+        )
+    )
+
+    max_workers = int(
+        var_cfg.get(
+            "max_workers",
+            parallel_cfg.get("max_workers", 4),
+        )
+    )
+
+    if max_workers < 1:
+        raise ValueError("parallel.max_workers must be >= 1")
+
+    precision = int(
+        var_cfg.get(
+            "precision",
+            output_cfg.get("precision", 3),
+        )
+    )
+
+    point_ids = [point.point_id for point in points]
     header = ["time"] + point_ids
-    rows: List[List[Any]] = []
 
-    log_info(f"VARIABLE {var_key}: start extraction")
-    for t in steps:
-        t_tag = t.strftime("%Y%m%d%H")
-        
-        # Daily GeoTIFF variables: use only the default daily hour
-        # when filename has no hourly token.
-        if variable_type == "tiff" and var_cfg.get("frequency", "daily") == "daily":
-            daily_hour = int(var_cfg.get("daily_hour", 0))
-            if t.hour != daily_hour:
-                continue
-        
-        file_path = format_path(file_template, t, time_now)
-        log_info(f"TIME {t_tag} | {var_key} | file: {file_path}")
+    results: List[Tuple[datetime, str, List[float]]] = []
 
-        if not os.path.exists(file_path):
-            log_warning(f"TIME {t_tag} | {var_key} | FILE NOT FOUND: {file_path}")
-            values = [missing_file_value for _ in points]
-        else:
-            try:
-                if variable_type == "netcdf":
-                    values = extract_netcdf_values(file_path, var_cfg, points, global_radius_m, var_key=var_key)
-                elif variable_type == "tiff":
-                    values = extract_tiff_values(file_path, var_cfg, points, global_radius_m, var_key=var_key)
-                else:
-                    raise ValueError(f"Unsupported variable type '{variable_type}' for {var_key}")
-            except Exception as exc:
-                if var_cfg.get("raise_on_error", False):
-                    raise
-                log_warning(f"TIME {t_tag} | {var_key} | READ FAILED: {exc}")
-                values = [VALUE_INVALID for _ in points]
+    log_info(
+        f"VARIABLE {var_key}: start extraction | "
+        f"parallel={parallel_enabled} | workers={max_workers}"
+    )
 
-        rows.append([t_tag] + [format_value(v, precision) for v in values])
+    if parallel_enabled and max_workers > 1:
 
-    output_folder = output_cfg.get("folder_name", "./output")
-    output_folder = output_folder.format(time_now=time_now)
-    file_template_out = output_cfg.get("file_template", "obs_db_{var_name}_{time_now:%Y%m%d%H}.csv")
-    out_path = os.path.join(output_folder, file_template_out.format(var_name=var_key, time_now=time_now))
-    write_variable_csv(out_path, rows, header, delimiter)
-    log_info(f"VARIABLE {var_key}: wrote {len(rows)} rows to {out_path}")
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+
+            future_map = {
+                executor.submit(
+                    extract_time_step,
+                    t,
+                    var_key,
+                    var_cfg,
+                    points,
+                    time_now,
+                    global_radius_m,
+                ): t
+                for t in steps
+            }
+
+            for future in as_completed(future_map):
+                time_step = future_map[future]
+
+                try:
+                    result = future.result()
+
+                    if result is not None:
+                        results.append(result)
+
+                except Exception as exc:
+                    t_tag = time_step.strftime("%Y%m%d%H")
+
+                    if var_cfg.get("raise_on_error", False):
+                        raise
+
+                    log_warning(
+                        f"TIME {t_tag} | {var_key} | "
+                        f"WORKER FAILED: {exc}"
+                    )
+
+                    values = [VALUE_INVALID for _ in points]
+                    results.append((time_step, t_tag, values))
+
+    else:
+        for t in steps:
+            result = extract_time_step(
+                t=t,
+                var_key=var_key,
+                var_cfg=var_cfg,
+                points=points,
+                time_now=time_now,
+                global_radius_m=global_radius_m,
+            )
+
+            if result is not None:
+                results.append(result)
+
+    # build_time_steps() may create a descending sequence. Preserve that order.
+    reverse_order = (
+        len(steps) > 1
+        and steps[0] > steps[-1]
+    )
+
+    results.sort(
+        key=lambda item: item[0],
+        reverse=reverse_order,
+    )
+
+    rows = [
+        [t_tag] + [
+            format_value(value, precision)
+            for value in values
+        ]
+        for _, t_tag, values in results
+    ]
+
+    output_folder = output_cfg.get(
+        "folder_name",
+        "./output",
+    ).format(time_now=time_now)
+
+    output_template = output_cfg.get(
+        "file_template",
+        "obs_db_{var_name}_{time_now:%Y%m%d%H}.csv",
+    )
+
+    output_path = os.path.join(
+        output_folder,
+        output_template.format(
+            var_name=var_key,
+            time_now=time_now,
+        ),
+    )
+
+    write_variable_csv(
+        path=output_path,
+        rows=rows,
+        header=header,
+        delimiter=delimiter,
+    )
+
+    log_info(
+        f"VARIABLE {var_key}: wrote {len(rows)} rows "
+        f"to {output_path}"
+    )
 
 
 def normalize_variables(cfg: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
@@ -591,6 +773,8 @@ def main() -> None:
     n_steps = int(n_steps) if n_steps is not None else None
     steps = build_time_steps(time_start, time_end, step_hours, n_steps)
 
+    parallel_cfg = cfg.get("parallel", {})
+
     log_info("POINTS EXTRACTOR - START")
     log_info(f"SETTINGS FILE: {args.settings_file}")
     log_info(f"TIME NOW   : {time_now:%Y-%m-%d %H:%M}")
@@ -620,6 +804,7 @@ def main() -> None:
             global_radius_m=global_radius_m,
             delimiter=delimiter,
             output_cfg=output_cfg,
+            parallel_cfg=parallel_cfg,
         )
 
     log_info("POINTS EXTRACTOR - END")
