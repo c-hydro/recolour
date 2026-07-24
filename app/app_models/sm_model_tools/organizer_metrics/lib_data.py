@@ -40,6 +40,7 @@ DEFAULT_TAG = "ALL"
 DEFAULT_FREQUENCY = "D"
 DEFAULT_REFERENCE_GROUP = "reference"
 DEFAULT_OTHER_GROUP = "other"
+DEFAULT_MISSING_THRESHOLD = 90.0
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -50,29 +51,57 @@ class DynamicDatasets:
             self,
             datasets_cfg: Mapping[str, Any],
             geo: Mapping[str, Any],
-            time_period: Any, time_frequency: str = DEFAULT_FREQUENCY, time_tag: str = DEFAULT_TAG,
-            reference_group: str = DEFAULT_REFERENCE_GROUP, other_group: str = DEFAULT_OTHER_GROUP,
-            check_grids: bool = True, check_grids_once: bool = True,
-            raise_error: bool = True, skip_missing: bool = True,):
+            time_period: Any,
+            time_frequency: str = DEFAULT_FREQUENCY,
+            time_tag: str = DEFAULT_TAG,
+            reference_group: str = DEFAULT_REFERENCE_GROUP,
+            other_group: str = DEFAULT_OTHER_GROUP,
+            check_grids: bool = True,
+            check_grids_once: bool = True,
+            raise_error: bool = True,
+            skip_missing: bool = True,
+            missing_threshold: float = DEFAULT_MISSING_THRESHOLD,
+    ):
 
         # check datasets configuration
         if not isinstance(datasets_cfg, Mapping):
-            raise TypeError("The datasets configuration must be a dictionary.")
-        # check datasets configuration
+            raise TypeError(
+                "The datasets configuration must be a dictionary."
+            )
+
         if not isinstance(geo, Mapping):
-            raise TypeError("The geo object must be a dictionary.")
+            raise TypeError(
+                "The geo object must be a dictionary."
+            )
 
         self.datasets_cfg_raw = deepcopy(dict(datasets_cfg))
         self.geo = geo
 
         self.time_frequency = time_frequency
         self.time_period = time_period
-        self.time_start = self._parse_time(time_value=time_period[0],time_name="time_start",)
-        self.time_end = self._parse_time(time_value=time_period[-1],time_name="time_end",)
+
+        if len(self.time_period) == 0:
+            raise ValueError(
+                "The time period is empty."
+            )
+
+        self.time_start = self._parse_time(
+            time_value=time_period[0],
+            time_name="time_start",
+        )
+
+        self.time_end = self._parse_time(
+            time_value=time_period[-1],
+            time_name="time_end",
+        )
+
         self.time_tag = time_tag
 
         if self.time_start > self.time_end:
-            raise ValueError(f"time_start '{self.time_start}' is later than time_end '{self.time_end}'.")
+            raise ValueError(
+                f"time_start '{self.time_start}' is later than "
+                f"time_end '{self.time_end}'."
+            )
 
         self.reference_group = reference_group
         self.other_group = other_group
@@ -82,10 +111,35 @@ class DynamicDatasets:
         self.raise_error = raise_error
         self.skip_missing = skip_missing
 
+        # Validate missing-data threshold.
+        try:
+            missing_threshold = float(missing_threshold)
+        except (TypeError, ValueError) as exc:
+            raise TypeError(
+                "'missing_threshold' must be numeric."
+            ) from exc
+
+        if not 0.0 <= missing_threshold <= 100.0:
+            raise ValueError(
+                "'missing_threshold' must be between 0 and 100."
+            )
+
+        self.missing_threshold = missing_threshold
+
         self.datasets_cfg: Dict[str, Dict[str, Any]] = {}
 
         # The grid compatibility check can normally be performed only once.
         self._grids_checked = False
+
+        # Availability statistics are reset when iterate() starts.
+        self._availability_stats: Dict[str, Any] = {
+            "time_steps_total": len(self.time_period),
+            "time_steps_available": 0,
+            "time_steps_missing": 0,
+            "missing_percentage": 0.0,
+            "missing_threshold": self.missing_threshold,
+            "missing_files": [],
+        }
     # ------------------------------------------------------------------------------------------------------------------
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -115,72 +169,169 @@ class DynamicDatasets:
     # public generator to load one pair of maps at a time
     def iterate(self) -> Iterator[Dict[str, Any]]:
 
-        # define datasets if needed
-        if not self.datasets_cfg: self.organize()
+        # Define datasets if needed.
+        if not self.datasets_cfg:
+            self.organize()
 
-        # info method start
-        logger.info(" ----> Iterate dynamic datasets ... ")
+        logger.info(" ----> Iterate dynamic datasets ...")
 
-        # get time steps
-        time_steps = len(self.time_period)
+        time_steps_total = len(self.time_period)
 
-        # iterate over time steps
-        for time_id, time_step in enumerate(self.time_period, start=1,):
+        # Reset availability statistics for this iteration.
+        self._availability_stats = {
+            "time_steps_total": time_steps_total,
+            "time_steps_available": 0,
+            "time_steps_missing": 0,
+            "missing_percentage": 0.0,
+            "missing_threshold": self.missing_threshold,
+            "missing_files": [],
+        }
 
-            # time info start
-            logger.info(f" -----> Time step {time_id}/{time_steps}: {time_step} ...")
+        for time_id, time_step in enumerate(
+                self.time_period,
+                start=1,
+        ):
 
-            # validate datasets step
-            datasets_step_cfg = self._validate_datasets(time=time_step)
+            logger.info(
+                f" -----> Time step {time_id}/{time_steps_total}: "
+                f"{time_step} ..."
+            )
 
-            # initialize datasets step
+            # Resolve dataset paths without requiring files to exist.
+            # File availability is managed explicitly below.
+            datasets_step_cfg = self._validate_datasets(
+                time=time_step,
+            )
+
             datasets_obj = None
+
             try:
 
-                # check file availability before opening/decompressing data.
-                files_available, missing_files = (self._check_time_files(resolved_cfg=datasets_step_cfg,))
+                files_available, missing_files = self._check_time_files(
+                    resolved_cfg=datasets_step_cfg,
+                )
 
-                # conditions to check file available or not
                 if not files_available:
 
-                    missing_message = (f"Missing datasets at time '{time_step}': " + ", ".join(missing_files))
+                    self._availability_stats[
+                        "time_steps_missing"
+                    ] += 1
+
+                    self._availability_stats[
+                        "missing_files"
+                    ].append({
+                        "time": time_step,
+                        "files": list(missing_files),
+                    })
+
+                    missing_message = (
+                            f"Missing datasets at time '{time_step}': "
+                            + ", ".join(missing_files)
+                    )
 
                     if self.skip_missing:
-                        logger.warning(f"{missing_message}. Time step skipped.")
+                        logger.warning(
+                            f"{missing_message}. Time step skipped."
+                        )
                         continue
 
-                    raise FileNotFoundError(missing_message)
+                    raise FileNotFoundError(
+                        missing_message
+                    )
 
-                # Only now load the reference and candidate maps.
-                datasets_obj = self._get_datasets(resolved_cfg=datasets_step_cfg,time_step=time_step)
+                self._availability_stats[
+                    "time_steps_available"
+                ] += 1
 
-                # Grid geometry usually does not change with time.
-                # Therefore, check it only on the first valid pair.
+                # Load the reference and candidate maps only when all
+                # files required for the current time step are available.
+                datasets_obj = self._get_datasets(
+                    resolved_cfg=datasets_step_cfg,
+                    time_step=time_step,
+                )
+
+                # Grid geometry normally does not change with time.
                 if self._must_check_grids():
-                    is_compatible = self._check_datasets(datasets_obj=datasets_obj,)
-                    if is_compatible: self._grids_checked = True
+
+                    is_compatible = self._check_datasets(
+                        datasets_obj=datasets_obj,
+                    )
+
+                    if is_compatible:
+                        self._grids_checked = True
 
                 yield {
                     "time": time_step,
-                    "paths":
-                        {group_name: group_cfg["file_path"] for group_name, group_cfg in datasets_step_cfg.items()},
-                    **datasets_obj,}
+                    "paths": {
+                        group_name: group_cfg["file_path"]
+                        for group_name, group_cfg
+                        in datasets_step_cfg.items()
+                    },
+                    **datasets_obj,
+                }
 
             finally:
+
                 if datasets_obj is not None:
                     datasets_obj.clear()
 
                 datasets_obj = None
-
-                # Explicit collection should not be called more often than
-                # necessary, but it is useful after closing large raster and
-                # xarray objects.
                 gc.collect()
 
-            # time info end
-            logger.info(f" -----> Time step {time_id}/{time_steps}: {time_step} ... DONE")
+                logger.info(
+                    f" -----> Time step {time_id}/{time_steps_total}: "
+                    f"{time_step} ... DONE"
+                )
 
-        # info method end
+        # --------------------------------------------------------------------------
+        # Evaluate the missing-data percentage after checking all requested times.
+
+        time_steps_missing = self._availability_stats[
+            "time_steps_missing"
+        ]
+
+        if time_steps_total > 0:
+            missing_percentage = (
+                    100.0
+                    * time_steps_missing
+                    / time_steps_total
+            )
+        else:
+            missing_percentage = 0.0
+
+        self._availability_stats[
+            "missing_percentage"
+        ] = missing_percentage
+
+        logger.info(
+            " -----> Dataset availability: "
+            "requested=%d, available=%d, missing=%d, "
+            "missing_percentage=%.2f%%, threshold=%.2f%%",
+            time_steps_total,
+            self._availability_stats["time_steps_available"],
+            time_steps_missing,
+            missing_percentage,
+            self.missing_threshold,
+        )
+
+        # Exit only when the missing percentage is greater than the threshold.
+        if missing_percentage > self.missing_threshold:
+            raise RuntimeError(
+                "Missing-data threshold exceeded: "
+                f"{time_steps_missing}/{time_steps_total} time steps "
+                f"are missing ({missing_percentage:.2f}%). "
+                f"The configured threshold is "
+                f"{self.missing_threshold:.2f}%."
+            )
+
+        if time_steps_missing > 0:
+            logger.warning(
+                " -----> Missing datasets are within the accepted threshold: "
+                "%.2f%% <= %.2f%%. Analysis continues.",
+                missing_percentage,
+                self.missing_threshold,
+            )
+
         logger.info(" ----> Iterate dynamic datasets ... DONE")
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -395,12 +546,14 @@ class DynamicDatasets:
                 "time_steps_processed": time_steps_processed,
                 "time_steps_skipped": time_steps_skipped,
                 "valid_pairs_total": valid_pairs_total,
+                "availability": deepcopy(self._availability_stats),
                 **metrics_info,
             },
             "configuration": {
                 "min_observations": min_observations,
                 "dtype": str(metrics_dtype),
                 "continue_on_error": continue_on_error,
+                "missing_threshold": self.missing_threshold,
             },
         }
 
@@ -1271,7 +1424,7 @@ class DynamicDatasets:
 
             # check time for static or dynamic datasets
             if time is None:
-                # static datasets or not solved dynamic datasets
+
                 dataset_validated = validate_datasets(
                     dataset_cfg=dataset_cfg,
                     group_name=group_name,
@@ -1281,13 +1434,15 @@ class DynamicDatasets:
                 )
 
             else:
-                # dynamic datasets
+
+                # Resolve the dynamic path, but do not raise if the file is absent.
+                # Missing files are counted and evaluated in iterate().
                 dataset_validated = validate_datasets(
                     dataset_cfg=dataset_cfg,
                     group_name=group_name,
                     dataset_key=group_name,
                     time_step=time,
-                    check_file=True,
+                    check_file=False,
                 )
 
             # check dataset type

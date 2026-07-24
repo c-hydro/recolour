@@ -24,10 +24,9 @@ import sys
 import argparse
 import numpy as np
 
-from app.app_map.compute_grid_metrics import lib_results
 from lib_utils_logging import get_logger
 from lib_utils_io import read_file_json
-from lib_utils_time import create_time_period, create_seasons_period
+from lib_utils_time import create_time_period, create_seasons_period, remove_seasons_empty
 
 from lib_geo import GeoDatasets
 from lib_data import DynamicDatasets
@@ -51,6 +50,7 @@ def main():
     settings = read_file_json(args.settings_file)
 
     # get configuration(s)
+    log_cfg = settings.get("log", {})
     time_cfg = settings['time']
     reference_cfg = settings["datasets"]["reference"]
     other_cfg = settings["datasets"]["other"]
@@ -67,11 +67,11 @@ def main():
         print(f" ===> ERROR: parsing time: {exc}")
         sys.exit(1)
 
-    # get seasons time period
+    # get seasons time periods
     seasons_time_period = create_seasons_period(reference_time_period, seasons=metrics_cfg.get('seasons', 'ALL'))
 
     # get logger
-    get_logger(logger, settings, reference_time=reference_time_period[-1])
+    get_logger(logger, log_cfg, reference_time=reference_time_period[-1])
     # ------------------------------------------------------------------------------------------------------------------
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -96,8 +96,12 @@ def main():
                 other_cfg["name"],other_cfg["type"],)
 
     # metrics
-    logger.info(" ---> Metrics:           min_obs=%s dtype=%s",
-                metrics_cfg.get("min_observations"),metrics_cfg.get("dtype"),)
+    logger.info(
+        " ---> Metrics:           min_obs=%s dtype=%s missing_thr=%.1f%%",
+        metrics_cfg.get("min_observations"),
+        metrics_cfg.get("dtype"),
+        metrics_cfg.get("missing_threshold", 90.0),
+    )
 
     # weights
     logger.info(" ---> Weights:           %s (max=%.2f)",
@@ -108,6 +112,9 @@ def main():
     logger.info(" ---> Results:           %s",results_cfg.get("folder"),)
 
     start_time = time.time()
+
+    # remove empty time periods
+    seasons_time_period = remove_seasons_empty(seasons_time_period)
     # ------------------------------------------------------------------------------------------------------------------
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -127,50 +134,45 @@ def main():
             f"{season_period[0]:%Y-%m-%d %H:%M} --> {season_period[-1]:%Y-%m-%d %H:%M} "
             f"({len(season_period)} steps) ... ")
 
-        # check seasons steps
-        if len(season_period) > 0:
+        # drive dynamic datasets
+        driver_data = DynamicDatasets(
+            datasets_cfg=settings["datasets"],
+            geo=geo_datasets,
+            time_tag=season_tag,
+            time_period=season_period,
+            time_frequency=reference_time_info['frequency'],
+            reference_group="reference", other_group="other",
+            check_grids=True, raise_error=True,
+            missing_threshold=metrics_cfg.get("threshold_percentage", 90.0)
+        )
+        # organize dynamic datasets
+        dynamic_datasets = driver_data.organize()
+        # analyze dynamic datasets
+        dynamic_analysis = driver_data.analyze_metrics(
+            metrics_cfg=settings.get("metrics",{})
+        )
 
-            # drive dynamic datasets
-            driver_data = DynamicDatasets(
-                datasets_cfg=settings["datasets"],
-                geo=geo_datasets,
-                time_tag=season_tag,
-                time_period=season_period,
-                time_frequency=reference_time_info['frequency'],
-                reference_group="reference", other_group="other",
-                check_grids=True, raise_error=True,
-            )
-            # organize dynamic datasets
-            dynamic_datasets = driver_data.organize()
-            # analyze dynamic datasets
-            dynamic_analysis = driver_data.analyze_metrics(
-                metrics_cfg=settings.get("metrics",{})
-            )
+        # compute spatial nudging weights
+        dynamic_analysis = driver_data.analyze_weights(
+            analysis_data=dynamic_analysis,
+            weights_cfg=settings.get("weights",{})
+        )
 
-            # compute spatial nudging weights
-            dynamic_analysis = driver_data.analyze_weights(
-                analysis_data=dynamic_analysis,
-                weights_cfg=settings.get("weights",{})
-            )
+        # summarize dynamic datasets
+        dynamic_summary = driver_data.summarize(dynamic_analysis)
 
-            # summarize dynamic datasets
-            dynamic_summary = driver_data.summarize(dynamic_analysis)
+        # initialize output driver
+        driver_results = Results(
+            time_tag=season_tag,
+            time_reference=reference_time_period[-1],
+            img_cfg=settings.get("img", {}),
+            results_cfg=settings.get("results", {}),
+        )
 
-            # initialize output driver
-            driver_results = Results(
-                time_tag=season_tag,
-                img_cfg=settings.get("img",{}),
-                results_cfg=settings.get("results",{},),
-            )
-
-            # create PNG, GeoTIFF and ASCII outputs
-            dynamic_results = driver_results.organize(
-                analysis_summary=dynamic_summary,
-            )
-
-        else:
-            # warning for no time steps available in the periods
-            logger.warning(f" ===> {season_tag:<4}: empty (0 steps)")
+        # create PNG, GeoTIFF and ASCII outputs
+        dynamic_results = driver_results.organize(
+            analysis_summary=dynamic_summary,
+        )
 
         # info seasons end
         logger.info(

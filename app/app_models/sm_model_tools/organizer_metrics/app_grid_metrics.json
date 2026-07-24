@@ -1,8 +1,8 @@
 {
   "log": {
     "level": "INFO",
-    "folder": "/home/fabio/Desktop/recolour/exec/log/",
-    "filename": "sm_grid_metrics_{time_run:%Y%m%d_%H%M}.log"
+    "folder": "/hydro/log/sm_cnr/",
+    "filename": "sm_model_grid_metrics_{time_run:%Y%m%d_%H%M}_history.log"
   },
 
   "time": {
@@ -19,7 +19,7 @@
         "name": "terrain",
         "type": "ascii_grid",
         "compression": false,
-        "folder": "/home/fabio/Desktop/recolour/dset/hmc_auxiliary/domain/",
+        "folder": "/hydro/data/data_static/sm_cnr/geo/",
         "filename": "marche.dem.txt",
         "band": 1, "crs": "EPSG:4326",
         "scale_factor": 1.0, "offset": 0.0,
@@ -30,7 +30,7 @@
         "name": "curve_number",
         "type": "ascii_grid",
         "compression": false,
-        "folder": "/home/fabio/Desktop/recolour/dset/hmc_auxiliary/domain/",
+        "folder": "/hydro/data/data_static/sm_cnr/geo/",
         "filename": "marche.cn.txt",
         "band": 1,
         "crs": "EPSG:4326",
@@ -46,7 +46,7 @@
         "name": "terrain",
         "type": "ascii_grid",
         "compression": false,
-        "folder": "/home/fabio/Desktop/recolour/dset/hmc_auxiliary/domain/",
+        "folder": "/hydro/data/data_static/sm_cnr/geo/",
         "filename": "marche.dem.txt",
         "band": 1, "crs": "EPSG:4326",
         "scale_factor": 1.0, "offset": 0.0,
@@ -65,7 +65,7 @@
       "compression": true,
       "compression_type": "gzip",
 
-      "folder": "/home/fabio/Desktop/recolour/dset/metrics/data/model_hmc/{time:%Y/%m/}",
+      "folder": "/hydro/archive/model_dset_restart_marche/gridded/",
       "filename": "hmc.state-grid.{time:%Y%m%d%H%M}.nc.gz",
 
       "variable": "VTot",
@@ -78,7 +78,7 @@
       "valid_min": 0.0, "valid_max": null,
       "nodata_values": [-9999.0, -9e15],
 
-      "compression_settings": {"temporary_folder": "/tmp/sm_grid_metrics"},
+      "compression_settings": {"temporary_folder": "/hydro/analysis/tmp/sm_cnr_metrics/"},
 
       "scaling": {"enabled": true, "minimum_v": 0.001, "clip_min": 0.0, "clip_max": 1.0}
     },
@@ -90,7 +90,7 @@
       "type": "tiff",
       "compression": false,
 
-      "folder": "/home/fabio/Desktop/recolour/dset/metrics/data/model_cnr/{time:%Y/%m/%d}",
+      "folder": "/hydro/data/data_dynamic/outcome/sm_cnr/grid/soil_moisture/{time:%Y/%m/%d}",
       "filename": "soil_moisture_{time:%Y%m%d%H}.tif",
 
       "band": 1, "crs": "EPSG:4326",
@@ -107,7 +107,8 @@
     "seasons": ["ALL", "DJF", "MAM", "JJA", "SON"],
     "min_observations": 5,
     "dtype": "float64",
-    "continue_on_error": true
+    "continue_on_error": true,
+    "threshold_percentage": 15.0
   },
 
   "weights": {
@@ -120,9 +121,9 @@
 
   "img": {
     "enabled": true,
-
-    "folder": "/home/fabio/Desktop/recolour/exec/metrics/images/",
-    "filename": "sm_weights_{name}_{season}.png",
+    
+    "folder": "/hydro/analysis/sm_cnr/model_grid/metrics/{time:%Y/}/images/",
+    "filename": "sm_weights_{season}_{name}_{time:%Y%m}.png",
 
     "layers": [
       "weight",
@@ -154,7 +155,8 @@
 
   "results": {
     "enabled": true,
-    "folder": "/home/fabio/Desktop/recolour/exec/metrics/results/",
+    
+    "folder": "/hydro/analysis/sm_cnr/model_grid/metrics/{time:%Y/}/maps/",
 
     "layers": [
       "weight",
@@ -169,14 +171,14 @@
 
     "tiff": {
       "enabled": true,
-      "filename": "sm_weights_{name}_{season}.tif",
-      "compression": "deflate",
-      "tiled": true
+      "filename": "sm_weights_{season}_{name}_{time:%Y%m}.tif",
+      "compression": "lzw",
+      "tiled": false
     },
 
     "ascii": {
       "enabled": true,
-      "filename": "sm_weights_{name}_{season}.asc",
+      "filename": "sm_weights_{season}_{name}_{time:%Y%m}.txt",
       "decimals": 6
     }
   }

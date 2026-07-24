@@ -1,14 +1,26 @@
+
 """
 Library Features:
 
 Name:          lib_results
 Author(s):     Fabio Delogu
-Date:          '20260717'
-Version:       '1.0.0'
+Date:          '20260723'
+Version:       '1.1.0'
 
 Purpose:
     Plot nudging-weight maps in PNG format and save them as GeoTIFF
     or ESRI ASCII Grid files.
+
+    Destination folders and filenames support these tags:
+
+        {name}
+        {season}
+        {time:%Y}
+        {time:%m}
+        {time:%d}
+        {time:%H}
+        {time:%M}
+        {time:%Y%m%d_%H%M}
 """
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -20,6 +32,7 @@ from typing import Any, Dict, List, Mapping, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import rasterio
 
 from rasterio.crs import CRS
@@ -31,6 +44,7 @@ from config_info import LOGGER_NAME
 logger = logging.getLogger(LOGGER_NAME)
 # ----------------------------------------------------------------------------------------------------------------------
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 # class to view and save nudging weight maps
 class Results:
@@ -38,12 +52,19 @@ class Results:
     def __init__(
             self,
             time_tag: str = "ALL",
+            time_reference: Optional[Any] = None,
             img_cfg: Optional[Dict[str, Any]] = None,
             results_cfg: Optional[Dict[str, Any]] = None,
     ):
 
         # set time tag
-        self.time_tag = time_tag
+        self.time_tag = str(time_tag)
+
+        # set reference time used for destination folders and filenames
+        self.time_reference = self._parse_time(
+            time_value=time_reference,
+            time_name="time_reference",
+        )
 
         # normalize configurations
         self.img_cfg = (
@@ -65,6 +86,71 @@ class Results:
         self._configure_results()
 
     # ------------------------------------------------------------------------------------------------------------------
+    # method to parse a time value
+    @staticmethod
+    def _parse_time(
+            time_value: Any,
+            time_name: str,
+    ) -> pd.Timestamp:
+
+        if time_value is None:
+            raise ValueError(
+                f"'{time_name}' is not defined."
+            )
+
+        try:
+            time_obj = pd.Timestamp(
+                time_value
+            )
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"Unable to parse '{time_name}': '{time_value}'."
+            ) from exc
+
+        if pd.isna(time_obj):
+            raise ValueError(
+                f"'{time_name}' is NaT."
+            )
+
+        return time_obj
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # method to resolve destination templates
+    def _format_destination(
+            self,
+            template: str,
+            field_name: str,
+            layer_name: Optional[str] = None,
+    ) -> str:
+
+        if not isinstance(template, str):
+            raise TypeError(
+                f"Destination template '{field_name}' must be a string."
+            )
+
+        format_values = {
+            "time": self.time_reference.to_pydatetime(),
+            "season": self.time_tag,
+            "time_tag": self.time_tag,
+            "name": layer_name if layer_name is not None else "",
+        }
+
+        try:
+            destination = template.format(
+                **format_values
+            )
+        except (KeyError, ValueError, IndexError) as exc:
+            raise ValueError(
+                f"Unable to resolve destination template "
+                f"'{field_name}': '{template}' using "
+                f"time='{self.time_reference}', "
+                f"season='{self.time_tag}' and "
+                f"name='{layer_name}'."
+            ) from exc
+
+        return destination
+
+    # ------------------------------------------------------------------------------------------------------------------
     # method to configure image options
     def _configure_images(self) -> None:
 
@@ -76,17 +162,22 @@ class Results:
             )
         )
 
-        self.img_folder = str(
+        img_folder_template = str(
             self.img_cfg.get(
                 "folder",
                 "./output/images",
             )
         )
 
+        self.img_folder = self._format_destination(
+            template=img_folder_template,
+            field_name="img.folder",
+        )
+
         self.img_filename = str(
             self.img_cfg.get(
                 "filename",
-                "weights_{name}.png",
+                "weights_{season}_{name}_{time:%Y%m%d_%H%M}.png",
             )
         )
 
@@ -197,7 +288,6 @@ class Results:
                 "Image option 'layers' must be a list."
             )
 
-        # layer-specific plot ranges
         self.img_ranges = self.img_cfg.get(
             "ranges",
             {},
@@ -219,11 +309,16 @@ class Results:
             )
         )
 
-        self.results_folder = str(
+        results_folder_template = str(
             self.results_cfg.get(
                 "folder",
                 "./output/results",
             )
+        )
+
+        self.results_folder = self._format_destination(
+            template=results_folder_template,
+            field_name="results.folder",
         )
 
         self.results_layers = self.results_cfg.get(
@@ -257,6 +352,7 @@ class Results:
         )
 
         # GeoTIFF options
+        # GeoTIFF options
         tiff_cfg = self.results_cfg.get(
             "tiff",
             {},
@@ -280,21 +376,69 @@ class Results:
         self.tiff_filename = str(
             tiff_cfg.get(
                 "filename",
-                "weights_{name}.tif",
+                "weights_{season}_{name}_{time:%Y%m%d_%H%M}.tif",
             )
         )
 
-        self.tiff_compression = tiff_cfg.get(
+        # Compression is optional.
+        # Recommended values: null, "none", "lzw", "deflate".
+        compression_raw = tiff_cfg.get(
             "compression",
-            "deflate",
+            "lzw",
         )
 
+        if compression_raw is None:
+            self.tiff_compression = None
+        else:
+            compression_value = str(
+                compression_raw
+            ).strip().lower()
+
+            if compression_value in {
+                "",
+                "none",
+                "null",
+                "false",
+            }:
+                self.tiff_compression = None
+
+            elif compression_value in {
+                "lzw",
+                "deflate",
+            }:
+                self.tiff_compression = compression_value
+
+            else:
+                raise ValueError(
+                    "Unsupported TIFF compression "
+                    f"'{compression_raw}'. "
+                    "Supported values are: null, none, lzw, deflate."
+                )
+
+        # Tiling is disabled by default because these maps are relatively small.
         self.tiff_tiled = bool(
             tiff_cfg.get(
                 "tiled",
-                True,
+                False,
             )
         )
+
+        self.tiff_block_size = int(
+            tiff_cfg.get(
+                "block_size",
+                256,
+            )
+        )
+
+        if self.tiff_block_size <= 0:
+            raise ValueError(
+                "TIFF option 'block_size' must be greater than zero."
+            )
+
+        if self.tiff_block_size % 16 != 0:
+            raise ValueError(
+                "TIFF option 'block_size' must be a multiple of 16."
+            )
 
         # ASCII options
         ascii_cfg = self.results_cfg.get(
@@ -320,7 +464,7 @@ class Results:
         self.ascii_filename = str(
             ascii_cfg.get(
                 "filename",
-                "weights_{name}.asc",
+                "weights_{season}_{name}_{time:%Y%m%d_%H%M}.asc",
             )
         )
 
@@ -539,8 +683,8 @@ class Results:
             latitude=latitude,
         )
 
-        season_name = self.time_tag
         output_files = {}
+
         for layer_name, layer_values in layers_data.items():
 
             logger.info(
@@ -572,6 +716,8 @@ class Results:
 
             title = self.img_title.format(
                 name=layer_name,
+                season=self.time_tag,
+                time=self.time_reference.to_pydatetime(),
             )
 
             axis.set_title(
@@ -612,8 +758,10 @@ class Results:
 
             figure.tight_layout()
 
-            file_name = self.img_filename.format(
-                name=layer_name, season=season_name
+            file_name = self._format_destination(
+                template=self.img_filename,
+                field_name="img.filename",
+                layer_name=layer_name,
             )
 
             file_path = os.path.join(
@@ -633,6 +781,11 @@ class Results:
 
             output_files[layer_name] = file_path
 
+            logger.info(
+                " -----> PNG saved: %s",
+                file_path,
+            )
+
         logger.info(
             " ----> Create weight PNG images ... DONE"
         )
@@ -640,7 +793,7 @@ class Results:
         return output_files
 
     # ------------------------------------------------------------------------------------------------------------------
-    # public method to save weight layers
+	# public method to save weight layers
     def save(
             self,
             analysis_summary: Dict[str, Any],
@@ -668,9 +821,18 @@ class Results:
         weights_data = analysis_summary["weights"]
         grid_data = analysis_summary["grid"]
 
+        logger.info(
+            " -----> Collect weight layers ..."
+        )
+
         layers_data = self._get_layers(
             weights_data=weights_data,
             requested_layers=self.results_layers,
+        )
+
+        logger.info(
+            " -----> Collect weight layers ... DONE: %s",
+            list(layers_data.keys()),
         )
 
         if not layers_data:
@@ -701,6 +863,16 @@ class Results:
                 crs
             )
 
+        logger.info(
+            " -----> Grid transform: %s",
+            transform,
+        )
+
+        logger.info(
+            " -----> Grid CRS: %s",
+            crs,
+        )
+
         os.makedirs(
             self.results_folder,
             exist_ok=True,
@@ -711,31 +883,73 @@ class Results:
             "ascii": {},
         }
 
-        season_name = self.time_tag
         for layer_name, layer_values in layers_data.items():
 
-            values_output = np.asarray(
+            logger.info(
+                " -----> Prepare weight layer: %s",
+                layer_name,
+            )
+
+            # Create an independent, native-endian, C-contiguous array.
+            values_output = np.array(
                 layer_values,
-                dtype=self.results_dtype,
-            ).copy()
+                dtype=np.dtype(self.results_dtype).newbyteorder("="),
+                copy=True,
+                order="C",
+            )
+
+            if values_output.ndim != 2:
+                raise ValueError(
+                    f"Weight layer '{layer_name}' must be two-dimensional. "
+                    f"Received shape: {values_output.shape}"
+                )
 
             invalid_mask = ~np.isfinite(
                 values_output
+            )
+
+            invalid_count = int(
+                np.count_nonzero(invalid_mask)
             )
 
             values_output[
                 invalid_mask
             ] = self.results_nodata
 
+            # Recreate the array after replacing invalid values.
+            values_output = np.ascontiguousarray(
+                values_output
+            )
+
+            logger.info(
+                " -----> Layer '%s': shape=%s, dtype=%s, "
+                "C-contiguous=%s, invalid=%s, min=%s, max=%s",
+                layer_name,
+                values_output.shape,
+                values_output.dtype,
+                values_output.flags["C_CONTIGUOUS"],
+                invalid_count,
+                float(np.min(values_output)),
+                float(np.max(values_output)),
+            )
+
             if self.tiff_enabled:
 
-                file_name_tiff = self.tiff_filename.format(
-                    name=layer_name, season=season_name
+                file_name_tiff = self._format_destination(
+                    template=self.tiff_filename,
+                    field_name="results.tiff.filename",
+                    layer_name=layer_name,
                 )
 
                 file_path_tiff = os.path.join(
                     self.results_folder,
                     file_name_tiff,
+                )
+
+                logger.info(
+                    " -----> Write TIFF layer '%s': %s",
+                    layer_name,
+                    file_path_tiff,
                 )
 
                 self._write_tiff(
@@ -745,19 +959,32 @@ class Results:
                     crs=crs,
                 )
 
+                logger.info(
+                    " -----> TIFF saved: %s",
+                    file_path_tiff,
+                )
+
                 output_files["tiff"][
                     layer_name
                 ] = file_path_tiff
 
             if self.ascii_enabled:
 
-                file_name_ascii = self.ascii_filename.format(
-                    name=layer_name, season=season_name
+                file_name_ascii = self._format_destination(
+                    template=self.ascii_filename,
+                    field_name="results.ascii.filename",
+                    layer_name=layer_name,
                 )
 
                 file_path_ascii = os.path.join(
                     self.results_folder,
                     file_name_ascii,
+                )
+
+                logger.info(
+                    " -----> Write ASCII layer '%s': %s",
+                    layer_name,
+                    file_path_ascii,
                 )
 
                 self._write_ascii(
@@ -766,9 +993,17 @@ class Results:
                     transform=transform,
                 )
 
+                logger.info(
+                    " -----> ASCII saved: %s",
+                    file_path_ascii,
+                )
+
                 output_files["ascii"][
                     layer_name
                 ] = file_path_ascii
+
+            del invalid_mask
+            del values_output
 
         logger.info(
             " ----> Save weight result maps ... DONE"
@@ -786,20 +1021,95 @@ class Results:
             crs: Optional[CRS],
     ) -> None:
 
-        height, width = values.shape
+        # Create an independent, native-endian and C-contiguous array.
+        values_write = np.array(
+            values,
+            dtype=np.dtype(self.results_dtype).newbyteorder("="),
+            copy=True,
+            order="C",
+        )
+
+        if values_write.ndim != 2:
+            raise ValueError(
+                f"GeoTIFF values must be 2D. "
+                f"Received shape: {values_write.shape}"
+            )
+
+        height, width = values_write.shape
 
         profile = {
             "driver": "GTiff",
             "height": height,
             "width": width,
             "count": 1,
-            "dtype": self.results_dtype.name,
+            "dtype": values_write.dtype.name,
             "crs": crs,
             "transform": transform,
-            "nodata": self.results_nodata,
-            "compress": self.tiff_compression,
-            "tiled": self.tiff_tiled,
+            "nodata": float(self.results_nodata),
         }
+
+        # Add compression only when configured.
+        if self.tiff_compression is not None:
+
+            profile["compress"] = self.tiff_compression
+
+            # Floating-point predictor.
+            if self.tiff_compression in {
+                "lzw",
+                "deflate",
+            }:
+                profile["predictor"] = 3
+
+        # Add tiling only when explicitly enabled.
+        if self.tiff_tiled:
+            block_size_x = min(
+                self.tiff_block_size,
+                width,
+            )
+
+            block_size_y = min(
+                self.tiff_block_size,
+                height,
+            )
+
+            # Tile dimensions must be multiples of 16.
+            block_size_x = max(
+                16,
+                block_size_x - block_size_x % 16,
+            )
+
+            block_size_y = max(
+                16,
+                block_size_y - block_size_y % 16,
+            )
+
+            profile.update({
+                "tiled": True,
+                "blockxsize": block_size_x,
+                "blockysize": block_size_y,
+            })
+
+        logger.info(
+            " ------> Open GeoTIFF: %s",
+            file_path,
+        )
+
+        logger.info(
+            " ------> GeoTIFF compression: %s",
+            self.tiff_compression
+            if self.tiff_compression is not None
+            else "disabled",
+        )
+
+        logger.info(
+            " ------> GeoTIFF tiled: %s",
+            self.tiff_tiled,
+        )
+
+        logger.debug(
+            " ------> GeoTIFF profile: %s",
+            profile,
+        )
 
         with rasterio.open(
                 file_path,
@@ -807,16 +1117,25 @@ class Results:
                 **profile,
         ) as file_handle:
 
+            logger.info(
+                " ------> GeoTIFF opened: %s",
+                file_path,
+            )
+
             file_handle.write(
-                values,
-                1,
+                values_write,
+                indexes=1,
+            )
+
+            logger.info(
+                " ------> GeoTIFF values written: %s",
+                file_path,
             )
 
         logger.info(
             " -----> GeoTIFF saved: %s",
             file_path,
         )
-
     # ------------------------------------------------------------------------------------------------------------------
     # method to write ESRI ASCII Grid
     def _write_ascii(
@@ -912,6 +1231,21 @@ class Results:
             " ----> Organize weight outputs ..."
         )
 
+        logger.info(
+            " -----> Reference time: %s",
+            self.time_reference,
+        )
+
+        logger.info(
+            " -----> Image folder: %s",
+            self.img_folder,
+        )
+
+        logger.info(
+            " -----> Results folder: %s",
+            self.results_folder,
+        )
+
         image_files = self.plot(
             analysis_summary=analysis_summary,
         )
@@ -921,6 +1255,8 @@ class Results:
         )
 
         output_data = {
+            "time_reference": self.time_reference,
+            "time_tag": self.time_tag,
             "images": image_files,
             "results": result_files,
         }
@@ -931,3 +1267,4 @@ class Results:
 
         return output_data
 # ----------------------------------------------------------------------------------------------------------------------
+

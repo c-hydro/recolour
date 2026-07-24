@@ -24,6 +24,21 @@ SEASON_MONTHS = {"DJF": [12, 1, 2],"MAM": [3, 4, 5],"JJA": [6, 7, 8],"SON": [9, 
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
+# remove empty seasons
+def remove_seasons_empty(season_periods: Dict[str, pd.DatetimeIndex],) -> Dict[str, pd.DatetimeIndex]:
+
+    season_periods_filtered = {}
+    for season_name, season_period in season_periods.items():
+
+        if season_period is None or len(season_period) == 0:
+            logger.warning(f" ===> Season {season_name}: no time steps available. Season removed.")
+            continue
+        season_periods_filtered[season_name] = season_period
+
+    return season_periods_filtered
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
 # method to create seasons period
 def create_seasons_period(
         reference_time_period: pd.DatetimeIndex,
