@@ -1,0 +1,33 @@
+{
+  "time_now": "now",
+
+  "time": {
+    "days_before": 40,
+    "daily_hour": null,
+    "include_reference_day": true
+  },
+
+  "variables": ["t"],
+
+  "input": {
+    "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_grid/period_24h/{time:%Y/%m/%d}",
+    "file_template": "obs_day_{var_name}_{time:%Y%m%d%H}.csv",
+    "delimiter": ",",
+    "encoding": "utf-8-sig",
+    "time_column": "time",
+    "time_format": "%Y%m%d%H",
+    "strict_headers": true,
+    "fail_if_no_files": false,
+    "missing_file_value": -9998,
+    "missing_file_method": "backward"
+  },
+
+  "output": {
+    "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_grid/period_db/{time_now:%Y/%m/%d}",
+    "file_template": "obs_db_{var_name}_{time_now:%Y%m%d%H}.csv",
+    "keep_until_reference": true,
+    "delimiter": ",",
+    "encoding": "utf-8",
+    "sort_order": "descending"
+  }
+}

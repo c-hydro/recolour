@@ -11,13 +11,25 @@ Version:       '1.5.0'
 # libraries
 from __future__ import annotations
 
+import logging
 import numpy as np
 
 from pyresample import geometry, kd_tree
 from typing import Any, Dict, Sequence
 
+from astropy.convolution import (
+    convolve,
+    Box2DKernel,
+    Gaussian2DKernel,
+    Tophat2DKernel,
+    TrapezoidDisk2DKernel,
+)
+
 from lib_utils_io import PointValue
 from config_info import LOGGER_NAME, VALUE_NODATA_DEFAULT
+
+# logger stream
+logger_stream = logging.getLogger(LOGGER_NAME)
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -136,4 +148,270 @@ def interpolate_points2grid(
     out[valid_target] = data[valid_target]
 
     return out
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to smooth grid using Astropy
+def smooth_grid(
+        data: np.ndarray,
+        valid_mask: np.ndarray,
+        cfg: Dict[str, Any],
+) -> np.ndarray:
+    """
+    Smooth interpolated gridded data using Astropy convolution kernels.
+
+    Supported methods:
+        - gaussian
+        - box
+        - tophat
+        - trapezoid
+
+    Parameters
+    ----------
+    data : np.ndarray
+        Interpolated two-dimensional grid.
+
+    valid_mask : np.ndarray
+        Boolean mask defining valid DEM cells.
+
+    cfg : Dict[str, Any]
+        Configuration dictionary. Smoothing settings are read from
+        cfg["smoothing"].
+
+    Returns
+    -------
+    np.ndarray
+        Smoothed grid with the same shape as the input.
+    """
+
+    active = bool(cfg.get("active", False))
+    method = str(cfg.get("method", "gaussian")).lower()
+    nodata = float(cfg.get("nodata", VALUE_NODATA_DEFAULT))
+    iterations = int(cfg.get("iterations", 1))
+    preserve_original_nodata = bool(cfg.get("preserve_original_nodata", True))
+    preserve_range = bool(cfg.get("preserve_range", True))
+
+    # Weight assigned to the original interpolated values:
+    # 0.0 = completely smoothed
+    # 0.35 -> balanced
+    # 0.50 -> centers and original values preserved more
+    # 0.70 -> limited smoothing
+    # 1.0 = completely original
+    original_weight = float(cfg.get("original_weight", 0.35))
+
+    data = np.asarray(data, dtype=np.float64)
+    valid_mask = np.asarray(valid_mask, dtype=bool)
+    if data.ndim != 2:
+        raise ValueError(
+            f"Input data must be two-dimensional. Received: {data.ndim}D"
+        )
+
+    if data.shape != valid_mask.shape:
+        raise ValueError(
+            f"Data shape {data.shape} differs from valid-mask shape "
+            f"{valid_mask.shape}"
+        )
+
+    if not active or iterations < 1:
+        logger_stream.warning(f' ===> Smoothing is not activated or iterations are less than 1')
+        return data.astype(np.float32)
+
+    original_valid = (
+            valid_mask
+            & np.isfinite(data)
+            & ~np.isclose(data, nodata)
+    )
+
+    output = np.full(
+        data.shape,
+        nodata,
+        dtype=np.float32,
+    )
+
+    if not np.any(original_valid):
+        logger_stream.warning(f' ===> All datasets are not valid. Skip smoothing')
+        return output
+
+    kernel = get_smoothing_kernel(cfg)
+
+    data_min = float(np.nanmin(data[original_valid]))
+    data_max = float(np.nanmax(data[original_valid]))
+
+    # Astropy uses NaN values to identify cells excluded from convolution.
+    original_data = np.where(
+        original_valid,
+        data,
+        np.nan,
+    )
+
+    data_work = original_data.copy()
+
+    for _ in range(iterations):
+
+        data_smoothed = convolve(
+            data_work,
+            kernel,
+            boundary="extend",
+            nan_treatment="interpolate",
+            normalize_kernel=True,
+            preserve_nan=False,
+        )
+
+        data_work = (
+                original_weight * original_data
+                + (1.0 - original_weight) * data_smoothed
+        )
+
+        # Prevent convolution from extending values outside the DEM domain.
+        data_work[~valid_mask] = np.nan
+
+        if preserve_original_nodata:
+            data_work[~original_valid] = np.nan
+
+    if preserve_range:
+        data_work = np.clip(
+            data_work,
+            data_min,
+            data_max,
+        )
+
+    output_valid = (
+            valid_mask
+            & np.isfinite(data_work)
+    )
+
+    if preserve_original_nodata:
+        output_valid &= original_valid
+
+    output[output_valid] = data_work[output_valid].astype(np.float32)
+
+    return output
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to get a configuration value, using a fallback for missing or None values
+def get_cfg_value(cfg, key, default):
+    value = cfg.get(key, default)
+
+    if value is None:
+        value = default
+
+    return value
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to create Gaussian smoothing kernel
+def create_gaussian_kernel(cfg):
+
+    sigma = float(get_cfg_value(cfg, "sigma", 1.5))
+
+    sigma_x = float(get_cfg_value(cfg, "sigma_x", sigma))
+    sigma_y = float(get_cfg_value(cfg, "sigma_y", sigma))
+    theta_deg = float(get_cfg_value(cfg, "theta_deg", 0.0))
+
+    if sigma_x <= 0 or sigma_y <= 0:
+        raise ValueError(
+            f"Gaussian sigma must be greater than zero: "
+            f"sigma_x={sigma_x}, sigma_y={sigma_y}"
+        )
+
+    return Gaussian2DKernel(
+        x_stddev=sigma_x,
+        y_stddev=sigma_y,
+        theta=np.deg2rad(theta_deg),
+    )
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to create box smoothing kernel
+def create_box_kernel(cfg):
+
+    width = int(get_cfg_value(cfg, "width", 3))
+
+    if width < 1:
+        raise ValueError(f"Box width must be at least 1: width={width}")
+
+    # Use an odd width to have a central pixel.
+    if width % 2 == 0:
+        width += 1
+
+    return Box2DKernel(width=width)
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to create top-hat smoothing kernel
+def create_tophat_kernel(cfg):
+
+    radius = float(get_cfg_value(cfg, "radius", 2.0))
+
+    if radius <= 0:
+        raise ValueError(
+            f"Top-hat radius must be greater than zero: radius={radius}"
+        )
+
+    return Tophat2DKernel(radius=radius)
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to create trapezoid smoothing kernel
+def create_trapezoid_kernel(cfg):
+
+    radius = float(get_cfg_value(cfg, "radius", 2.0))
+    slope = float(get_cfg_value(cfg, "slope", 1.0))
+
+    if radius <= 0:
+        raise ValueError(
+            f"Trapezoid radius must be greater than zero: radius={radius}"
+        )
+
+    if slope <= 0:
+        raise ValueError(
+            f"Trapezoid slope must be greater than zero: slope={slope}"
+        )
+
+    return TrapezoidDisk2DKernel(
+        radius=radius,
+        slope=slope,
+    )
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# smoothing-kernel registry
+SMOOTHING_KERNELS = {
+    "gaussian": create_gaussian_kernel,
+    "box": create_box_kernel,
+    "tophat": create_tophat_kernel,
+    "trapezoid": create_trapezoid_kernel,
+}
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to get smoothing kernel
+def get_smoothing_kernel(cfg):
+
+    method = str(get_cfg_value(cfg, "method", "gaussian")).lower().strip()
+
+    if method not in SMOOTHING_KERNELS:
+        raise ValueError(
+            f"Unknown smoothing method '{method}'. "
+            f"Available methods: {list(SMOOTHING_KERNELS.keys())}"
+        )
+
+    try:
+        return SMOOTHING_KERNELS[method](cfg)
+
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"Invalid configuration for smoothing method '{method}': "
+            f"{cfg}. Error: {exc}"
+        ) from exc
 # ----------------------------------------------------------------------------------------------------------------------

@@ -22,12 +22,19 @@
     }
   },
   "interpolation": {
-    "method": "idw",
-    "roi_m": 20000,
-    "min_points": 1,
-    "max_points": 8,
-    "idw_power": 2.0,
-    "no_data": -9999
+    "__comment__": "nearest method the idw_power is not used; only for idw method must be defined",
+    "method": "nearest",
+    "roi_m": 30000, "min_points": 1, "max_points": 8, "idw_power": 2.0,
+    "no_data": -9999.0
+  },
+  "smoothing": {
+    "active": true,
+    "method": "gaussian",
+    "iterations": 1,
+    "no_data": -9999.0, "preserve_original_nodata": true, "preserve_range": true, "original_weight": 1,
+    "sigma": 1.5, "sigma_x": null, "sigma_y": null,
+    "theta_deg": 0.0, "radius": 2.0, "slope": 1.0, "width": 3,
+    "oversampling_factor": 10
   },
   "data_dynamic": {
     "source": {
@@ -49,7 +56,7 @@
       "registry_lat_col": "latitude"
     },
     "destination": {
-      "folder": "/hydro/data/data_dynamic/outcome/sm_cnr/maps/soil_moisture/{yyyy}/{mm}/{dd}/",
+      "folder": "/hydro/data/data_dynamic/outcome/sm_cnr/grid/soil_moisture/{yyyy}/{mm}/{dd}/",
       "filename": "soil_moisture_{yyyymmddhh}.tif",
       "compress": "deflate",
       "name": "soil_moisture",

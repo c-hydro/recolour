@@ -1,0 +1,186 @@
+{
+  "log": {
+    "level": "INFO",
+    "folder": "/hydro/log/sm_cnr/",
+    "filename": "sm_model_grid_metrics_{time_run:%Y%m%d_%H%M}_history.log"
+  },
+
+  "time": {
+    "time_start": "2025-07-03 23:00",
+    "time_end": "2026-07-06 23:00",
+    "ref_month": null, "ref_day": null, "ref_hour": "23", "ref_minutes": "00",
+    "frequency": "D",
+    "format": "%Y-%m-%d %H:%M"
+  },
+
+  "geo": {
+    "reference": {
+      "terrain": {
+        "name": "terrain",
+        "type": "ascii_grid",
+        "compression": false,
+        "folder": "/hydro/data/data_static/sm_cnr/geo/",
+        "filename": "marche.dem.txt",
+        "band": 1, "crs": "EPSG:4326",
+        "scale_factor": 1.0, "offset": 0.0,
+        "valid_min": -500.0, "valid_max": 9000.0,
+        "nodata_values": [-9999.0]
+      },
+      "cn": {
+        "name": "curve_number",
+        "type": "ascii_grid",
+        "compression": false,
+        "folder": "/hydro/data/data_static/sm_cnr/geo/",
+        "filename": "marche.cn.txt",
+        "band": 1,
+        "crs": "EPSG:4326",
+        "scale_factor": 1.0,
+        "offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 100.0,
+        "nodata_values": [-9999.0]
+      }
+    },
+    "other": {
+      "terrain": {
+        "name": "terrain",
+        "type": "ascii_grid",
+        "compression": false,
+        "folder": "/hydro/data/data_static/sm_cnr/geo/",
+        "filename": "marche.dem.txt",
+        "band": 1, "crs": "EPSG:4326",
+        "scale_factor": 1.0, "offset": 0.0,
+        "valid_min": -500.0, "valid_max": 9000.0,
+        "nodata_values": [-9999.0]
+      }
+    }
+  },
+
+  "datasets": {
+    "reference": {
+      "name": "hmc_vtotal",
+      "role": "reference",
+
+      "type": "netcdf_hmc_state",
+      "compression": true,
+      "compression_type": "gzip",
+
+      "folder": "/hydro/archive/model_dset_restart_marche/gridded/",
+      "filename": "hmc.state-grid.{time:%Y%m%d%H%M}.nc.gz",
+
+      "variable": "VTot",
+      "longitude": "Longitude",  "latitude": "Latitude",
+      "crs": "EPSG:4326",
+
+      "engine": "h5netcdf",
+
+      "scale_factor": 1.0, "offset": 0.0,
+      "valid_min": 0.0, "valid_max": null,
+      "nodata_values": [-9999.0, -9e15],
+
+      "compression_settings": {"temporary_folder": "/hydro/analysis/tmp/sm_cnr_metrics/"},
+
+      "scaling": {"enabled": true, "minimum_v": 0.001, "clip_min": 0.0, "clip_max": 1.0}
+    },
+
+    "other": {
+      "name": "external_soil_moisture",
+      "role": "candidate",
+
+      "type": "tiff",
+      "compression": false,
+
+      "folder": "/hydro/data/data_dynamic/outcome/sm_cnr/grid/soil_moisture/{time:%Y/%m/%d}",
+      "filename": "soil_moisture_{time:%Y%m%d%H}.tif",
+
+      "band": 1, "crs": "EPSG:4326",
+      "scale_factor": 1.0, "offset": 0.0,
+      "valid_min": 0.0, "valid_max": 1.0,
+      "nodata_values": [-9999.0],
+
+      "scaling": {}
+    }
+  },
+
+  "metrics": {
+    "__comment__": "seasons tags:  ALL, DJF, MAM, JJA, SON",
+    "seasons": ["ALL", "DJF", "MAM", "JJA", "SON"],
+    "min_observations": 5,
+    "dtype": "float64",
+    "continue_on_error": true,
+    "threshold_percentage": 15.0
+  },
+
+  "weights": {
+    "method": "correlation_error",
+    "maximum_weight": 0.8,
+    "correlation": {"minimum": 0.3, "power": 1.0},
+    "error": {"power": 2.0, "minimum_std": 0.01},
+    "observations": {"minimum": 5, "target": 6}
+  },
+
+  "img": {
+    "enabled": true,
+    
+    "folder": "/hydro/analysis/sm_cnr/model_grid/metrics/{time:%Y/}/images/",
+    "filename": "sm_weights_{season}_{name}_{time:%Y%m}.png",
+
+    "layers": [
+      "weight",
+      "weight_correlation",
+      "weight_error",
+      "weight_observations",
+      "normalized_error"
+    ],
+
+    "dpi": 150,
+    "figsize": [10, 8],
+    "colormap": "viridis",
+
+    "title": "Soil moisture nudging weight: {name}",
+    "colorbar_label": "Weight",
+
+    "show_colorbar": true, "show_axis": true, "grid": false,
+    "transpose": false, "flip_vertical": false,
+    "vmin": null, "vmax": null,
+
+    "ranges": {
+      "weight": {"vmin": 0.0, "vmax": 1.0},
+      "weight_correlation": {"vmin": 0.0, "vmax": 1.0},
+      "weight_error": {"vmin": 0.0, "vmax": 1.0},
+      "weight_observations": {"vmin": 0.0, "vmax": 1.0},
+      "normalized_error": {"vmin": 0.0, "vmax": 2.0}
+    }
+  },
+
+  "results": {
+    "enabled": true,
+    
+    "folder": "/hydro/analysis/sm_cnr/model_grid/metrics/{time:%Y/}/maps/",
+
+    "layers": [
+      "weight",
+      "weight_correlation",
+      "weight_error",
+      "weight_observations",
+      "normalized_error"
+    ],
+
+    "dtype": "float32",
+    "nodata": -9999.0,
+
+    "tiff": {
+      "enabled": true,
+      "filename": "sm_weights_{season}_{name}_{time:%Y%m}.tif",
+      "compression": "lzw",
+      "tiled": false
+    },
+
+    "ascii": {
+      "enabled": true,
+      "filename": "sm_weights_{season}_{name}_{time:%Y%m}.txt",
+      "decimals": 6
+    }
+  }
+
+}

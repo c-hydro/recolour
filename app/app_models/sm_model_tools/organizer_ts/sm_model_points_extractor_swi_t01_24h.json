@@ -3,19 +3,23 @@
   "radius_m": 1000,
   "time": {
     "time_start": "now",
-    "period_hours": 900,
+    "period_hours": 400,
     "step_hours": 1
   },
+  "parallel": {
+    "enabled": true,
+    "max_workers": 2
+  },
   "points": {
-    "file": "/hydro/data/data_static/sm_cnr/parametri_modello_grid.csv",
-    "delimiter": ";",
-    "lon_col": "Lon",
-    "lat_col": "Lat",
-    "id_col": "ID"
+    "file": "/hydro/data/data_static/sm_cnr/model_grid/registry/sm_model_grid_registry.csv",
+    "delimiter": ",",
+    "lon_col": "longitude",
+    "lat_col": "latitude",
+    "id_col": "tag"
   },
   "variables": {
     "rain": {
-      "enabled": true,
+      "enabled": false,
       "type": "netcdf",
       "file_template": "/hydro/data/data_dynamic/outcome/sm_cnr/maps/ws/{time:%Y}/{time:%m}/{time:%d}/ws.db.{time:%Y%m%d%H00}.nc",
       "variable_name": "Rain",
@@ -31,7 +35,7 @@
       "raise_on_error": false
     },
     "t": {
-      "enabled": true,
+      "enabled": false,
       "type": "netcdf",
       "file_template": "/hydro/data/data_dynamic/outcome/sm_cnr/maps/ws/{time:%Y}/{time:%m}/{time:%d}/ws.db.{time:%Y%m%d%H00}.nc",
       "variable_name": "Air_Temperature",
@@ -46,14 +50,14 @@
       "extend_radius_max": 10000,
       "raise_on_error": false
     },
-    "sm": {
+    "swi_t1": {
       "enabled": true,
       
 	  "type": "tiff",
 	  "frequency": "daily",
-	  "daily_hour": 0,
+	  "daily_hour": 12,
       
-      "file_template": "/hydro/data/data_dynamic/outcome/sm_cnr/maps/satellite/copernicus/swi/{time:%Y}/{time:%m}/{time:%d}/copernicus_swi_{time:%Y%m%d}.tif",
+      "file_template": "/hydro/data/data_dynamic/outcome/sm_cnr/maps/satellite/copernicus/{time:%Y}/{time:%m}/{time:%d}/copernicus_SWI001_{time:%Y%m%d}.tif",
       "band": 1,
       "method": "radius_mean",
       "radius_m": 1000,
@@ -70,9 +74,9 @@
     }
   },
   "output": {
-    "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_2d/{time_now:%Y}/{time_now:%m}/{time_now:%d}/",
-    "file_template": "obs_db_{var_name}_{time_now:%Y%m%d%H}.csv",
+    "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_grid/period_24h/{time_now:%Y}/{time_now:%m}/{time_now:%d}/",
+    "file_template": "obs_day_{var_name}_{time_now:%Y%m%d%H}.csv",
     "delimiter": ",",
-    "precision": 3
+    "precision": 1
   }
 }

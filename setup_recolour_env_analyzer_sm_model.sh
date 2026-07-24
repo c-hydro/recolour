@@ -2,7 +2,7 @@
 
 #-----------------------------------------------------------------------------------------
 # Script information
-script_name='SM CNR ENVIRONMENT - PYTHON3 LIBRARIES FOR SM-CNR - CONDA'
+script_name='SM CNR ENVIRONMENT - PYTHON3 LIBRARIES FOR SM-MODEL - CONDA'
 script_version="1.0.0"
 script_date='2026/06/11'
 
@@ -10,13 +10,13 @@ script_date='2026/06/11'
 fp_env_file_miniconda='https://repo.anaconda.com/miniconda/Miniconda3-py311_23.5.2-0-Linux-x86_64.sh'
 
 # Default settings
-fp_env_tag_default='sm_cnr'
+fp_env_tag_default='sm_model'
 
-fp_env_folder_root_default='/hydro/library/fp_libs_python_sm_cnr/'
+fp_env_folder_root_default='/hydro/library/fp_libs_python_sm_model/'
 fp_env_file_reference_default='%ENV_TAG_settings'
 fp_env_folder_libraries_default='%ENV_TAG_libraries'
 
-fp_env_file_requirements_default='requirements_%ENV_TAG.yaml'
+fp_env_file_requirements_default='requirements_recolour_%ENV_TAG.yaml'
 #-----------------------------------------------------------------------------------------
 
 echo " ==================================================================================="
