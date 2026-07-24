@@ -340,11 +340,6 @@ def write_merged_csv(
 ) -> None:
     Path(file_path).parent.mkdir(parents=True, exist_ok=True)
 
-    sorted_time_keys = sorted(
-        rows_by_time,
-        key=lambda value: parse_row_time(value, time_format),
-    )
-
     with open(file_path, "w", newline="", encoding=encoding) as file_handle:
         writer = csv.DictWriter(
             file_handle,
@@ -354,7 +349,7 @@ def write_merged_csv(
         )
         writer.writeheader()
 
-        for time_key in sorted_time_keys:
+        for time_key in rows_by_time:
             source_row = rows_by_time[time_key]
             output_row = {
                 field_name: source_row.get(field_name, "")
@@ -726,7 +721,7 @@ def merge_variable(
             ):
                 log_warning(
                     f"VARIABLE {var_name} | Cannot fill missing day "
-                    f"{daily_time:%Y-%m-%d}: daily template is not "
+                    f"{file_time:%Y-%m-%d}: daily template is not "
                     f"available yet"
                 )
                 continue
@@ -734,7 +729,7 @@ def merge_variable(
             header = list(daily_header_template)
 
             rows = create_missing_daily_rows(
-                daily_time=daily_time,
+                daily_time=file_time,
                 daily_steps=daily_steps_template,
                 header=header,
                 time_column=time_column,
@@ -745,7 +740,7 @@ def merge_variable(
 
             log_info(
                 f"VARIABLE {var_name} | CREATED {len(rows)} "
-                f"MISSING ROWS FOR {daily_time:%Y-%m-%d}"
+                f"MISSING ROWS FOR {file_time:%Y-%m-%d}"
             )
 
         for row in rows:
@@ -826,7 +821,8 @@ def merge_variable(
         encoding=output_encoding,
         time_format=time_format,
     )
-
+	
+    log_info(f"VARIABLE {var_name}: sort method       = {output_sort_order}")
     log_info(f"VARIABLE {var_name}: files found       = {files_found}")
     log_info(f"VARIABLE {var_name}: rows read         = {rows_read}")
     log_info(f"VARIABLE {var_name}: duplicate rows    = {duplicate_count}")
@@ -972,3 +968,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

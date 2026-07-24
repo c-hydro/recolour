@@ -2,15 +2,15 @@
   "time_now": "now",
 
   "time": {
-    "days_before": 10,
-    "daily_hour": 0,
+    "days_before": 40,
+    "daily_hour": null,
     "include_reference_day": true
   },
 
-  "variables": ["swi_t1","t", "rain"],
+  "variables": ["t"],
 
   "input": {
-    "folder_name": "/home/fabio/Desktop/recolour/dset/model_sm_cnr/time_series/{time:%Y/%m/%d}",
+    "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_grid/period_24h/{time:%Y/%m/%d}",
     "file_template": "obs_day_{var_name}_{time:%Y%m%d%H}.csv",
     "delimiter": ",",
     "encoding": "utf-8-sig",
@@ -23,10 +23,11 @@
   },
 
   "output": {
-    "folder_name": "/home/fabio/Desktop/recolour/exec/model_sm_cnr/time_series/{time_now:%Y/%m/%d}",
+    "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_grid/period_db/{time_now:%Y/%m/%d}",
     "file_template": "obs_db_{var_name}_{time_now:%Y%m%d%H}.csv",
     "keep_until_reference": true,
     "delimiter": ",",
-    "encoding": "utf-8"
+    "encoding": "utf-8",
+    "sort_order": "descending"
   }
 }
