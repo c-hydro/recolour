@@ -1,4 +1,4 @@
-name: sm_cnr_libraries
+name: sm_model_libraries
 
 channels:
   - conda-forge
@@ -18,7 +18,7 @@ dependencies:
   - contextily
   - cartopy
   - pykdtree
-  - pyresample
+  - astropy
   - pip
   - setuptools
   - wheel
