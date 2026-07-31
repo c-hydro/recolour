@@ -60,14 +60,16 @@ class DriverModel:
         self.alg_info = alg_info
         self.alg_model_data = alg_data_dynamic['destination']
         self.alg_model_results = alg_model['results']
-        self.alg_model_auxiliary = alg_model['auxiliary']
+        self.alg_model_auxiliary = alg_model.get("auxiliary", alg_model.get("metrics"))
         self.alg_model_figure = alg_model['figure']
         self.alg_template_time = alg_template['time']
         self.alg_template_datasets = alg_template['datasets']
 
         # reset flags
         self.reset_model_results = self.alg_flags['reset_model_results']
-        self.reset_model_auxiliary = self.alg_flags['reset_model_auxiliary']
+        self.reset_model_auxiliary = (
+            self.alg_flags)["reset_model_auxiliary"] = self.alg_flags.get(
+            "reset_model_auxiliary", self.alg_flags.get("reset_model_metrics", False))
         self.reset_model_figure = self.alg_flags['reset_model_figure']
 
         # registry and datasets tag(s)

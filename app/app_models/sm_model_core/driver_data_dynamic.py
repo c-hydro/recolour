@@ -169,7 +169,7 @@ class DriverData:
 
             # dump combined dframe
             folder_name, _ = os.path.split(file_name)
-            make_folder(folder_name)
+            make_folder(folder_name); print(file_dframe)
 
             # write datasets in csv format
             write_datasets_csv(
@@ -619,8 +619,8 @@ class DriverData:
                     time_fields=self.time_sm, file_fields=self.fields_sm, registry_fields=data_registry)
 
                 # create combined dataframe
-                dframe_combined = combine_data_point_by_time(
-                    dframe_k1=dframe_rain, dframe_k2=dframe_airt, dframe_k3=dframe_sm)
+                dframe_combined, attrs_combined = combine_data_point_by_time(
+                    dframe_k1=dframe_rain, dframe_k2=dframe_airt, dframe_k3=dframe_sm); dframe_combined.attrs = fields_data
 
                 # check combined dataframe
                 if dframe_combined is not None:
