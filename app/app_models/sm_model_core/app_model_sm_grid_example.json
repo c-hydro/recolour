@@ -9,10 +9,10 @@
       "algorithm": "Algorithm developed by CNR-IRPI"
     },
     "flags": {
-      "reset_data_static": false,
-      "reset_data_dynamic": false,
+      "reset_data_static": true,
+      "reset_data_dynamic": true,
       "reset_model_results": true,
-      "reset_model_metrics": false,
+      "reset_model_auxiliary": false,
       "reset_model_figure": true
     },
     "info": {
@@ -24,19 +24,19 @@
         "variable_name": "string_variable_name"
       },
       "time" : {
-        "source_data_sub_path_time_k1": "%Y/%m/%d/",
+        "source_data_sub_path_time_k1": "%Y/%m/%d",
         "source_data_datetime_k1": "%Y%m%d%H",
-        "source_data_sub_path_time_k2": "%Y/%m/%d/",
+        "source_data_sub_path_time_k2": "%Y/%m/%d",
         "source_data_datetime_k2": "%Y%m%d%H",
-        "source_data_sub_path_time_k3": "%Y/%m/%d/",
+        "source_data_sub_path_time_k3": "%Y/%m/%d",
         "source_data_datetime_k3": "%Y%m%d%H",
         "destination_data_sub_path_time": "%Y/%m/%d/%H",
         "destination_data_datetime": "%Y%m%d%H%M",
         "model_results_sub_path_time": "%Y/%m/%d/%H",
         "model_results_datetime": "%Y%m%d%H%M",
-        "model_metrics_sub_path_time": "%Y/%m/%d/%H",
-        "model_metrics_datetime": "%Y%m%d%H%M",
-        "model_figure_sub_path_time": "%Y/%m/%d/%H",
+        "model_auxiliary_sub_path_time": "%Y/%m/%d/%H",
+        "model_auxiliary_datetime": "%Y%m%d%H%M",
+        "model_figure_sub_path_time": "%Y%m%d%H",
         "model_figure_datetime": "%Y%m%d%H%M"
       }
     }
@@ -45,7 +45,7 @@
     "static": {
       "source": {
         "registry": {
-          "folder_name": "/hydro/data/data_static/sm_cnr/model_grid/registry/",
+          "folder_name": "/home/fabio/Desktop/recolour/dset/model_sm_cnr/model_grid/registry/",
           "file_name": "sm_model_grid_registry.csv",
           "format": "csv",
           "filters": {"depth": null},
@@ -67,7 +67,7 @@
           "delimiter": ","
         },
         "parameters": {
-          "folder_name": "/hydro/data/data_static/sm_cnr/model_grid/parameters/",
+          "folder_name": "/home/fabio/Desktop/recolour/dset/model_sm_cnr/model_grid/parameters/",
           "file_name": "sm_model_grid_params.csv",
           "format": "csv",
           "filters": {},
@@ -88,7 +88,7 @@
         }
       },
       "destination": {
-        "folder_name": "/hydro/data/data_static/sm_cnr/",
+        "folder_name": "/home/fabio/Desktop/recolour/dset/model_sm_cnr/model_grid/ancillary/",
         "file_name": "sm_model_grid_info.workspace"
       }
     },
@@ -98,7 +98,7 @@
       "mode": "one_file_all_points",
       "source": {
         "rain": {
-          "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_grid/{source_data_sub_path_time_k1}",
+          "folder_name": "/home/fabio/Desktop/recolour/dset/model_sm_cnr/time_series//{source_data_sub_path_time_k1}",
           "file_name": "obs_db_rain_{source_data_datetime_k1}.csv",
           "format": "csv_2d",
           "delimiter": ",",
@@ -116,7 +116,7 @@
           }
         },
         "air_temperature": {
-          "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_grid/{source_data_sub_path_time_k2}",
+          "folder_name": "/home/fabio/Desktop/recolour/dset/model_sm_cnr/time_series//{source_data_sub_path_time_k2}",
           "file_name": "obs_db_t_{source_data_datetime_k1}.csv",
           "format": "csv_2d",
           "delimiter": ",",
@@ -134,7 +134,7 @@
           }
         },
         "soil_moisture": {
-          "folder_name": "/hydro/data/data_dynamic/outcome/sm_cnr/time_series/model_grid/{source_data_sub_path_time_k3}",
+          "folder_name": "/home/fabio/Desktop/recolour/dset/model_sm_cnr/time_series//{source_data_sub_path_time_k3}",
           "file_name": "obs_db_swi_t1_{source_data_datetime_k1}.csv",
           "format": "csv_2d",
           "delimiter": ",",
@@ -153,9 +153,9 @@
         }
       },
       "destination": {
-        "folder_name": "/hydro/analysis/sm_cnr/model_grid/data/{destination_data_sub_path_time}",
-        "file_name": "sm_model_grid_swi_t1_{destination_data_datetime}_{point_name}_datasets.csv",
-        "format": "csv",
+        "folder_name": "/home/fabio/Desktop/recolour/dset/model_sm_cnr/data/{destination_data_sub_path_time}",
+        "file_name": "sm_model_grid_swi_t1_{destination_data_datetime}_{point_name}_datasets.nc",
+        "format": "netcdf",
         "filters": {},
         "time": {
           "time_start": null,
@@ -168,7 +168,8 @@
           "time": "time",
           "values_k1": "rain",
           "values_k2": "air_temperature",
-          "values_k3": "soil_moisture"
+          "values_k3": "soil_moisture",
+          "status": "status"
         },
         "no_data": -9999.0
       }
@@ -177,9 +178,9 @@
   "model": {
     "results" : {
       "__comment__": "type: [all_pnt_one_var, one_pnt_all_var]",
-      "folder_name": "/hydro/analysis/sm_cnr/model_grid/results/{model_results_sub_path_time}",
-      "file_name": "sm_model_grid_swi_t1_{model_results_datetime}_{point_name}_results.csv",
-      "format": "csv",
+      "folder_name": "/home/fabio/Desktop/recolour/dset/model_sm_cnr/results/{model_results_sub_path_time}",
+      "file_name": "sm_model_grid_swi_t1_{model_results_datetime}_{point_name}_results.nc",
+      "format": "netcdf",
       "time": {
         "time_start": null,
         "time_end": null,
@@ -194,30 +195,27 @@
         "values_k3": "theta_observed",
         "values_model": "theta_simulated"
       },
-      "no_data": -9999.0,
-      "fill_data_step_air_temperature": 2,
-      "fill_data_step_soil_moisture": 0
+      "no_data": -9999.0
     },
-    "metrics": {
-      "folder_name": "/hydro/analysis/sm_cnr/model_grid/results/{model_metrics_sub_path_time}",
-      "file_name": "sm_model_grid_swi_t1_{model_metrics_datetime}_{point_name}_metrics.csv",
-      "format": "csv",
+    "auxiliary": {
+      "folder_name": "/home/fabio/Desktop/recolour/dset/model_sm_cnr/results/{model_auxiliary_sub_path_time}",
+      "file_name": "sm_model_grid_swi_t1_{model_auxiliary_datetime}_{point_name}_metrics.nc",
+      "format": "netcdf",
       "time": {},
       "fields": {
         "ns": "ns", "ns_ln_q": "ns_ln_q", "ns_rad_q": "ns_rad_q", "kge": "kge", "rmse": "rmse", "rq": "rq",
         "time": "time",
         "name": "name",
-        "tag": "tag",
-        "catchment":"catchment",
-        "longitude":"longitude",
-        "latitude": "latitude"
+        "tag": "tag"
       },
-      "no_data": -9999.0
+      "no_data": -9999.0,
+      "fill_data_step_air_temperature": 2,
+      "fill_data_step_soil_moisture": 0
     },
     "figure": {
       "__comment__": "type: time_series, maps",
-      "folder_name": "/hydro/analysis/sm_cnr/model_grid/figure/{model_figure_sub_path_time}",
-      "file_name": "sm_model_grid_swi_t1_{model_figure_datetime}_{point_name}_figure.png",
+      "folder_name": "/home/fabio/Desktop/recolour/dset/model_sm_cnr/figure/{model_figure_sub_path_time}",
+      "file_name": "soil_moisture_grid_data_{model_figure_datetime}.png",
       "mode": "maps",
       "format": "png",
       "time": {},
@@ -240,17 +238,17 @@
     "time_reference": null,
     "time_frequency": "H",
     "time_rounding": "H",
-    "time_period": 12,
+    "time_period": 1,
     "time_start": null,
     "time_end": null,
     "time_cycle_hours": 1
   },
   "tmp": {
-    "folder_name": "/hydro/tmp/analyzer_sm_cnr",
+    "folder_name": "/home/fabio/Desktop/recolour/dset/model_sm_cnr/tmp/",
     "file_name": null
   },
   "log": {
-    "folder_name": "/hydro/log/analyzer_sm_cnr/",
-    "file_name": "soil_moisture_grid_execution.txt"
+    "folder_name": "/home/fabio/Desktop/recolour/dset/model_sm_cnr/log/",
+    "file_name": "soil_moisture_grid_execution_realtime.txt"
   }
 }

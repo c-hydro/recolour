@@ -49,7 +49,7 @@ def check_obj_data(data_file_name, data_obj=None, data_attrs=None, data_mandator
 # ----------------------------------------------------------------------------------------------------------------------
 # method to read point data
 def read_point_data(file_name,
-                    file_delimiter=';', file_header=0, file_columns_remap=None,
+                    file_delimiter=',', file_header=0, file_columns_remap=None,
                     file_units_default='%', file_description_default='NA',
                     file_location_default='NA', file_tag_default='NA',
                     file_amm_level_1_default='NA', file_amm_level_2_default='NA'):

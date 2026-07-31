@@ -1,0 +1,28 @@
+STATUS BIT MASK
+
+Bit  Value  Description
+---  -----  -----------------------------------------------
+0      1    Dataset k1 unavailable
+1      2    Dataset k2 unavailable
+2      4    Dataset k3 unavailable
+3      8    Timestamp absent from all original datasets
+
+Status values are obtained by combining the flags using bitwise OR.
+
+Examples:
+  0  = All datasets available
+  1  = Dataset k1 unavailable
+  2  = Dataset k2 unavailable
+  3  = Datasets k1 and k2 unavailable
+  4  = Dataset k3 unavailable
+  5  = Datasets k1 and k3 unavailable
+  6  = Datasets k2 and k3 unavailable
+  7  = All datasets unavailable
+  8  = Timestamp absent from all original datasets
+  9  = Timestamp absent + dataset k1 unavailable
+ 10  = Timestamp absent + dataset k2 unavailable
+ 11  = Timestamp absent + datasets k1 and k2 unavailable
+ 12  = Timestamp absent + dataset k3 unavailable
+ 13  = Timestamp absent + datasets k1 and k3 unavailable
+ 14  = Timestamp absent + datasets k2 and k3 unavailable
+ 15  = Timestamp absent + all datasets unavailable

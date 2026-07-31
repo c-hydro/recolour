@@ -121,9 +121,9 @@ def main():
         alg_flags=alg_data_settings['algorithm']['flags']
     )
     # execute model
-    alg_model_results, alg_model_metrics = driver_model.exec()
+    alg_model_results, alg_model_auxiliary = driver_model.exec()
     # view model
-    driver_model.view(alg_model_results, alg_model_metrics)
+    driver_model.view(alg_model_results, alg_model_auxiliary)
     # ------------------------------------------------------------------------------------------------------------------
 
     # ------------------------------------------------------------------------------------------------------------------

@@ -252,64 +252,6 @@ def extract_point_from_dframe(fields_data_all,
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
-# method to read datasets in csv format
-def read_datasets_csv_OLD(file_name,
-                      file_fields, registry_fields,
-                      time_reference, time_start=None, time_end=None,
-                      time_rounding='H', time_frequency='Y', time_format='%Y%m%d%H%M',
-                      file_sep=' ', file_decimal='.',
-                      ascending_index=False, sort_index=True, **kwargs):
-    # get file fields
-    try:
-        fields_data_raw = pd.read_csv(
-            file_name, sep=file_sep, decimal=file_decimal, date_format=time_format)
-    except Exception as exc:
-        log_stream.warning(' ===> Library exception: ' + str(exc) + '. Try to use "date parser"')
-        fields_data_raw = pd.read_csv(
-            file_name, sep=file_sep, decimal=file_decimal, date_parser=time_format)
-
-    if file_fields is None:
-        file_fields = {}
-    if registry_fields is None:
-        registry_fields = {}
-
-    # organize file fields
-    tmp_fields = invert_dict(file_fields)
-    fields_data_map = fields_data_raw.rename(columns=tmp_fields)
-    fields_data_map.reset_index()
-    fields_data_map.index = pd.DatetimeIndex(fields_data_map['time'])
-    fields_data_map.index.name = 'time'
-
-    # select file fields by time range
-    if (time_start is not None) and (time_start is not None):
-
-        time_start = pd.Timestamp(time_start).floor(time_rounding.lower())
-        time_end = pd.Timestamp(time_end).floor(time_rounding.lower())
-        time_range = pd.date_range(time_start, time_end, freq=time_frequency.lower())
-
-        fields_data_select = pd.DataFrame(index=time_range)
-        fields_data_select = fields_data_select.join(fields_data_map)
-
-    else:
-        fields_data_select = deepcopy(fields_data_map)
-
-    # sort index
-    if sort_index:
-        if ascending_index:
-            fields_data_select = fields_data_select.sort_index(ascending=True)
-        else:
-            fields_data_select = fields_data_select.sort_index(ascending=False)
-
-    # add attributes
-    if registry_fields is not None:
-        fields_data_select.attrs = registry_fields
-    fields_data_select.attrs['time_reference'] = time_reference
-
-    return fields_data_select
-# ----------------------------------------------------------------------------------------------------------------------
-
-
-# ----------------------------------------------------------------------------------------------------------------------
 # method to read parameters in csv format
 def read_parameters_csv(file_name, file_fields, file_filters=None, file_sep=',', file_decimal='.'):
 

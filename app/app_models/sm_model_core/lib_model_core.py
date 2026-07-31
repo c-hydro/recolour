@@ -8,11 +8,16 @@ Version:       '1.0.0'
 """
 
 # libraries
+import logging
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 
+from lib_info_args import logger_name
+
+# logging
+log_stream = logging.getLogger(logger_name)
 
 def matlab2PythonDates(dateMatlab):
     days = dateMatlab % 1
@@ -29,6 +34,8 @@ def kling_gupta_efficiency(sim, obs):
     return kge
 
 def SMestim_IE_03(TIME, PTSM, PAR):
+
+    log_stream.info(' ------> Run model "SMestim_IE_03" ... ')
 
     M = PTSM.shape[0]
     D = TIME
@@ -109,10 +116,14 @@ def SMestim_IE_03(TIME, PTSM, PAR):
 
     KGE = kling_gupta_efficiency(WW_valid, WWobs_valid)
 
+    log_stream.info(' ------> Run model "SMestim_IE_03"... DONE')
+
     return WW, NS, NS_lnQ, NS_radQ, KGE, RMSE, RQ
 
 
 def SMestim_IE_02(PTSM, PAR, FIG, namefig):
+
+    log_stream.info(' ------> Run model "SMestim_IE_02"... ')
 
     M = PTSM.shape[0]
     D = PTSM[:, 0]
@@ -170,6 +181,8 @@ def SMestim_IE_02(PTSM, PAR, FIG, namefig):
     RQ = RRQ[1, 0]
 
     KGE = kling_gupta_efficiency(WW_valid, WWobs_valid)
+
+    log_stream.info(' ------> Run model "SMestim_IE_02"... DONE')
 
     return WW, NS, NS_lnQ, NS_radQ, KGE, RMSE, RQ
 

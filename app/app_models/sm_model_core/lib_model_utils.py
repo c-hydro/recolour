@@ -178,12 +178,33 @@ def filter_model_results(
     return dframe_data
 # ----------------------------------------------------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------------------------------------------------------
+# method to organize model metrics
+def organize_model_metrics(values_ns,
+                           values_ns_ln_q, values_ns_rad_q,
+                           values_kge, values_rmse, values_rq):
+
+    log_stream.info(' ------> Organize model metrics ... ')
+
+    # organize metrics object
+    model_metrics = {
+        "ns": values_ns,
+        "ns_ln_q": values_ns_ln_q, "ns_rad_q": values_ns_rad_q,
+        "kge": values_kge, "rmse": values_rmse, "rq": values_rq
+    }
+
+    log_stream.info(' ------> Organize model metrics ... DONE')
+
+    return model_metrics
+# ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # method to organize model results
 def organize_model_results(dframe_common,
                            values_results, values_time, dframe_fields=None,
                            var_tag_time='time'):
+
+    log_stream.info(' ------> Organize model results ... ')
 
     dict_results = {'values_model': values_results}
     dframe_results = pd.DataFrame(dict_results, index=values_time)
@@ -197,33 +218,141 @@ def organize_model_results(dframe_common,
     # organize file fields
     dframe_common = dframe_common.rename(columns=dframe_fields)
 
+    log_stream.info(' ------> Organize model results ... DONE')
+
     return dframe_common
 # ----------------------------------------------------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------------------------------------------------------
+# method to summarize model results
+def summarize_model_results(dframe_result):
+
+    # Get dataset time period
+    data_check = {}
+    if "time" in dframe_result.columns:
+
+        time_values = pd.to_datetime(
+            dframe_result["time"],
+            errors="coerce"
+        ).dropna()
+
+        if not time_values.empty:
+
+            data_check["time_start"] = time_values.min()
+            data_check["time_end"] = time_values.max()
+            data_check["time_steps"] = int(time_values.size)
+
+            log_stream.info(
+                " -------> Datasets period: %s --> %s (%d steps)",
+                data_check["time_start"].strftime("%Y-%m-%d %H:%M"),
+                data_check["time_end"].strftime("%Y-%m-%d %H:%M"),
+                data_check["time_steps"]
+            )
+
+        else:
+
+            data_check["time_start"] = pd.NaT
+            data_check["time_end"] = pd.NaT
+            data_check["time_steps"] = 0
+
+            log_stream.warning(
+                " -------> Dataset time period is not available"
+            )
+
+    # Get finite min/max/count for each variable
+    for col in dframe_result.columns:
+
+        if col == "time":
+            continue
+
+        values = pd.to_numeric(
+            dframe_result[col],
+            errors="coerce"
+        ).to_numpy(dtype=float)
+
+        values_finite = values[np.isfinite(values)]
+
+        field_min = f"{col}_min"
+        field_max = f"{col}_max"
+        field_count = f"{col}_count"
+
+        data_check[field_count] = int(values_finite.size)
+
+        if values_finite.size > 0:
+
+            data_check[field_min] = float(np.min(values_finite))
+            data_check[field_max] = float(np.max(values_finite))
+
+            log_stream.info(
+                " -------> Variable '%s': min=%g max=%g count=%d",
+                col,
+                data_check[field_min],
+                data_check[field_max],
+                data_check[field_count]
+            )
+
+        else:
+
+            data_check[field_min] = np.nan
+            data_check[field_max] = np.nan
+
+            log_stream.warning(
+                " -------> Variable '%s': no finite values available (count=%d)",
+                col,
+                data_check[field_count]
+            )
+
+    return data_check
+# ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
-# method to organize model metrics
-def organize_model_metrics(data_metrics, data_registry, data_time=None, data_fields=None):
+# method to organize model auxiliary
+def organize_model_auxiliary(
+        data_metrics, data_registry,
+        data_time=None, data_fields=None):
 
-    if data_time is None:
-        data_time = {}
+    if data_metrics is None: data_metrics = {}
+    if data_registry is None: data_registry = {}
+    if data_time is None: data_time = {}
 
-    # organize model metrics and registry
-    data_common = {**data_metrics, **data_registry, **data_time}
+    # organize model metrics, registry and time information
+    data_common = {**data_metrics,**data_registry,**data_time}
 
-    # define data fields
+    # organize output fields
     if data_fields is None:
-        data_list = list(data_common.keys())
+        # keep all available fields
+        data_filter = dict(data_common)
     else:
+
+        # configured fields define the preferred output order
         data_list = list(data_fields.keys())
+        # check configured fields that are not available
+        fields_missing = [
+            field_name
+            for field_name in data_list
+            if field_name not in data_common
+        ]
 
-    # iterate over data fields
-    data_filter = {}
-    for data_key, data_value in data_common.items():
-        if data_key in data_list:
-            data_filter[data_key] = data_value
+        if fields_missing:
+            log_stream.warning(
+                " ===> Metrics fields not available: %s",
+                ", ".join(fields_missing)
+            )
 
-    dframe_filter = pd.DataFrame(data=data_filter, index=['info'])
+        data_filter = {}
+
+        # first, add configured fields in the configured order
+        for field_name in data_list:
+            if field_name in data_common:
+                data_filter[field_name] = data_common[field_name]
+
+        # then, preserve all additional fields not defined in data_fields
+        for field_name, field_value in data_common.items():
+            if field_name not in data_filter:
+                data_filter[field_name] = field_value
+
+    # organize dataframe
+    dframe_filter = pd.DataFrame(data=data_filter,index=["info"])
 
     return dframe_filter
 # ----------------------------------------------------------------------------------------------------------------------
