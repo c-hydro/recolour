@@ -170,7 +170,12 @@ class DriverData:
             point_row_out[self.field_longitude_grid_tag] = grid_list_x
             point_row_out[self.field_latitude_grid_tag] = grid_list_y
 
-            point_dframe_out = point_dframe_out.append(point_row_out, ignore_index=True)
+            #point_dframe_out = point_dframe_out.append(point_row_out, ignore_index=True)
+
+            point_dframe_out = pd.concat(
+                [point_dframe_out, pd.DataFrame([point_row_out])],
+                ignore_index=True
+            )
 
             log_stream.info(' ------> Point "' + point_tag + '" ... DONE')
 
