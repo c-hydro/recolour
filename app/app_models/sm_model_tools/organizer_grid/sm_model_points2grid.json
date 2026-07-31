@@ -3,9 +3,15 @@
     "time_run": "2026-06-18 04:00",
     "time_frequency": "h"
   },
+  "logging": {
+    "folder": "/home/fabio/Desktop/recolour/dset/model_sm_cnr/log/",
+    "filename": "sm_model_points2grid.log",
+    "level": "INFO",
+    "rotate_daily": true
+  },
   "data_static": {
     "registry": {
-      "folder": "/hydro/data/data_static/sm_cnr/model_grid/registry/",
+      "folder": "/home/fabio/Desktop/recolour/dset/model_sm_cnr/model_grid/registry/",
       "filename": "sm_model_grid_registry.csv",
       "delimiter": ",",
       "tag_col": "tag",
@@ -15,7 +21,7 @@
       "use_only_valid": true
     },
     "grid": {
-      "folder": "/hydro/data/data_static/sm_cnr/geo/",
+      "folder": "/home/fabio/Desktop/recolour/dset/model_sm_cnr/geo/",
       "filename": "marche.dem.txt",
       "band": 1,
       "nodata_values": [-9999]
@@ -38,8 +44,10 @@
   },
   "data_dynamic": {
     "source": {
-      "folder": "/hydro/analysis/sm_cnr/model_grid/results/{yyyy}/{mm}/{dd}/{HH}/",
-      "filename": "sm_model_grid_swi_t1_{yyyymmddhh}00_point_{point}_results.csv",
+      "__comment__": "csv: sm_model_grid_swi_t1_{time:%Y%m%d%H}00_point_{point}_results.csv; netcdf: sm_model_grid_swi_t1_{time:%Y%m%d%H}00_collections_results.nc",
+      "folder": "/home/fabio/Desktop/recolour/dset/model_sm_cnr/results/{time:%Y}/{time:%m}/{time:%d}/{time:%H}/",
+      "filename": "sm_model_grid_swi_t1_{time:%Y%m%d%H}00_collections_results.nc",
+      "format": "netcdf",
       "delimiter": ",",
       "time_col": "time",
       "time_format": "%Y-%m-%d %H:%M",
@@ -56,17 +64,12 @@
       "registry_lat_col": "latitude"
     },
     "destination": {
-      "folder": "/hydro/data/data_dynamic/outcome/sm_cnr/grid/soil_moisture/{yyyy}/{mm}/{dd}/",
-      "filename": "soil_moisture_{yyyymmddhh}.tif",
+      "folder": "/home/fabio/Desktop/recolour/dset/model_sm_cnr/grid/{time:%Y}/{time:%m}/{time:%d}/",
+      "filename": "soil_moisture_{time:%Y%m%d%H}.tif",
       "compress": "deflate",
       "name": "soil_moisture",
+      "time_shift": {"days": 0, "hours": -1, "minutes": 0, "seconds": 0},
       "no_data": null
-    },
-    "logging": {
-      "folder": "/hydro/log/sm_model/organizer_map/",
-      "filename": "sm_model_points2grid.log",
-      "level": "INFO",
-      "rotate_daily": true
     }
   }
 }

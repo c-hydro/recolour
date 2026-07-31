@@ -12,10 +12,12 @@ Version:       '1.5.0'
 import logging
 import os
 
+from pathlib import Path
 from copy import deepcopy
 
 from lib_data_io_generic import combine_data_point_by_time
 from lib_data_io_csv import read_datasets_csv, write_datasets_csv
+from lib_data_io_netcdf import write_datasets_nc, check_datasets_nc
 
 from lib_utils_io import fill_string_with_time, fill_string_with_info
 from lib_utils_generic import make_folder
@@ -116,7 +118,7 @@ class DriverData:
                          file_fields=None, time_fields=None, registry_fields=None,
                          point_tag=None, point_name=None):
 
-        log_stream.info(' -----> Read file datasets "' + file_name + '" ... ')
+        log_stream.info(' ------> Read file datasets "' + file_name + '" ... ')
 
         if not os.path.exists(file_name):
             if file_mandatory:
@@ -147,7 +149,7 @@ class DriverData:
             log_stream.error(' ===> File format "' + file_format + '" is not supported')
             raise NotImplementedError('Case not implemented yet')
 
-        log_stream.info(' -----> Read file datasets "' + file_name + '" ... DONE')
+        log_stream.info(' ------> Read file datasets "' + file_name + '" ... DONE')
 
         return fields_obj
 
@@ -156,10 +158,11 @@ class DriverData:
     # -------------------------------------------------------------------------------------
     # method to dump datasets object
     def dump_obj_datasets(self, file_name, file_dframe, file_format='csv',
+                          point_name='NA', point_tag='NA', point_longitude=None, point_latitude=None,
                           file_fields=None, time_fields=None, registry_fields=None):
 
         # info start method
-        log_stream.info(' -----> Dump file datasets "' + file_name + '" ... ')
+        log_stream.info(f' ------> Dump file datasets {file_name} for point {point_name} ... ')
 
         # check file format
         if file_format == 'csv':
@@ -175,13 +178,26 @@ class DriverData:
                 dframe_sep=';', dframe_decimal='.', dframe_float_format='%.3f',
                 dframe_index=True, dframe_header=True)
 
+        elif file_format == 'netcdf':
+
+            # dump combined dframe
+            folder_name, _ = os.path.split(file_name)
+            make_folder(folder_name)
+
+            write_datasets_nc(
+                file_name=file_name,
+                file_dframe=file_dframe, file_fields=file_fields,
+                point_id=point_tag, point_name=point_name,
+                longitude=point_longitude, latitude=point_latitude,
+            )
+
         else:
             # exit with error if file format is not supported
             log_stream.error(' ===> File format "' + file_format + '" is not supported')
             raise NotImplemented('Case not implemented yet')
 
         # info end method
-        log_stream.info(' -----> Dump file datasets "' + file_name + '" ... DONE')
+        log_stream.info(f' ------> Dump file datasets {file_name} for point {point_name} ... DONE')
 
     # -------------------------------------------------------------------------------------
 
@@ -216,10 +232,8 @@ class DriverData:
         # organize datasets according to the file type
         if mode_data_dynamic == "one_file_one_point":
             obj_collections = self._organize_data_one_file_one_point(data_registry)
-
         elif mode_data_dynamic == "one_file_all_points":
             obj_collections = self._organize_data_one_file_all_points(data_registry)
-
         else:
             # mode data dynamic is not supported
             log_stream.error(' ===> Dataset dynamic mode is not expected. Check flag in configuration file')
@@ -288,127 +302,250 @@ class DriverData:
             point_tag=None
         )
 
+        # get first and last point to check dictionary collections
+        point_tag_min, point_tag_max = data_registry["tag"].values[0], data_registry["tag"].values[-1]
+
         # now loop over points
+        file_defined, file_check = False, False
         for fields_data in data_registry.to_dict(orient="records"):
 
-            point_name = fields_data["name"]
-            point_tag = fields_data["tag"]
+            # get point info
+            point_name, point_tag_src = fields_data["name"], fields_data["tag"]
+            point_longitude, point_latitude = fields_data["longitude"], fields_data["latitude"]
 
-            log_stream.info(
-                ' -----> Point -- (1) Name: "' + point_name +
-                '" :: (2) Tag: "' + point_tag + '" ... '
-            )
+            # Get declared output type
+            file_format = str(self.format_dst).strip().lower()
+            # Get destination file extension
+            file_ext = Path(file_path_dst_tmpl).suffix.lower()
+            # Check if the filename contains the point placeholder
+            has_point_name = "{point_name" in file_path_dst_tmpl
 
-            file_path_dst_point = self.__define_file_string(
-                file_path_dst_tmpl,
-                extended_info={"point_name": point_tag}
-            )
+            # Validate type, extension and filename template
+            if file_format == "csv":
 
-            if reset_data_dynamic:
-                if os.path.exists(file_path_dst_point):
-                    os.remove(file_path_dst_point)
+                if file_ext != ".csv":
+                    raise ValueError(
+                        f"CSV output type requires a '.csv' destination file, found '{file_ext}'."
+                    )
 
-            if not os.path.exists(file_path_dst_point):
+                if not has_point_name:
+                    raise ValueError(
+                        "CSV output requires the '{point_name}' placeholder in the destination filename."
+                    )
 
-                dframe_rain = self.select_point_dframe(
-                    dframe_all=dframe_rain_all,
-                    file_fields=self.fields_rain,
-                    point_tag=point_tag,
-                    point_name=point_name
+                # Define destination file path
+                file_path_dst_point = self.__define_file_string(
+                    file_path_dst_tmpl,
+                    extended_info={"point_name": point_tag_src}
                 )
 
-                dframe_airt = self.select_point_dframe(
-                    dframe_all=dframe_airt_all,
-                    file_fields=self.fields_airt,
-                    point_tag=point_tag,
-                    point_name=point_name
+                if reset_data_dynamic:
+                    if os.path.exists(file_path_dst_point):
+                        os.remove(file_path_dst_point)
+
+                # set point tag for destination
+                point_tag_dst = point_tag_src
+
+            elif file_format in ["netcdf", "nc"]:
+
+                # set point tag for destination
+                point_tag_dst = "collections"
+
+                if not file_check and not file_defined:
+                    if file_ext != ".nc":
+                        raise ValueError(
+                            f"NetCDF output type requires a '.nc' destination file, found '{file_ext}'."
+                        )
+
+                    if has_point_name:
+                        log_stream.warning(
+                            " ===> NetCDF output detected: replacing '{point_name}' with "
+                            "'collections' in the destination filename."
+                        )
+
+                    extended_info = {"point_name": point_tag_dst}
+
+                    # Define destination file path
+                    file_path_dst_point = self.__define_file_string(
+                        file_path_dst_tmpl,
+                        extended_info=extended_info
+                    )
+
+                    self.store_path_dst_point = file_path_dst_point
+
+                    if reset_data_dynamic:
+                        if os.path.exists(file_path_dst_point):
+                            os.remove(file_path_dst_point)
+
+                    # set point tag for destination
+                    file_defined, file_check = True, True
+
+                else:
+                    file_path_dst_point = self.store_path_dst_point
+
+            else:
+                raise ValueError(
+                    f"Unsupported destination format '{file_format}'. "
+                    "Supported types are: 'csv' and 'netcdf'."
                 )
 
-                if dframe_sm_all is not None:
-                    dframe_sm = self.select_point_dframe(
-                        dframe_all=dframe_sm_all,
-                        file_fields=self.fields_sm,
-                        point_tag=point_tag,
-                        point_name=point_name
-                    )
-                else:
-                    dframe_sm = None
+            if self.format_dst == "csv":
 
-                dframe_combined = combine_data_point_by_time(
-                    time_ref=time_reference,
-                    dframe_k1=dframe_rain, dframe_k2=dframe_airt, dframe_k3=dframe_sm)
+                # One file for each point
+                point_exists = os.path.exists(file_path_dst_point)
+                min_exists, max_exists = False, False
 
-                if dframe_combined is not None:
+            elif self.format_dst == "netcdf":
 
-                    self.dump_obj_datasets(
-                        file_path_dst_point,
-                        dframe_combined,
-                        file_format=self.format_dst,
-                        file_fields=self.fields_dst,
-                        time_fields=self.time_dst,
-                        registry_fields=data_registry
-                    )
+                # One shared NetCDF file containing all point variables
+                 point_exists, min_exists, max_exists = check_datasets_nc(
+                    file_path_dst_point, point_tag_src,
+                    first_point_expected=point_tag_min, last_point_expected=point_tag_max)
 
-                    obj_collections[point_tag] = file_path_dst_point
+            else:
+                raise ValueError(
+                    f"Destination file mode '{self.format_dst}' is not supported. "
+                    "Supported modes are 'unique' and 'collections'."
+                )
 
-                    log_stream.info(
-                        ' -----> Point -- (1) Name: "' + point_name +
-                        '" :: (2) Tag: "' + point_tag + '" ... DONE'
-                    )
+            # check if min and max points are available (check for collections)
+            if min_exists and max_exists:
 
-                else:
-
-                    log_stream.info(
-                        ' -----> Point -- (1) Name: "' + point_name +
-                        '" :: (2) Tag: "' + point_tag +
-                        '" ... SKIPPED. Datasets not available'
-                    )
+                # info data start
+                log_stream.info(f' -----> Point -- Collections from {point_tag_min} to {point_tag_max} ... ')
+                obj_collections[point_tag_dst] = file_path_dst_point
+                log_stream.info(f' -----> Point -- Collections from {point_tag_min} to {point_tag_max} ... DONE')
+                break
 
             else:
 
-                obj_collections[point_tag] = file_path_dst_point
-
+                # info data start
                 log_stream.info(
                     ' -----> Point -- (1) Name: "' + point_name +
-                    '" :: (2) Tag: "' + point_tag +
-                    '" ... SKIPPED. Datasets previously saved'
+                    '" :: (2) Tag: "' + point_tag_src + '" ... '
                 )
+
+                # check destination file (single or multiple)
+                if not point_exists:
+
+                    dframe_rain = self.select_point_dframe(
+                        dframe_all=dframe_rain_all,
+                        file_fields=self.fields_rain,
+                        point_tag=point_tag_src,
+                        point_name=point_name
+                    )
+
+                    dframe_airt = self.select_point_dframe(
+                        dframe_all=dframe_airt_all,
+                        file_fields=self.fields_airt,
+                        point_tag=point_tag_src,
+                        point_name=point_name
+                    )
+
+                    if dframe_sm_all is not None:
+                        dframe_sm = self.select_point_dframe(
+                            dframe_all=dframe_sm_all,
+                            file_fields=self.fields_sm,
+                            point_tag=point_tag_src,
+                            point_name=point_name
+                        )
+                    else:
+                        dframe_sm = None
+
+                    # combine data frame for variables time-series
+                    dframe_combined, attrs_combined = combine_data_point_by_time(
+                        time_ref=time_reference,
+                        dframe_k1=dframe_rain, dframe_k2=dframe_airt, dframe_k3=dframe_sm)
+                    # add attributes to the dataframe
+                    dframe_combined.attrs = fields_data
+
+                    # dump point time-series or points time-series
+                    if dframe_combined is not None and self.format_dst == 'csv':
+
+                        # dump points datasets
+                        self.dump_obj_datasets(
+                            file_path_dst_point,
+                            dframe_combined,
+                            file_format=self.format_dst,
+                            file_fields=self.fields_dst,
+                            time_fields=self.time_dst,
+                            registry_fields=data_registry,
+                            point_name=point_name, point_tag=point_tag_src,
+                            point_longitude=point_longitude, point_latitude=point_latitude,
+                        )
+
+                        # store file name
+                        obj_collections[point_tag_dst] = file_path_dst_point
+
+                        log_stream.info(
+                            ' -----> Point -- (1) Name: "' + point_name +
+                            '" :: (2) Tag: "' + point_tag_src + '" ... DONE (FILE)'
+                        )
+
+                    elif dframe_combined is not None and self.format_dst == 'netcdf':
+
+                        # dump points datasets
+                        self.dump_obj_datasets(
+                            file_path_dst_point,
+                            dframe_combined,
+                            file_format=self.format_dst,
+                            file_fields=self.fields_dst,
+                            time_fields=self.time_dst,
+                            registry_fields=data_registry,
+                            point_name=point_name, point_tag=point_tag_src,
+                            point_longitude=point_longitude, point_latitude=point_latitude,
+                        )
+
+                        # store dframe in unique collections
+                        if point_tag_dst not in obj_collections.keys():
+                            obj_collections[point_tag_dst] = file_path_dst_point
+
+                        log_stream.info(
+                            ' -----> Point -- (1) Name: "' + point_name +
+                            '" :: (2) Tag: "' + point_tag_src + '" ... DONE (COLLECTIONS)'
+                        )
+
+                    else:
+
+                        log_stream.info(
+                            ' -----> Point -- (1) Name: "' + point_name +
+                            '" :: (2) Tag: "' + point_tag_src +
+                            '" ... SKIPPED. Datasets not available'
+                        )
+
+                else:
+
+                    obj_collections[point_tag_dst] = file_path_dst_point
+
+                    log_stream.info(
+                        ' -----> Point -- (1) Name: "' + point_name +
+                        '" :: (2) Tag: "' + point_tag_dst +
+                        '" ... SKIPPED. Datasets previously saved'
+                    )
 
         return obj_collections
 
     # helper to select dataframe
     def select_point_dframe(self, dframe_all, file_fields, point_tag, point_name=None, field_time='time'):
 
-        if dframe_all is None:
-            return None
-
-        if file_fields is None:
-            file_fields = {}
+        if dframe_all is None: return None
+        if file_fields is None: file_fields = {}
 
         fields_select = {}
-
         for field_name, field_template in file_fields.items():
 
             if field_name == field_time:
                 continue
-
-            field_src = field_template.format(
-                point_tag=point_tag,
-                point_name=point_name
-            )
+            field_src = field_template.format(point_tag=point_tag, point_name=point_name)
 
             if field_src not in dframe_all.columns:
-                log_stream.warning(
-                    f' ===> Column "{field_src}" not found for point "{point_tag}"'
-                )
+                log_stream.warning(f' ===> Column "{field_src}" not found for point "{point_tag}"')
                 return None
 
             fields_select[field_src] = field_name
 
         dframe_point = dframe_all[list(fields_select.keys())].copy()
-
         dframe_point = dframe_point.rename(columns=fields_select)
-
         dframe_point.index = dframe_all.index
         dframe_point.index.name = dframe_all.index.name
 
@@ -516,5 +653,3 @@ class DriverData:
         # --------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
-
-

@@ -26,7 +26,7 @@ def get_logger(logger, settings, reference_time=None):
     level_str = log_settings.get("level", "INFO").upper()
     level = getattr(logging, level_str, logging.INFO)
 
-    log_folder_template = log_settings.get("folder", "./log")
+    log_folder_template = log_settings.get("folder", "/hydro/log/default/")
     log_filename = log_settings.get("filename", "points2grid.log")
     rotate_daily = log_settings.get("rotate_daily", False)
 

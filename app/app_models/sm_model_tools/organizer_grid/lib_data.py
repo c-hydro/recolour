@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 import os
 import string
+from pathlib import Path
 from typing import Any
 from datetime import timedelta
 
@@ -244,13 +245,11 @@ def process(settings, time_reference):
     file_name_src = settings["data_dynamic"]["source"]["filename"]
     path_name_src = os.path.join(folder_name_src, file_name_src)
 
+    file_format_src = settings["data_dynamic"]["source"].get("format", "csv")
+
     # Format all source time fields while preserving fields resolved later,
-    # such as {point}.
-    path_name_src = format_path_template(
-        path_template=path_name_src,
-        time_reference=time_reference,
-        preserve_unknown=True,
-    )
+    # such as {point or collections}.
+    path_name_src = format_path_template(path_template=path_name_src, time_reference=time_reference, preserve_unknown=True,)
 
     params_src = {
         "time_format": settings["data_dynamic"]["source"].get(
@@ -306,20 +305,24 @@ def process(settings, time_reference):
         ),
     }
 
+    # Validate type, extension and filename template
+    file_ext = Path(path_name_src).suffix.lower()
+    if file_format_src == "csv":
+        if file_ext != ".csv":
+            raise ValueError(f"CSV output type requires a '.csv' destination file, found '{file_ext}'.")
+    elif file_format_src == "netcdf":
+        if file_ext != ".nc":
+            raise ValueError(f"NetCDF output type requires a '.nc' destination file, found '{file_ext}'.")
+    else:
+        raise ValueError(f"Unrecognized file format '{file_format_src}'.")
+
     # get destination info for logging
     folder_name_dst = settings["data_dynamic"]["destination"]["folder"]
     file_name_dst = settings["data_dynamic"]["destination"]["filename"]
     path_name_dst = os.path.join(folder_name_dst, file_name_dst)
 
-    name_dst = settings["data_dynamic"]["destination"].get(
-        "name", "soil_moisture"
-    )
-
-    path_name_dst = format_path_template(
-        path_template=path_name_dst,
-        time_reference=time_reference,
-        var_name=name_dst,
-    )
+    name_dst = settings["data_dynamic"]["destination"].get("name", "soil_moisture")
+    path_name_dst = format_path_template(path_template=path_name_dst,time_reference=time_reference, var_name=name_dst,)
 
     # get interpolation info
     params_interp = {
@@ -410,27 +413,13 @@ def process(settings, time_reference):
     # ------------------------------------------------------------------------------------------------------------------
     # read file registry
     logger_stream.info(f" ----> Read registry {path_name_reg} ... ")
-
-    registry_obj = read_file_registry(
-        path_name_reg,
-        params_reg,
-    )
-
-    logger_stream.info(
-        f" ----> Read registry {path_name_reg} ... DONE"
-    )
+    registry_obj = read_file_registry(path_name_reg,params_reg,)
+    logger_stream.info(f" ----> Read registry {path_name_reg} ... DONE")
 
     # read file grid
     logger_stream.info(f" ----> Read grid {path_name_grid} ... ")
-
-    grid_mask, grid_lon, grid_lat, grid_profile = read_file_grid(
-        path_name_grid,
-        params_grid,
-    )
-
-    logger_stream.info(
-        f" ----> Read grid {path_name_grid} ... DONE"
-    )
+    grid_mask, grid_lon, grid_lat, grid_profile = read_file_grid(path_name_grid,params_grid,)
+    logger_stream.info( f" ----> Read grid {path_name_grid} ... DONE")
     # ------------------------------------------------------------------------------------------------------------------
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -439,9 +428,7 @@ def process(settings, time_reference):
 
     points_data, points_times, points_lags = collect_data(
         path_name_src,
-        registry_obj,
-        time_reference,
-        params_src,
+        registry_obj, time_reference, params_src, format_data=file_format_src
     )
 
     # check valid points for interpolation

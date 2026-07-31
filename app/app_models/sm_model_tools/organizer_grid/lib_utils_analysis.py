@@ -150,10 +150,339 @@ def interpolate_points2grid(
     return out
 # ----------------------------------------------------------------------------------------------------------------------
 
-
 # ----------------------------------------------------------------------------------------------------------------------
 # method to smooth grid using Astropy
 def smooth_grid(
+        data: np.ndarray,
+        valid_mask: np.ndarray,
+        cfg: Dict[str, Any],
+) -> np.ndarray:
+    """
+    Smooth interpolated gridded data using Astropy convolution kernels.
+
+    Invalid cells are handled using normalized convolution:
+
+        smoothed = convolution(data * weights) / convolution(weights)
+
+    This avoids Astropy warnings caused by contiguous NaN regions larger
+    than the smoothing kernel.
+
+    Supported methods:
+        - gaussian
+        - box
+        - tophat
+        - trapezoid
+    """
+
+    active = bool(cfg.get("active", False))
+    method = str(cfg.get("method", "gaussian")).lower()
+    nodata = float(cfg.get("nodata", VALUE_NODATA_DEFAULT))
+    iterations = int(cfg.get("iterations", 1))
+
+    preserve_original_nodata = bool(
+        cfg.get("preserve_original_nodata", True)
+    )
+
+    preserve_range = bool(
+        cfg.get("preserve_range", True)
+    )
+
+    original_weight = float(
+        cfg.get("original_weight", 0.35)
+    )
+
+    # Minimum convolved support required to consider an output cell valid.
+    # A small positive value is usually sufficient.
+    minimum_weight = float(
+        cfg.get("minimum_weight", 1.0e-6)
+    )
+
+    # -------------------------------------------------------------------------
+    # Check parameters
+
+    data = np.asarray(
+        data,
+        dtype=np.float64
+    )
+
+    valid_mask = np.asarray(
+        valid_mask,
+        dtype=bool
+    )
+
+    if data.ndim != 2:
+        raise ValueError(
+            f"Input data must be two-dimensional. "
+            f"Received: {data.ndim}D"
+        )
+
+    if data.shape != valid_mask.shape:
+        raise ValueError(
+            f"Data shape {data.shape} differs from valid-mask shape "
+            f"{valid_mask.shape}"
+        )
+
+    if not 0.0 <= original_weight <= 1.0:
+        raise ValueError(
+            f'"original_weight" must be between 0 and 1. '
+            f"Received: {original_weight}"
+        )
+
+    if not active or iterations < 1:
+        logger_stream.warning(
+            " ===> Smoothing is not activated or iterations "
+            "are less than 1"
+        )
+
+        return data.astype(
+            np.float32
+        )
+
+    # -------------------------------------------------------------------------
+    # Define original valid cells
+
+    original_valid = (
+        valid_mask
+        & np.isfinite(data)
+        & ~np.isclose(data, nodata)
+    )
+
+    output = np.full(
+        data.shape,
+        nodata,
+        dtype=np.float32
+    )
+
+    if not np.any(original_valid):
+        logger_stream.warning(
+            " ===> All datasets are invalid. Skip smoothing"
+        )
+
+        return output
+
+    # -------------------------------------------------------------------------
+    # Create kernel
+
+    kernel = get_smoothing_kernel(
+        cfg
+    )
+
+    data_min = float(
+        np.nanmin(data[original_valid])
+    )
+
+    data_max = float(
+        np.nanmax(data[original_valid])
+    )
+
+    logger_stream.info(
+        " ----> Smooth grid using method=%s iterations=%d "
+        "original_weight=%.3f",
+        method,
+        iterations,
+        original_weight
+    )
+
+    logger_stream.info(
+        " -----> Input valid cells: %d / %d; min=%.6f max=%.6f",
+        np.count_nonzero(original_valid),
+        original_valid.size,
+        data_min,
+        data_max
+    )
+
+    # Keep original values as NaN outside the valid input footprint.
+    original_data = np.where(
+        original_valid,
+        data,
+        np.nan
+    )
+
+    data_work = original_data.copy()
+
+    # -------------------------------------------------------------------------
+    # Iterative normalized convolution
+
+    for iteration in range(iterations):
+
+        current_valid = (
+            valid_mask
+            & np.isfinite(data_work)
+        )
+
+        if preserve_original_nodata:
+            current_valid &= original_valid
+
+        if not np.any(current_valid):
+            logger_stream.warning(
+                " ===> No valid cells available at smoothing "
+                "iteration %d",
+                iteration + 1
+            )
+            break
+
+        # Replace invalid cells by zero for the numerator.
+        data_numerator = np.where(
+            current_valid,
+            data_work,
+            0.0
+        )
+
+        # Binary support weights.
+        data_weights = current_valid.astype(
+            np.float64
+        )
+
+        # Convolve values.
+        convolved_values = convolve(
+            data_numerator,
+            kernel,
+            boundary="extend",
+            nan_treatment="fill",
+            fill_value=0.0,
+            normalize_kernel=False,
+            preserve_nan=False
+        )
+
+        # Convolve support weights using the same kernel.
+        convolved_weights = convolve(
+            data_weights,
+            kernel,
+            boundary="extend",
+            nan_treatment="fill",
+            fill_value=0.0,
+            normalize_kernel=False,
+            preserve_nan=False
+        )
+
+        # Compute normalized convolution only where the kernel has support.
+        data_smoothed = np.full(
+            data.shape,
+            np.nan,
+            dtype=np.float64
+        )
+
+        supported_cells = (
+            valid_mask
+            & np.isfinite(convolved_weights)
+            & (convolved_weights > minimum_weight)
+        )
+
+        data_smoothed[supported_cells] = (
+            convolved_values[supported_cells]
+            / convolved_weights[supported_cells]
+        )
+
+        # Blend the original values and the smoothed values.
+        blend_valid = (
+            supported_cells
+            & np.isfinite(data_smoothed)
+        )
+
+        data_next = np.full(
+            data.shape,
+            np.nan,
+            dtype=np.float64
+        )
+
+        # Where original data exist, blend original and smoothed values.
+        original_blend = (
+            blend_valid
+            & original_valid
+        )
+
+        data_next[original_blend] = (
+            original_weight
+            * original_data[original_blend]
+            + (1.0 - original_weight)
+            * data_smoothed[original_blend]
+        )
+
+        # When extension into original nodata areas is allowed, use only
+        # the smoothed value because no original value exists there.
+        if not preserve_original_nodata:
+
+            extended_cells = (
+                blend_valid
+                & ~original_valid
+            )
+
+            data_next[extended_cells] = data_smoothed[
+                extended_cells
+            ]
+
+        # Never extend values outside the DEM domain.
+        data_next[~valid_mask] = np.nan
+
+        if preserve_original_nodata:
+            data_next[~original_valid] = np.nan
+
+        data_work = data_next
+
+        finite_iteration = np.isfinite(
+            data_work
+        )
+
+        if np.any(finite_iteration):
+            logger_stream.info(
+                " -----> Iteration %d/%d: valid=%d min=%.6f max=%.6f",
+                iteration + 1,
+                iterations,
+                np.count_nonzero(finite_iteration),
+                float(np.nanmin(data_work)),
+                float(np.nanmax(data_work))
+            )
+        else:
+            logger_stream.warning(
+                " ===> Iteration %d/%d produced no finite values",
+                iteration + 1,
+                iterations
+            )
+
+    # -------------------------------------------------------------------------
+    # Preserve original range
+
+    if preserve_range:
+        data_work = np.clip(
+            data_work,
+            data_min,
+            data_max
+        )
+
+    # -------------------------------------------------------------------------
+    # Define output
+
+    output_valid = (
+        valid_mask
+        & np.isfinite(data_work)
+    )
+
+    if preserve_original_nodata:
+        output_valid &= original_valid
+
+    output[output_valid] = data_work[
+        output_valid
+    ].astype(np.float32)
+
+    logger_stream.info(
+        " -----> Smoothed output valid cells: %d / %d",
+        np.count_nonzero(output_valid),
+        output_valid.size
+    )
+
+    if np.any(output_valid):
+        logger_stream.info(
+            " -----> Smoothed output range: %.6f / %.6f",
+            float(np.nanmin(output[output_valid])),
+            float(np.nanmax(output[output_valid]))
+        )
+
+    return output
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
+# method to smooth grid using Astropy
+def smooth_grid_OLD(
         data: np.ndarray,
         valid_mask: np.ndarray,
         cfg: Dict[str, Any],
