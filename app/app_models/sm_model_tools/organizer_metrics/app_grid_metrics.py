@@ -61,17 +61,18 @@ def main():
 
     # get reference time period
     try:
-        reference_time_period, reference_time_info = create_time_period(
+        time_period_root, time_period_ref, time_period_other, time_info = create_time_period(
             time_cfg=time_cfg, time_start_cli=args.time_start, time_end_cli=args.time_end)
     except Exception as exc:
         print(f" ===> ERROR: parsing time: {exc}")
         sys.exit(1)
 
     # get seasons time periods
-    seasons_time_period = create_seasons_period(reference_time_period, seasons=metrics_cfg.get('seasons', 'ALL'))
+    seasons_time_period = create_seasons_period(
+        time_period_root, time_period_ref, time_period_other, seasons=metrics_cfg.get('seasons', 'ALL'))
 
     # get logger
-    get_logger(logger, log_cfg, reference_time=reference_time_period[-1])
+    get_logger(logger, log_cfg, reference_time=time_period_root[-1])
     # ------------------------------------------------------------------------------------------------------------------
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -83,10 +84,10 @@ def main():
 
     logger.info(f" ---> Settings file:      {args.settings_file}")
 
-    logger.info(f" ---> Time start:         {reference_time_info['start']}")
-    logger.info(f" ---> Time end:           {reference_time_info['end']}")
-    logger.info(f" ---> Time frequency:     {reference_time_info['frequency']}")
-    logger.info(f" ---> Time steps:         {reference_time_info['steps']}")
+    logger.info(f" ---> Time start:         {time_info['common']['start']}")
+    logger.info(f" ---> Time end:           {time_info['common']['end']}")
+    logger.info(f" ---> Time steps:         {time_info['common']['steps']}")
+    logger.info(f" ---> Time frequency:     {time_info['frequency']}")
     logger.info(f" ---> Seasons:            {metrics_cfg.get('seasons', 'ALL')}")
 
     # datasets
@@ -128,23 +129,35 @@ def main():
     # iterate over seasons
     for season_tag, season_period in seasons_time_period.items():
 
-        # info seasons start
+        # get periods
+        common_period = season_period["common"]
+        reference_period, other_period = season_period['reference'], season_period['other']
+
+        # info season start
         logger.info(
             f" ----> Season {season_tag:<4}: "
-            f"{season_period[0]:%Y-%m-%d %H:%M} --> {season_period[-1]:%Y-%m-%d %H:%M} "
-            f"({len(season_period)} steps) ... ")
+            f"{common_period.iloc[0]:%Y-%m-%d %H:%M} --> "
+            f"{common_period.iloc[-1]:%Y-%m-%d %H:%M} "
+            f"({len(common_period)} steps) ..."
+        )
 
         # drive dynamic datasets
         driver_data = DynamicDatasets(
             datasets_cfg=settings["datasets"],
             geo=geo_datasets,
             time_tag=season_tag,
-            time_period=season_period,
-            time_frequency=reference_time_info['frequency'],
+            aggregation_type=metrics_cfg.get("aggregation_type", "season"),
+            aggregation_by=metrics_cfg.get("aggregation_by", "name"),
+            time_period_common=common_period,
+            time_period_reference=reference_period, time_period_other=other_period,
+            time_frequency=time_info['frequency'],
             reference_group="reference", other_group="other",
             check_grids=True, raise_error=True,
             missing_threshold=metrics_cfg.get("threshold_percentage", 90.0)
         )
+        # get time aggregation
+        time_tag = driver_data.time_tag
+
         # organize dynamic datasets
         dynamic_datasets = driver_data.organize()
         # analyze dynamic datasets
@@ -163,8 +176,9 @@ def main():
 
         # initialize output driver
         driver_results = Results(
-            time_tag=season_tag,
-            time_reference=reference_time_period[-1],
+            time_tag=time_tag,
+            time_reference=time_period_root[-1],
+            time_start=time_period_root[0], time_end=time_period_root[-1],
             img_cfg=settings.get("img", {}),
             results_cfg=settings.get("results", {}),
         )
@@ -177,8 +191,10 @@ def main():
         # info seasons end
         logger.info(
             f" ----> Season {season_tag:<4}: "
-            f"{season_period[0]:%Y-%m-%d %H:%M} --> {season_period[-1]:%Y-%m-%d %H:%M} "
-            f"({len(season_period)} steps) ... DONE")
+            f"{common_period.iloc[0]:%Y-%m-%d %H:%M} --> "
+            f"{common_period.iloc[-1]:%Y-%m-%d %H:%M} "
+            f"({len(common_period)} steps) ... DONE"
+        )
     # ------------------------------------------------------------------------------------------------------------------
 
     # ------------------------------------------------------------------------------------------------------------------

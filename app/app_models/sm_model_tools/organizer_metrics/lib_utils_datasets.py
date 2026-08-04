@@ -283,7 +283,8 @@ def resolve_time_template(
 # method to validate one dynamic dataset
 def validate_datasets(dataset_cfg: Mapping[str, Any],
                       group_name: str, dataset_key: str,
-                      time_step: Optional[Any] = None, check_file: bool = True,) -> Dict[str, Any]:
+                      time_step_common: Optional[Any] = None, time_step_datasets: Optional[Any] = None,
+                      check_file: bool = True,) -> Dict[str, Any]:
 
     # create dataset label
     dataset_label = f"{group_name}.{dataset_key}"
@@ -339,19 +340,19 @@ def validate_datasets(dataset_cfg: Mapping[str, Any],
     is_dynamic = (folder_is_dynamic or filename_is_dynamic)
 
     # resolve paths only when a time step is available
-    if is_dynamic and time_step is None:
+    if is_dynamic and time_step_common is None:
         folder_name, file_name, file_path = None, None, None
     else:
 
         if folder_is_dynamic:
             folder_name = resolve_time_template(
-                template=folder_template, time_step=time_step, field_name=f"{dataset_label}.folder",)
+                template=folder_template, time_step=time_step_datasets, field_name=f"{dataset_label}.folder",)
         else:
             folder_name = folder_template
 
         if filename_is_dynamic:
             file_name = resolve_time_template(
-                template=filename_template, time_step=time_step, field_name=f"{dataset_label}.filename",)
+                template=filename_template, time_step=time_step_datasets, field_name=f"{dataset_label}.filename",)
         else:
             file_name = filename_template
 
@@ -459,7 +460,7 @@ def validate_datasets(dataset_cfg: Mapping[str, Any],
         "folder_is_dynamic": folder_is_dynamic,
         "filename_is_dynamic": filename_is_dynamic,
 
-        "time": (None if time_step is None else pd.Timestamp(time_step)),
+        "time": (None if time_step_common is None else pd.Timestamp(time_step_datasets)),
 
         "band": band,
         "variable": (variable.strip() if variable is not None else None),

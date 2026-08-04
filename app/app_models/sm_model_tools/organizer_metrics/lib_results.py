@@ -34,7 +34,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import rasterio
-
 from rasterio.crs import CRS
 from rasterio.transform import Affine
 
@@ -53,6 +52,7 @@ class Results:
             self,
             time_tag: str = "ALL",
             time_reference: Optional[Any] = None,
+            time_start: Optional[Any] = None, time_end: Optional[Any] = None,
             img_cfg: Optional[Dict[str, Any]] = None,
             results_cfg: Optional[Dict[str, Any]] = None,
     ):
@@ -61,23 +61,19 @@ class Results:
         self.time_tag = str(time_tag)
 
         # set reference time used for destination folders and filenames
-        self.time_reference = self._parse_time(
-            time_value=time_reference,
-            time_name="time_reference",
-        )
+        self.time_reference = self._parse_time(time_value=time_reference, time_name="time_reference",)
+        if time_start is not None:
+            self.time_start = self._parse_time(time_value=time_start, time_name="time_reference", )
+        else:
+            self.time_start = self.time_reference
+        if time_end is not None:
+            self.time_end = self._parse_time(time_value=time_end, time_name="time_reference", )
+        else:
+            self.time_end = self.time_reference
 
         # normalize configurations
-        self.img_cfg = (
-            {}
-            if img_cfg is None
-            else dict(img_cfg)
-        )
-
-        self.results_cfg = (
-            {}
-            if results_cfg is None
-            else dict(results_cfg)
-        )
+        self.img_cfg = ({} if img_cfg is None else dict(img_cfg))
+        self.results_cfg = ({} if results_cfg is None else dict(results_cfg))
 
         # initialize image configuration
         self._configure_images()
@@ -130,15 +126,16 @@ class Results:
 
         format_values = {
             "time": self.time_reference.to_pydatetime(),
+            "time_reference": self.time_reference.to_pydatetime(),
+            "time_start": self.time_start.to_pydatetime(),
+            "time_end": self.time_end.to_pydatetime(),
             "season": self.time_tag,
             "time_tag": self.time_tag,
             "name": layer_name if layer_name is not None else "",
         }
 
         try:
-            destination = template.format(
-                **format_values
-            )
+            destination = template.format(**format_values)
         except (KeyError, ValueError, IndexError) as exc:
             raise ValueError(
                 f"Unable to resolve destination template "
@@ -155,148 +152,40 @@ class Results:
     def _configure_images(self) -> None:
 
         # general options
-        self.img_enabled = bool(
-            self.img_cfg.get(
-                "enabled",
-                True,
-            )
-        )
+        self.img_enabled = bool(self.img_cfg.get("enabled",True,))
 
-        img_folder_template = str(
-            self.img_cfg.get(
-                "folder",
-                "./output/images",
-            )
-        )
+        img_folder_template = str(self.img_cfg.get("folder","./output/images",))
 
-        self.img_folder = self._format_destination(
-            template=img_folder_template,
-            field_name="img.folder",
-        )
+        self.img_folder = self._format_destination(template=img_folder_template,field_name="img.folder",)
+        self.img_filename = str(self.img_cfg.get("filename","weights_{season}_{name}_{time:%Y%m%d_%H%M}.png",))
+        self.img_dpi = int(self.img_cfg.get("dpi",150,))
+        self.img_figsize = self.img_cfg.get("figsize",[10, 8],)
 
-        self.img_filename = str(
-            self.img_cfg.get(
-                "filename",
-                "weights_{season}_{name}_{time:%Y%m%d_%H%M}.png",
-            )
-        )
+        if (not isinstance(self.img_figsize, (list, tuple)) or len(self.img_figsize) != 2):
+            raise ValueError("Image option 'figsize' must contain two values.")
 
-        self.img_dpi = int(
-            self.img_cfg.get(
-                "dpi",
-                150,
-            )
-        )
-
-        self.img_figsize = self.img_cfg.get(
-            "figsize",
-            [10, 8],
-        )
-
-        if (
-                not isinstance(self.img_figsize, (list, tuple))
-                or len(self.img_figsize) != 2
-        ):
-            raise ValueError(
-                "Image option 'figsize' must contain two values."
-            )
-
-        self.img_figsize = (
-            float(self.img_figsize[0]),
-            float(self.img_figsize[1]),
-        )
-
-        self.img_colormap = str(
-            self.img_cfg.get(
-                "colormap",
-                "viridis",
-            )
-        )
-
-        self.img_show_colorbar = bool(
-            self.img_cfg.get(
-                "show_colorbar",
-                True,
-            )
-        )
-
-        self.img_show_axis = bool(
-            self.img_cfg.get(
-                "show_axis",
-                True,
-            )
-        )
-
-        self.img_grid = bool(
-            self.img_cfg.get(
-                "grid",
-                False,
-            )
-        )
-
-        self.img_transpose = bool(
-            self.img_cfg.get(
-                "transpose",
-                False,
-            )
-        )
-
-        self.img_flip_vertical = bool(
-            self.img_cfg.get(
-                "flip_vertical",
-                False,
-            )
-        )
-
-        self.img_vmin = self.img_cfg.get(
-            "vmin",
-            None,
-        )
-
-        self.img_vmax = self.img_cfg.get(
-            "vmax",
-            None,
-        )
-
-        self.img_title = str(
-            self.img_cfg.get(
-                "title",
-                "Nudging weight: {name}",
-            )
-        )
-
-        self.img_colorbar_label = str(
-            self.img_cfg.get(
-                "colorbar_label",
-                "Weight",
-            )
-        )
-
-        self.img_layers = self.img_cfg.get(
-            "layers",
-            [
-                "weight",
-                "weight_correlation",
-                "weight_error",
-                "weight_observations",
-                "normalized_error",
-            ],
+        self.img_figsize = (float(self.img_figsize[0]), float(self.img_figsize[1]),)
+        self.img_colormap = str(self.img_cfg.get("colormap","viridis",) )
+        self.img_show_colorbar = bool(self.img_cfg.get("show_colorbar",True,))
+        self.img_show_axis = bool(self.img_cfg.get("show_axis", True,))
+        self.img_grid = bool(self.img_cfg.get("grid", False,))
+        self.img_transpose = bool(self.img_cfg.get("transpose", False,))
+        self.img_flip_vertical = bool(self.img_cfg.get("flip_vertical",False,))
+        self.img_vmin = self.img_cfg.get("vmin",None,)
+        self.img_vmax = self.img_cfg.get("vmax",None,)
+        self.img_title = str(self.img_cfg.get("title", "Nudging weight: {name}",))
+        self.img_colorbar_label = str(self.img_cfg.get("colorbar_label","Weight",))
+        self.img_layers = self.img_cfg.get("layers",
+            ["weight", "weight_correlation", "weight_error", "weight_observations", "normalized_error",],
         )
 
         if not isinstance(self.img_layers, list):
-            raise TypeError(
-                "Image option 'layers' must be a list."
-            )
+            raise TypeError("Image option 'layers' must be a list.")
 
-        self.img_ranges = self.img_cfg.get(
-            "ranges",
-            {},
-        )
+        self.img_ranges = self.img_cfg.get("ranges",{},)
 
         if not isinstance(self.img_ranges, Mapping):
-            raise TypeError(
-                "Image option 'ranges' must be a dictionary."
-            )
+            raise TypeError("Image option 'ranges' must be a dictionary.")
 
     # ------------------------------------------------------------------------------------------------------------------
     # method to configure output result options
@@ -478,56 +367,35 @@ class Results:
     # ------------------------------------------------------------------------------------------------------------------
     # method to validate analysis summary
     @staticmethod
-    def _validate_analysis(
-            analysis_summary: Dict[str, Any],
-    ) -> None:
+    def _validate_analysis(analysis_summary: Dict[str, Any],) -> None:
 
         if not isinstance(analysis_summary, dict):
-            raise TypeError(
-                "'analysis_summary' must be a dictionary."
-            )
-
+            raise TypeError("'analysis_summary' must be a dictionary.")
         if "weights" not in analysis_summary:
-            raise KeyError(
-                "Analysis summary does not contain the 'weights' section."
-            )
-
+            raise KeyError("Analysis summary does not contain the 'weights' section.")
         if analysis_summary["weights"] is None:
-            raise ValueError(
-                "Analysis summary contains no weight data."
-            )
-
+            raise ValueError("Analysis summary contains no weight data.")
         if "grid" not in analysis_summary:
-            raise KeyError(
-                "Analysis summary does not contain the 'grid' section."
-            )
+            raise KeyError("Analysis summary does not contain the 'grid' section.")
 
     # ------------------------------------------------------------------------------------------------------------------
     # method to get selected weight layers
     @staticmethod
-    def _get_layers(
-            weights_data: Dict[str, Any],
-            requested_layers: List[str],
-    ) -> Dict[str, np.ndarray]:
+    def _get_layers(weights_data: Dict[str, Any], requested_layers: List[str],) -> Dict[str, np.ndarray]:
 
         layers_data = {}
 
         for layer_name in requested_layers:
 
             if layer_name not in weights_data:
-
                 logger.warning(
                     " -----> Weight layer '%s' is not available and "
                     "will be skipped.",
                     layer_name,
                 )
-
                 continue
 
-            layer_values = np.asarray(
-                weights_data[layer_name]
-            )
-
+            layer_values = np.asarray(weights_data[layer_name])
             if layer_values.ndim != 2:
 
                 logger.warning(
@@ -545,21 +413,12 @@ class Results:
 
     # ------------------------------------------------------------------------------------------------------------------
     # method to prepare values for plotting or saving
-    def _prepare_values(
-            self,
-            values: np.ndarray,
-    ) -> np.ndarray:
+    def _prepare_values(self, values: np.ndarray,) -> np.ndarray:
 
-        values = np.asarray(
-            values,
-            dtype=np.float64,
-        ).copy()
+        values = np.asarray(values, dtype=np.float64,).copy()
 
-        if self.img_transpose:
-            values = values.T
-
-        if self.img_flip_vertical:
-            values = np.flipud(values)
+        if self.img_transpose: values = values.T
+        if self.img_flip_vertical: values = np.flipud(values)
 
         return values
 
@@ -574,27 +433,13 @@ class Results:
         if longitude is None or latitude is None:
             return None
 
-        longitude = np.asarray(
-            longitude,
-            dtype=np.float64,
-        )
-
-        latitude = np.asarray(
-            latitude,
-            dtype=np.float64,
-        )
-
-        finite_lon = longitude[
-            np.isfinite(longitude)
-        ]
-
-        finite_lat = latitude[
-            np.isfinite(latitude)
-        ]
+        longitude = np.asarray(longitude, dtype=np.float64,)
+        latitude = np.asarray(latitude, dtype=np.float64,)
+        finite_lon = longitude[np.isfinite(longitude)]
+        finite_lat = latitude[np.isfinite(latitude)]
 
         if finite_lon.size == 0 or finite_lat.size == 0:
             return None
-
         return [
             float(np.min(finite_lon)),
             float(np.max(finite_lon)),
@@ -609,48 +454,27 @@ class Results:
             layer_name: str,
     ):
 
-        layer_range = self.img_ranges.get(
-            layer_name,
-            {},
-        )
+        layer_range = self.img_ranges.get(layer_name,{},)
 
         if not isinstance(layer_range, Mapping):
             layer_range = {}
 
-        vmin = layer_range.get(
-            "vmin",
-            self.img_vmin,
-        )
-
-        vmax = layer_range.get(
-            "vmax",
-            self.img_vmax,
-        )
+        vmin = layer_range.get("vmin",self.img_vmin,)
+        vmax = layer_range.get("vmax",self.img_vmax,)
 
         return vmin, vmax
 
     # ------------------------------------------------------------------------------------------------------------------
     # public method to create PNG images
-    def plot(
-            self,
-            analysis_summary: Dict[str, Any],
-    ) -> Dict[str, str]:
+    def plot(self,analysis_summary: Dict[str, Any],) -> Dict[str, str]:
 
-        self._validate_analysis(
-            analysis_summary=analysis_summary,
-        )
+        self._validate_analysis(analysis_summary=analysis_summary,)
 
         if not self.img_enabled:
-
-            logger.info(
-                " ----> Weight PNG generation is disabled."
-            )
-
+            logger.info(" ----> Weight PNG generation is disabled.")
             return {}
 
-        logger.info(
-            " ----> Create weight PNG images ..."
-        )
+        logger.info(" ----> Create weight PNG images ...")
 
         weights_data = analysis_summary["weights"]
         grid_data = analysis_summary["grid"]
@@ -661,48 +485,23 @@ class Results:
         )
 
         if not layers_data:
-            raise RuntimeError(
-                "No valid weight layers are available for plotting."
-            )
+            raise RuntimeError("No valid weight layers are available for plotting.")
 
-        os.makedirs(
-            self.img_folder,
-            exist_ok=True,
-        )
+        os.makedirs(self.img_folder,exist_ok=True,)
 
-        longitude = grid_data.get(
-            "longitude"
-        )
-
-        latitude = grid_data.get(
-            "latitude"
-        )
-
-        extent = self._get_extent(
-            longitude=longitude,
-            latitude=latitude,
-        )
+        longitude = grid_data.get("longitude")
+        latitude = grid_data.get("latitude")
+        extent = self._get_extent(longitude=longitude, latitude=latitude,)
 
         output_files = {}
-
         for layer_name, layer_values in layers_data.items():
 
-            logger.info(
-                " -----> Plot weight layer: %s",
-                layer_name,
-            )
+            logger.info(" -----> Plot weight layer: %s",layer_name,)
 
-            values_plot = self._prepare_values(
-                values=layer_values,
-            )
+            values_plot = self._prepare_values(values=layer_values,)
+            vmin, vmax = self._get_plot_range(layer_name=layer_name,)
 
-            vmin, vmax = self._get_plot_range(
-                layer_name=layer_name,
-            )
-
-            figure, axis = plt.subplots(
-                figsize=self.img_figsize,
-            )
+            figure, axis = plt.subplots(figsize=self.img_figsize,)
 
             image = axis.imshow(
                 values_plot,
@@ -714,47 +513,23 @@ class Results:
                 interpolation="nearest",
             )
 
-            title = self.img_title.format(
-                name=layer_name,
-                season=self.time_tag,
-                time=self.time_reference.to_pydatetime(),
+            title = self.img_title.format(name=layer_name,
+                season=self.time_tag,time=self.time_reference.to_pydatetime(),
             )
-
-            axis.set_title(
-                title,
-            )
+            axis.set_title(title,)
 
             if self.img_show_axis:
-
-                axis.set_xlabel(
-                    "Longitude"
-                )
-
-                axis.set_ylabel(
-                    "Latitude"
-                )
-
+                axis.set_xlabel("Longitude")
+                axis.set_ylabel("Latitude")
             else:
-
                 axis.set_axis_off()
 
             if self.img_grid and self.img_show_axis:
-                axis.grid(
-                    True,
-                    alpha=0.3,
-                )
+                axis.grid(True,alpha=0.3,)
 
             if self.img_show_colorbar:
-
-                colorbar = figure.colorbar(
-                    image,
-                    ax=axis,
-                    shrink=0.85,
-                )
-
-                colorbar.set_label(
-                    self.img_colorbar_label
-                )
+                colorbar = figure.colorbar(image, ax=axis,shrink=0.85,)
+                colorbar.set_label(self.img_colorbar_label)
 
             figure.tight_layout()
 
@@ -840,28 +615,17 @@ class Results:
                 "No valid weight layers are available for saving."
             )
 
-        transform = grid_data.get(
-            "transform"
-        )
-
-        crs = grid_data.get(
-            "crs"
-        )
+        transform = grid_data.get("transform")
+        crs = grid_data.get("crs")
 
         if transform is None:
-            raise ValueError(
-                "Grid transform is required to save raster outputs."
-            )
+            raise ValueError("Grid transform is required to save raster outputs.")
 
         if not isinstance(transform, Affine):
-            transform = Affine(
-                *transform[:6]
-            )
+            transform = Affine(*transform[:6])
 
         if crs is not None and not isinstance(crs, CRS):
-            crs = CRS.from_user_input(
-                crs
-            )
+            crs = CRS.from_user_input(crs)
 
         logger.info(
             " -----> Grid transform: %s",
@@ -904,22 +668,12 @@ class Results:
                     f"Received shape: {values_output.shape}"
                 )
 
-            invalid_mask = ~np.isfinite(
-                values_output
-            )
-
-            invalid_count = int(
-                np.count_nonzero(invalid_mask)
-            )
-
-            values_output[
-                invalid_mask
-            ] = self.results_nodata
+            invalid_mask = ~np.isfinite(values_output)
+            invalid_count = int(np.count_nonzero(invalid_mask))
+            values_output[invalid_mask] = self.results_nodata
 
             # Recreate the array after replacing invalid values.
-            values_output = np.ascontiguousarray(
-                values_output
-            )
+            values_output = np.ascontiguousarray(values_output)
 
             logger.info(
                 " -----> Layer '%s': shape=%s, dtype=%s, "
@@ -1222,48 +976,32 @@ class Results:
 
     # ------------------------------------------------------------------------------------------------------------------
     # public method to create all outputs
-    def organize(
-            self,
-            analysis_summary: Dict[str, Any],
-    ) -> Dict[str, Any]:
+    def organize(self,analysis_summary: Dict[str, Any],) -> Dict[str, Any]:
 
-        logger.info(
-            " ----> Organize weight outputs ..."
-        )
+        # message organize start
+        logger.info(" ----> Organize weight outputs ...")
 
-        logger.info(
-            " -----> Reference time: %s",
-            self.time_reference,
-        )
+        # info
+        logger.info(" -----> Reference time: %s",self.time_reference,)
+        logger.info(" -----> Start time: %s", self.time_start, )
+        logger.info(" -----> End time: %s", self.time_end, )
+        logger.info(" -----> Image folder: %s",self.img_folder,)
+        logger.info(" -----> Results folder: %s",self.results_folder,)
 
-        logger.info(
-            " -----> Image folder: %s",
-            self.img_folder,
-        )
+        # organize images
+        image_files = self.plot(analysis_summary=analysis_summary,)
+        # organize files
+        result_files = self.save(analysis_summary=analysis_summary,)
 
-        logger.info(
-            " -----> Results folder: %s",
-            self.results_folder,
-        )
-
-        image_files = self.plot(
-            analysis_summary=analysis_summary,
-        )
-
-        result_files = self.save(
-            analysis_summary=analysis_summary,
-        )
-
+        # resume output info
         output_data = {
-            "time_reference": self.time_reference,
-            "time_tag": self.time_tag,
-            "images": image_files,
-            "results": result_files,
+            "time_reference": self.time_reference, "time_tag": self.time_tag,
+            "time_start": self.time_start, "time_end": self.time_end,
+            "images": image_files, "results": result_files,
         }
 
-        logger.info(
-            " ----> Organize weight outputs ... DONE"
-        )
+        # message organize end
+        logger.info(" ----> Organize weight outputs ... DONE")
 
         return output_data
 # ----------------------------------------------------------------------------------------------------------------------

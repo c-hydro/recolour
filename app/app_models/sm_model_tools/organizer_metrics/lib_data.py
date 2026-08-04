@@ -36,7 +36,12 @@ logger = logging.getLogger(LOGGER_NAME)
 # constants
 SUPPORTED_DATASET_TYPES = {"netcdf_hmc_state", "tiff",}
 
+SEASON_START_MONTH_TAG = {"ALL": "ALL","DJF": "12","MAM": "03","JJA": "06","SON": "09",}
+SEASON_END_MONTH_TAG = {"ALL": "ALL","DJF": "02","MAM": "05","JJA": "08","SON": "11",}
+
 DEFAULT_TAG = "ALL"
+DEFAULT_AGGREGATION_TYPE = "season" # season, month
+DEFAULT_AGGREGATION_BY = "name" # name, start_month, end_month (only for season type)
 DEFAULT_FREQUENCY = "D"
 DEFAULT_REFERENCE_GROUP = "reference"
 DEFAULT_OTHER_GROUP = "other"
@@ -51,9 +56,10 @@ class DynamicDatasets:
             self,
             datasets_cfg: Mapping[str, Any],
             geo: Mapping[str, Any],
-            time_period: Any,
+            time_period_common: Any, time_period_reference: Any, time_period_other: Any,
             time_frequency: str = DEFAULT_FREQUENCY,
             time_tag: str = DEFAULT_TAG,
+            aggregation_type: str = DEFAULT_AGGREGATION_TYPE, aggregation_by: str = DEFAULT_AGGREGATION_BY,
             reference_group: str = DEFAULT_REFERENCE_GROUP,
             other_group: str = DEFAULT_OTHER_GROUP,
             check_grids: bool = True,
@@ -65,37 +71,29 @@ class DynamicDatasets:
 
         # check datasets configuration
         if not isinstance(datasets_cfg, Mapping):
-            raise TypeError(
-                "The datasets configuration must be a dictionary."
-            )
-
+            raise TypeError("The datasets configuration must be a dictionary.")
         if not isinstance(geo, Mapping):
-            raise TypeError(
-                "The geo object must be a dictionary."
-            )
+            raise TypeError("The geo object must be a dictionary.")
 
         self.datasets_cfg_raw = deepcopy(dict(datasets_cfg))
         self.geo = geo
 
         self.time_frequency = time_frequency
-        self.time_period = time_period
+        self.time_period_common = time_period_common
+        self.time_period_reference = time_period_reference
+        self.time_period_other = time_period_other
 
-        if len(self.time_period) == 0:
-            raise ValueError(
-                "The time period is empty."
-            )
+        if len(self.time_period_common) == 0: raise ValueError("The time period common is empty.")
+        if len(self.time_period_reference) == 0: raise ValueError("The time period reference is empty.")
+        if len(self.time_period_other) == 0: raise ValueError("The time period other is empty.")
 
-        self.time_start = self._parse_time(
-            time_value=time_period[0],
-            time_name="time_start",
-        )
-
-        self.time_end = self._parse_time(
-            time_value=time_period[-1],
-            time_name="time_end",
-        )
-
-        self.time_tag = time_tag
+        self.time_start = self._parse_time(time_value=time_period_common.iloc[0], time_name="time_start",)
+        self.time_end = self._parse_time(time_value=time_period_common.iloc[-1],time_name="time_end",)
+        self.aggregation_type = str(aggregation_type).strip().lower()
+        self.aggregation_by = str(aggregation_by).strip().lower()
+        self.time_tag = self._define_time_tag(
+            time_value=self.time_end, type_tag=self.aggregation_type,
+            requested_tag=time_tag, season_tag_type=self.aggregation_by)
 
         if self.time_start > self.time_end:
             raise ValueError(
@@ -115,14 +113,10 @@ class DynamicDatasets:
         try:
             missing_threshold = float(missing_threshold)
         except (TypeError, ValueError) as exc:
-            raise TypeError(
-                "'missing_threshold' must be numeric."
-            ) from exc
+            raise TypeError("'missing_threshold' must be numeric.") from exc
 
         if not 0.0 <= missing_threshold <= 100.0:
-            raise ValueError(
-                "'missing_threshold' must be between 0 and 100."
-            )
+            raise ValueError("'missing_threshold' must be between 0 and 100.")
 
         self.missing_threshold = missing_threshold
 
@@ -133,7 +127,7 @@ class DynamicDatasets:
 
         # Availability statistics are reset when iterate() starts.
         self._availability_stats: Dict[str, Any] = {
-            "time_steps_total": len(self.time_period),
+            "time_steps_total": len(self.time_period_common),
             "time_steps_available": 0,
             "time_steps_missing": 0,
             "missing_percentage": 0.0,
@@ -156,7 +150,7 @@ class DynamicDatasets:
         logger.info(f" -----> Time start: {self.time_start}")
         logger.info(f" -----> Time end: {self.time_end}")
         logger.info(f" -----> Time frequency: {self.time_frequency}")
-        logger.info(f" -----> Number of time steps: {len(self.time_period)}")
+        logger.info(f" -----> Number of time steps: {len(self.time_period_common)}")
 
         # info method end
         logger.info(" ----> Organize dynamic datasets ... DONE")
@@ -175,7 +169,7 @@ class DynamicDatasets:
 
         logger.info(" ----> Iterate dynamic datasets ...")
 
-        time_steps_total = len(self.time_period)
+        time_steps_total = len(self.time_period_common)
 
         # Reset availability statistics for this iteration.
         self._availability_stats = {
@@ -187,24 +181,26 @@ class DynamicDatasets:
             "missing_files": [],
         }
 
-        for time_id, time_step in enumerate(
-                self.time_period,
-                start=1,
-        ):
+        # iterate
+        for time_id, (time_step_common, time_step_reference, time_step_other) in enumerate(
+                zip(self.time_period_common, self.time_period_reference,self.time_period_other,), start=1,):
 
+            # info start time
             logger.info(
                 f" -----> Time step {time_id}/{time_steps_total}: "
-                f"{time_step} ..."
+                f"common={time_step_common:%Y-%m-%d %H:%M}, "
+                f"reference={time_step_reference:%Y-%m-%d %H:%M}, "
+                f"other={time_step_other:%Y-%m-%d %H:%M} ... "
             )
 
             # Resolve dataset paths without requiring files to exist.
             # File availability is managed explicitly below.
             datasets_step_cfg = self._validate_datasets(
-                time=time_step,
+                time_common=time_step_common,
+                time_reference=time_step_reference, time_other=time_step_other
             )
 
             datasets_obj = None
-
             try:
 
                 files_available, missing_files = self._check_time_files(
@@ -213,60 +209,38 @@ class DynamicDatasets:
 
                 if not files_available:
 
-                    self._availability_stats[
-                        "time_steps_missing"
-                    ] += 1
+                    self._availability_stats["time_steps_missing"] += 1
 
-                    self._availability_stats[
-                        "missing_files"
-                    ].append({
-                        "time": time_step,
+                    self._availability_stats["missing_files"].append({
+                        "time": time_step_common,
                         "files": list(missing_files),
                     })
 
-                    missing_message = (
-                            f"Missing datasets at time '{time_step}': "
-                            + ", ".join(missing_files)
-                    )
+                    missing_message = (f"Missing datasets at time '{time_step_common}': "
+                                       + ", ".join(missing_files))
 
                     if self.skip_missing:
-                        logger.warning(
-                            f"{missing_message}. Time step skipped."
-                        )
+                        logger.warning(f"{missing_message}. Time step skipped.")
                         continue
 
-                    raise FileNotFoundError(
-                        missing_message
-                    )
+                    raise FileNotFoundError(missing_message)
 
-                self._availability_stats[
-                    "time_steps_available"
-                ] += 1
+                self._availability_stats["time_steps_available"] += 1
 
                 # Load the reference and candidate maps only when all
                 # files required for the current time step are available.
-                datasets_obj = self._get_datasets(
-                    resolved_cfg=datasets_step_cfg,
-                    time_step=time_step,
-                )
+                datasets_obj = self._get_datasets(resolved_cfg=datasets_step_cfg,time_step=time_step_common,)
 
                 # Grid geometry normally does not change with time.
                 if self._must_check_grids():
 
-                    is_compatible = self._check_datasets(
-                        datasets_obj=datasets_obj,
-                    )
-
+                    is_compatible = self._check_datasets(datasets_obj=datasets_obj,)
                     if is_compatible:
                         self._grids_checked = True
 
                 yield {
-                    "time": time_step,
-                    "paths": {
-                        group_name: group_cfg["file_path"]
-                        for group_name, group_cfg
-                        in datasets_step_cfg.items()
-                    },
+                    "time": time_step_common,
+                    "paths": {group_name: group_cfg["file_path"]for group_name, group_cfg in datasets_step_cfg.items()},
                     **datasets_obj,
                 }
 
@@ -278,30 +252,24 @@ class DynamicDatasets:
                 datasets_obj = None
                 gc.collect()
 
+                # info end time
                 logger.info(
                     f" -----> Time step {time_id}/{time_steps_total}: "
-                    f"{time_step} ... DONE"
+                    f"common={time_step_common:%Y-%m-%d %H:%M}, "
+                    f"reference={time_step_reference:%Y-%m-%d %H:%M}, "
+                    f"other={time_step_other:%Y-%m-%d %H:%M} ... DONE"
                 )
 
         # --------------------------------------------------------------------------
         # Evaluate the missing-data percentage after checking all requested times.
-
-        time_steps_missing = self._availability_stats[
-            "time_steps_missing"
-        ]
+        time_steps_missing = self._availability_stats["time_steps_missing"]
 
         if time_steps_total > 0:
-            missing_percentage = (
-                    100.0
-                    * time_steps_missing
-                    / time_steps_total
-            )
+            missing_percentage = (100.0 * time_steps_missing/ time_steps_total)
         else:
             missing_percentage = 0.0
 
-        self._availability_stats[
-            "missing_percentage"
-        ] = missing_percentage
+        self._availability_stats["missing_percentage"] = missing_percentage
 
         logger.info(
             " -----> Dataset availability: "
@@ -347,42 +315,18 @@ class DynamicDatasets:
         logger.info(" ----> Analyze dynamic datasets ...")
 
         # normalize metrics configuration
-        metrics_cfg = (
-            {}
-            if metrics_cfg is None
-            else dict(metrics_cfg)
-        )
+        metrics_cfg = ({} if metrics_cfg is None else dict(metrics_cfg))
 
         # get metrics options
-        min_observations = metrics_cfg.get(
-            "min_observations",
-            metrics_cfg.get("min_observations", 10),
-        )
-
-        metrics_dtype = np.dtype(
-            metrics_cfg.get(
-                "dtype",
-                "float64",
-            )
-        )
-
-        continue_on_error = bool(
-            metrics_cfg.get(
-                "continue_on_error",
-                False,
-            )
-        )
+        min_observations = metrics_cfg.get("min_observations", metrics_cfg.get("min_observations", 10),)
+        metrics_dtype = np.dtype(metrics_cfg.get("dtype", "float64",))
+        continue_on_error = bool(metrics_cfg.get("continue_on_error", False,))
 
         # validate options
         if not isinstance(min_observations, (int, np.integer)):
-            raise TypeError(
-                "Metrics option 'min_observations' must be an integer."
-            )
-
+            raise TypeError("Metrics option 'min_observations' must be an integer.")
         if min_observations < 1:
-            raise ValueError(
-                "Metrics option 'min_observations' must be greater than zero."
-            )
+            raise ValueError("Metrics option 'min_observations' must be greater than zero.")
 
         logger.info(
             " -----> Metrics configuration: "
@@ -400,7 +344,7 @@ class DynamicDatasets:
         )
 
         # initialize counters
-        time_steps_total = len(self.time_period)
+        time_steps_total = len(self.time_period_common)
         time_steps_processed = 0
         time_steps_skipped = 0
         valid_pairs_total = 0
@@ -410,39 +354,22 @@ class DynamicDatasets:
         reference_grid = None
 
         # iterate over dataset pairs
-        for time_index, datasets_step in enumerate(
-                self.iterate(),
-                start=1,
-        ):
+        for time_index, datasets_step in enumerate(self.iterate(), start=1,):
 
             time_step = datasets_step["time"]
 
-            logger.info(
-                " -----> Processing time step %d/%d: %s",
-                time_index,
-                time_steps_total,
-                time_step,
-            )
+            logger.info(" -----> Processing time step %d/%d: %s",
+                        time_index, time_steps_total, time_step,)
 
             try:
 
                 # get datasets
-                reference_data = datasets_step[
-                    self.reference_group
-                ]
-
-                other_data = datasets_step[
-                    self.other_group
-                ]
+                reference_data = datasets_step[self.reference_group]
+                other_data = datasets_step[self.other_group]
 
                 # get arrays
-                reference_values = np.asarray(
-                    reference_data["values"]
-                )
-
-                other_values = np.asarray(
-                    other_data["values"]
-                )
+                reference_values = np.asarray(reference_data["values"])
+                other_values = np.asarray(other_data["values"])
 
                 # store grid information once
                 if reference_grid is None:
@@ -451,19 +378,10 @@ class DynamicDatasets:
                         "latitude": reference_data.get("latitude"),
                         "transform": reference_data.get("transform"),
                         "crs": reference_data.get("crs"),
-                        "width": reference_data.get(
-                            "width",
-                            reference_values.shape[-1],
-                        ),
-                        "height": reference_data.get(
-                            "height",
-                            reference_values.shape[-2],
-                        ),
+                        "width": reference_data.get("width",reference_values.shape[-1],),
+                        "height": reference_data.get("height", reference_values.shape[-2],),
                         "shape": reference_values.shape,
-                        "metadata": reference_data.get(
-                            "metadata",
-                            {},
-                        ),
+                        "metadata": reference_data.get("metadata", {},),
                     }
 
                 # update metrics
@@ -484,10 +402,7 @@ class DynamicDatasets:
 
                     last_time_processed = time_step
 
-                    logger.info(
-                        " -----> Valid paired pixels: %d",
-                        valid_pairs_step,
-                    )
+                    logger.info(" -----> Valid paired pixels: %d",valid_pairs_step,)
 
                 else:
 
@@ -502,21 +417,13 @@ class DynamicDatasets:
             except Exception as exc:
 
                 time_steps_skipped += 1
+                logger.error(" -----> Time step '%s' failed: %s", time_step,exc,)
 
-                logger.error(
-                    " -----> Time step '%s' failed: %s",
-                    time_step,
-                    exc,
-                )
-
-                if not continue_on_error:
-                    raise
+                if not continue_on_error: raise
 
         # make sure at least one valid update was completed
         if metrics_obj.update_count == 0:
-            raise RuntimeError(
-                "Metrics analysis did not process any valid dataset pair."
-            )
+            raise RuntimeError("Metrics analysis did not process any valid dataset pair.")
 
         # compute grid metrics maps
         metrics_grid = metrics_obj.finalize_grid()
@@ -531,8 +438,8 @@ class DynamicDatasets:
             "metrics_grid": metrics_grid, "metrics_scalar": metrics_scalar,
             "grid": reference_grid,
             "time": {
-                "start_requested": self.time_period[0],
-                "end_requested": self.time_period[-1],
+                "start_requested": self.time_period_common.iloc[0],
+                "end_requested": self.time_period_common.iloc[-1],
                 "first_processed": first_time_processed,
                 "last_processed": last_time_processed,
                 "frequency": self.time_frequency,
@@ -1396,7 +1303,10 @@ class DynamicDatasets:
 
     # ------------------------------------------------------------------------------------------------------------------
     # method to validate all configurations
-    def _validate_datasets(self, time: pd.Timestamp = None) -> Dict[str, Dict[str, Any]]:
+    def _validate_datasets(self,
+                           time_common: pd.Timestamp = None,
+                           time_reference: pd.Timestamp = None, time_other: pd.Timestamp = None) \
+            -> Dict[str, Dict[str, Any]]:
 
         # info start
         logger.info(" -----> Validate datasets ...")
@@ -1417,19 +1327,30 @@ class DynamicDatasets:
             # info datasets start
             logger.info(f" ------> Dataset group {group_name} ...")
 
+            # define time datasets
+            if time_common is not None:
+                if group_name == 'reference':
+                    time_datasets = time_reference
+                elif group_name == 'other':
+                    time_datasets = time_other
+                else:
+                    raise ValueError(f"Dataset group '{group_name}' is not allowed.")
+            else:
+                time_datasets = None
+
             if not isinstance(dataset_cfg, Mapping):
                 raise TypeError(f"Dataset group '{group_name}' must be a dictionary.")
             if not dataset_cfg:
                 raise ValueError(f"Dataset group '{group_name}' is empty.")
 
             # check time for static or dynamic datasets
-            if time is None:
+            if time_common is None:
 
                 dataset_validated = validate_datasets(
                     dataset_cfg=dataset_cfg,
                     group_name=group_name,
                     dataset_key=group_name,
-                    time_step=None,
+                    time_step_common=None, time_step_datasets=None,
                     check_file=False,
                 )
 
@@ -1441,7 +1362,7 @@ class DynamicDatasets:
                     dataset_cfg=dataset_cfg,
                     group_name=group_name,
                     dataset_key=group_name,
-                    time_step=time,
+                    time_step_common=time_common, time_step_datasets=time_datasets,
                     check_file=False,
                 )
 
@@ -1524,4 +1445,96 @@ class DynamicDatasets:
             raise ValueError(f"'{time_name}' is NaT.")
 
         return time_obj
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # method to define time tag
+    @staticmethod
+    @staticmethod
+    def _define_time_tag(
+            time_value: Any,
+            type_tag: str,
+            requested_tag: str = DEFAULT_TAG,
+            season_tag_type: str = "name",
+    ) -> str:
+        """
+        Define the tag used to identify output files.
+
+        Parameters
+        ----------
+        time_value : Any
+            Reference time. Used only for monthly analyses.
+
+        type_tag : {"season", "month"}
+            Type of temporal aggregation.
+
+        requested_tag : str, default="ALL"
+            Season tag (ALL, DJF, MAM, JJA, SON) when
+            ``type_tag="season"``.
+
+        season_tag_type : {"name", "start_month", "end_month"}, default="name"
+            Representation used for seasonal analyses:
+
+            - "name": season name (e.g. DJF)
+            - "start_month": first month of the season (e.g. DJF -> "12")
+            - "end_month": last month of the season (e.g. DJF -> "02")
+
+        Returns
+        -------
+        str
+            Tag identifying the requested period.
+        """
+
+        season_start_month = {
+            "ALL": "ALL_START",
+            "DJF": "12",
+            "MAM": "03",
+            "JJA": "06",
+            "SON": "09",
+        }
+
+        season_end_month = {
+            "ALL": "ALL_END",
+            "DJF": "02",
+            "MAM": "05",
+            "JJA": "08",
+            "SON": "11",
+        }
+
+        type_tag = str(type_tag).strip().lower()
+        requested_tag = str(requested_tag).strip().upper()
+        season_tag_type = str(season_tag_type).strip().lower()
+        time_value = pd.Timestamp(time_value)
+
+        if type_tag == "season":
+
+            if requested_tag not in season_start_month:
+                raise ValueError(
+                    f'Unsupported season tag "{requested_tag}". '
+                    f"Supported values are: {list(season_start_month.keys())}"
+                )
+
+            if season_tag_type == "name":
+                return requested_tag
+
+            if season_tag_type == "start_month":
+                return season_start_month[requested_tag]
+
+            if season_tag_type == "end_month":
+                return season_end_month[requested_tag]
+
+            raise ValueError(
+                f'Unsupported season_tag_type "{season_tag_type}". '
+                'Supported values are: "name", "start_month", "end_month".'
+            )
+
+        if type_tag == "month":
+            return time_value.strftime("%m")
+
+        raise ValueError(
+            f'Unsupported type_tag "{type_tag}". '
+            'Supported values are: "season", "month".'
+        )
+    # ------------------------------------------------------------------------------------------------------------------
+
 # ----------------------------------------------------------------------------------------------------------------------
